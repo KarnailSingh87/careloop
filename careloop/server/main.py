@@ -22,6 +22,7 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP  # type: ignore
 
 from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.routing import Route
 import uvicorn
@@ -45,6 +46,94 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("careloop.server")
+
+
+class AlexaAuthMiddleware:
+    """
+    ASGI middleware enforcing Alexa+ MCP authentication requirements.
+
+    Validates:
+    - Authorization: Bearer <token>
+    - x-alexa-auth-token: <token>
+    - x-api-key: <token>
+    - ?auth_token=<token> (query parameter fallback)
+
+    Bypasses:
+    - Public health & simulator endpoints: /health, /simulator, /, /favicon.ico
+    - CORS pre-flight OPTIONS requests
+    """
+
+    def __init__(self, app: Any, auth_token: Optional[str] = None) -> None:
+        self.app = app
+        self.auth_token = (
+            auth_token
+            if auth_token is not None
+            else os.getenv("ALEXA_AUTH_TOKEN", "").strip()
+        )
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        method = scope.get("method", "GET").upper()
+        path = scope.get("path", "")
+
+        # 1. Bypass CORS pre-flight requests
+        if method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+
+        # 2. Bypass public monitoring and simulator UI endpoints
+        if path in ("/health", "/simulator", "/", "/favicon.ico") or path.startswith("/simulator/"):
+            await self.app(scope, receive, send)
+            return
+
+        # 3. If no auth token is configured, allow open access (local/test mode)
+        if not self.auth_token:
+            await self.app(scope, receive, send)
+            return
+
+        # 4. Extract token from headers or query parameters
+        headers = dict(scope.get("headers", []))
+        auth_header = headers.get(b"authorization", b"").decode("utf-8").strip()
+        alexa_header = headers.get(b"x-alexa-auth-token", b"").decode("utf-8").strip()
+        api_key_header = headers.get(b"x-api-key", b"").decode("utf-8").strip()
+
+        query_string = scope.get("query_string", b"").decode("utf-8")
+        query_token = ""
+        if "auth_token=" in query_string:
+            import urllib.parse
+            parsed_qs = urllib.parse.parse_qs(query_string)
+            query_token = parsed_qs.get("auth_token", [""])[0].strip()
+
+        extracted_token = ""
+        if auth_header.lower().startswith("bearer "):
+            extracted_token = auth_header[7:].strip()
+        elif alexa_header:
+            extracted_token = alexa_header
+        elif api_key_header:
+            extracted_token = api_key_header
+        elif query_token:
+            extracted_token = query_token
+
+        if extracted_token != self.auth_token:
+            logger.warning(f"Unauthorized request to {path}: missing or invalid Alexa+ auth token")
+            response = JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": -32001,
+                        "message": "Unauthorized: Missing or invalid Alexa+ authentication token.",
+                    },
+                },
+                status_code=401,
+                headers={"WWW-Authenticate": 'Bearer realm="CareLoop Alexa+ MCP"'},
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
 
 
 def create_server(
@@ -120,6 +209,7 @@ def create_app(
     clock: Optional[Clock] = None,
     tick_interval_seconds: float = 30.0,
     enable_background_loop: bool = True,
+    auth_token: Optional[str] = None,
 ) -> Starlette:
     """
     Build the ASGI Starlette app wrapping the MCP Streamable HTTP transport.
@@ -432,6 +522,24 @@ def create_app(
     app.routes.append(Route("/api/mcp/tools", api_mcp_tools, methods=["GET"]))
     app.routes.append(Route("/api/demo/skips-lunch/setup", api_demo_skips_lunch_setup, methods=["POST"]))
 
+    # Alias /v1/mcp to the same endpoint as /mcp for Alexa+ versioned route compatibility
+    mcp_route = next((r for r in app.routes if getattr(r, "path", None) == "/mcp"), None)
+    if mcp_route and hasattr(mcp_route, "endpoint"):
+        app.routes.append(Route("/v1/mcp", mcp_route.endpoint))
+
+    # Add CORS middleware for browser clients and simulator
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["Mcp-Session-Id", "Content-Type", "WWW-Authenticate"],
+    )
+
+    # Add Alexa+ authentication middleware
+    app.add_middleware(AlexaAuthMiddleware, auth_token=auth_token)
+
     return app
 
 
@@ -464,6 +572,11 @@ def main() -> None:
         action="store_true",
         help="Disable autonomous background escalation loop",
     )
+    parser.add_argument(
+        "--auth-token",
+        default=os.getenv("ALEXA_AUTH_TOKEN"),
+        help="Alexa+ Bearer authentication token for securing the MCP endpoint",
+    )
 
     args = parser.parse_args()
 
@@ -481,6 +594,7 @@ def main() -> None:
         clock=clock,
         tick_interval_seconds=args.tick_interval,
         enable_background_loop=not args.disable_background_loop,
+        auth_token=args.auth_token,
     )
 
     logger.info(f"Starting CareLoop MCP Server on http://{args.host}:{args.port}")

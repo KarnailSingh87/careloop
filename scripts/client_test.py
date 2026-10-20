@@ -20,18 +20,27 @@ import sys
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import httpx
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 
-async def run_client_test(server_url: str) -> None:
+async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> None:
     print("=" * 60)
     print(f"Connecting to CareLoop Streamable HTTP MCP Server at: {server_url}")
+    if auth_token:
+        masked = auth_token[:4] + "..." + auth_token[-4:] if len(auth_token) > 8 else "***"
+        print(f"Authentication: Bearer {masked}")
     print("=" * 60)
 
+    headers = {}
+    if auth_token:
+        headers["Authorization"] = f"Bearer {auth_token}"
+
     try:
-        async with streamable_http_client(server_url) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as http_client:
+            async with streamable_http_client(server_url, http_client=http_client) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
                 # 1. Initialize session with server
                 init_result = await session.initialize()
                 print(f"\n[1] Connected to MCP Server: {init_result.server_info.name} (v{init_result.server_info.version})")
@@ -146,8 +155,13 @@ def main() -> None:
         default="http://127.0.0.1:8000/mcp",
         help="Streamable HTTP MCP endpoint URL (default: http://127.0.0.1:8000/mcp)",
     )
+    parser.add_argument(
+        "--auth-token",
+        default=os.getenv("ALEXA_AUTH_TOKEN"),
+        help="Optional Alexa+ Bearer authentication token",
+    )
     args = parser.parse_args()
-    asyncio.run(run_client_test(args.url))
+    asyncio.run(run_client_test(args.url, auth_token=args.auth_token))
 
 
 if __name__ == "__main__":

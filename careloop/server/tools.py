@@ -74,15 +74,28 @@ def register_tools(
         timestamp: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Log an elderly parent routine event (medication, meal, movement, door).
-        
+        Record an elderly parent's routine event (medication, meal, movement, door).
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "I just took my pills" / "I took my blood pressure medication"
+        - "I had breakfast" / "I finished lunch" / "I'm eating dinner"
+        - "Dad got out of bed" / "Front door was opened"
+
+        WHEN TO CALL:
+        - Call when the elder parent states they completed a daily routine action.
+        - Call when an ambient smart home sensor (pillbox, motion, contact sensor) reports an event.
+        - Resets any active check-in escalation state machine back to 'normal'.
+
+        WHEN NOT TO CALL:
+        - Do NOT call if the user is asking whether an event occurred (use `ask_memory`).
+        - Do NOT call for non-routine chatter.
+
         STRICT PRIVACY GUARANTEE:
-        Only metadata (person, type, timestamp) is recorded.
-        Raw audio or voice recordings are NEVER captured or stored.
+        Only metadata (person, type, timestamp) is recorded. Raw audio is NEVER stored.
 
         Parameters:
-            person: Identifier of the person (e.g. "eleanor", "mom")
-            type: Event category: 'medication', 'meal', 'movement', or 'door'
+            person: Identifier of the elder parent (e.g. "eleanor", "dad", "mom")
+            type: Event category: 'medication' (or 'pill'), 'meal', 'movement', or 'door'
             timestamp: Optional ISO 8601 timestamp string (defaults to current clock time if None)
         """
         normalized_type = type.strip().lower()
@@ -129,18 +142,36 @@ def register_tools(
             f"type={event.event_type.value}, time={event.timestamp.isoformat()}"
         )
 
+        friendly_time = event.timestamp.strftime("%I:%M %p").lstrip("0")
+        type_display = "medication" if event.event_type.value == "pill" else event.event_type.value
+        voice_msg = f"Thank you, I've recorded {event.person_id.capitalize()}'s {type_display} at {friendly_time}."
+
         return {
             "status": "logged",
             "event_id": event.event_id,
             "person": event.person_id,
             "type": event.event_type.value,
             "timestamp": event.timestamp.isoformat(),
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def check_routine_health(person: str) -> Dict[str, Any]:
         """
-        Evaluate routine health, risk score, plain-English reasons, and escalation stage.
+        Evaluate an elder parent's routine health, deterministic risk score, and escalation stage.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "How is Dad doing today?"
+        - "Is Mom's routine normal?"
+        - "Check on Eleanor"
+        - "Are there any missed routines or alerts?"
+
+        WHEN TO CALL:
+        - Call when family or Alexa asks for routine status or wellness check.
+        - Call during proactive Alexa routine audits to detect missed events.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. "eleanor", "dad", "mom")
         """
         person_id = person.strip().lower()
         now = clock.now()
@@ -159,6 +190,15 @@ def register_tools(
             f"score={state.risk_score}, stage={state.stage.value}"
         )
 
+        if risk_level == "low":
+            voice_msg = f"{person_id.capitalize()}'s routine health is normal today with low risk. All expected activities are on track."
+        elif risk_level == "medium":
+            reasons_text = "; ".join(state.reasons) if state.reasons else "Potential schedule deviation detected."
+            voice_msg = f"{person_id.capitalize()} has an active routine warning: {reasons_text}"
+        else:
+            reasons_text = "; ".join(state.reasons) if state.reasons else "Multiple critical routines missed."
+            voice_msg = f"Attention: {person_id.capitalize()} has high routine risk. {reasons_text}"
+
         return {
             "person": person_id,
             "risk_level": risk_level,
@@ -166,33 +206,54 @@ def register_tools(
             "reasons": state.reasons,
             "escalation_stage": state.stage.value,
             "last_evaluated": now.isoformat(),
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def respond_to_checkin(person: str, response_text: str) -> Dict[str, Any]:
         """
-        Record the elder parent's response to an Alexa check-in prompt.
-        If the elder replies 'I'm fine' or confirms they are okay, resets escalation to normal.
+        Process the elder parent's verbal response to an Alexa proactive voice check-in prompt.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - Elder speaks after Alexa says "Good afternoon, are you doing okay?"
+        - Example responses: "I was just reading", "I had a sandwich earlier", "Feeling a bit tired"
+
+        WHEN TO CALL:
+        - Call when the elder answers Alexa's check-in question.
+        - If response indicates wellness ("fine", "good"), automatically resolves escalation to normal.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. "eleanor", "dad")
+            response_text: Full transcribed text spoken by the elder parent
         """
         person_id = person.strip().lower()
         now = clock.now()
         state = escalation_engine.handle_voice_response(person_id, response_text, now)
+        voice_msg = f"Thanks for letting me know, {person_id.capitalize()}. I've updated your routine status."
         return {
             "person": person_id,
             "response_recorded": response_text,
             "escalation_stage": state.stage.value,
             "message": f"Escalation stage is now {state.stage.value}.",
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def schedule_reminder(person: str, text: str, time: str) -> Dict[str, Any]:
         """
-        Schedule a voice reminder through Alexa+ for an elderly parent.
+        Schedule a spoken voice reminder announced through Alexa+ for the elder parent.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "Remind Dad to drink water at 3 PM"
+        - "Set a reminder for Mom to take blood pressure pills at 8:00 AM"
+
+        WHEN TO CALL:
+        - Call when elder or caregiver requests a scheduled voice reminder.
 
         Parameters:
-            person: Identifier of the person (e.g. "eleanor", "mom")
-            text: Reminder content to be announced (e.g. "Drink water and take blood pressure pill")
-            time: Target scheduled time (ISO 8601 string or HH:MM time)
+            person: Identifier of the elder parent (e.g. "eleanor", "dad")
+            text: Spoken reminder message (e.g. "Drink water and take blood pressure pill")
+            time: Target scheduled time (ISO 8601 string or HH:MM time, e.g. "15:00")
         """
         reminder = Reminder(
             person_id=person.strip().lower(),
@@ -209,22 +270,32 @@ def register_tools(
             f"time={reminder.scheduled_time}, text='{reminder.text}'"
         )
 
+        voice_msg = f"I have scheduled a reminder for {reminder.person_id.capitalize()} at {reminder.scheduled_time}: {reminder.text}."
+
         return {
             "status": "scheduled",
             "reminder_id": reminder.reminder_id,
             "person": reminder.person_id,
             "text": reminder.text,
             "time": reminder.scheduled_time,
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def notify_family(person: str, severity: str, message: str) -> Dict[str, Any]:
         """
-        Dispatches an urgent or warning alert notification to the elder parent's designated family caregivers via Amazon SNS (or console).
-        Always logs the alert with supporting deterministic reasons to the audit history.
+        Dispatch an urgent or warning alert notification to designated family caregivers via Amazon SNS.
+        Always logs the alert with supporting deterministic audit reasons.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "Alert my daughter" / "Call my family" / "Send an alert to family"
+        - Proactive autonomous alert when routine check-in attempts fail
+
+        WHEN TO CALL:
+        - Call when the elder asks for family help, or when repeated check-ins go unanswered.
 
         Parameters:
-            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             severity: Alert severity level: 'low', 'medium', 'high', or 'critical'
             message: Plain-English explanation of why family is being alerted
         """
@@ -265,6 +336,9 @@ def register_tools(
             contacts=contacts,
         )
 
+        recipient_names = ", ".join(c.name for c in contacts) if contacts else "family caregivers"
+        voice_msg = f"I've sent an alert to {person_id.capitalize()}'s {recipient_names}."
+
         return {
             "status": "notified" if delivery_success else "dispatch_failed",
             "alert_id": alert.alert_id,
@@ -274,16 +348,24 @@ def register_tools(
             "notifier": notifier.__class__.__name__,
             "reasons": reasons,
             "delivered_to": [c.name for c in contacts] if contacts else ["Default Caregiver"],
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def confirm_ok(person: str) -> Dict[str, Any]:
         """
-        Called when an elderly parent responds to a voice check-in confirming they are fine, healthy, or okay.
-        Resets any active routine check-in escalation state machine back to normal.
+        Confirm the elder parent is fine, healthy, or safe, immediately resetting routine escalation to normal.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "I'm fine" / "I'm okay" / "I am okay, Alexa"
+        - "Everything is good" / "I'm doing well" / "Don't worry, I'm alright"
+
+        WHEN TO CALL:
+        - Call whenever the elder parent confirms they are fine.
+        - Immediately resets any active check-in escalation state machine back to normal.
 
         Parameters:
-            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            person: Identifier of the elder parent (e.g. 'eleanor', 'dad', 'mom')
         """
         person_id = person.strip().lower()
         now = clock.now()
@@ -292,21 +374,31 @@ def register_tools(
             now=now,
             reason="Elder confirmed they are fine",
         )
+        voice_msg = f"Glad to hear you're doing well, {person_id.capitalize()}! I've cleared any routine check-ins."
         return {
             "status": "confirmed_ok",
             "person": person_id,
             "escalation_stage": state.stage.value,
             "message": f"Confirmed that {person_id} is okay. Escalation state is now normal.",
+            "voice_response": voice_msg,
         }
 
     @server.tool()
     def daily_summary(person: str, date: Optional[str] = None) -> Dict[str, Any]:
         """
-        Generates a warm, empathetic daily routine summary for family caregivers using Amazon Bedrock.
-        Summarizes medication checks, meals, and general movement patterns for a specific date.
+        Generate a warm, empathetic daily routine summary for family caregivers using Amazon Bedrock.
+        Synthesizes medication checks, meals, and general movement patterns for a specific date.
+
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "Give me Dad's daily summary"
+        - "How was Mom's day?" / "Summarize today's activities for Eleanor"
+        - "What did Dad do today?"
+
+        WHEN TO CALL:
+        - Call when a family caregiver asks for an overview of the parent's day.
 
         Parameters:
-            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             date: Optional target date string (YYYY-MM-DD or 'today'). Defaults to today.
         """
         person_id = person.strip().lower()
@@ -341,17 +433,26 @@ def register_tools(
             "date": date_str,
             "event_count": len(events_on_date),
             "summary": summary_text,
+            "voice_response": summary_text,
         }
 
     @server.tool()
     def ask_memory(person: str, question: str) -> Dict[str, Any]:
         """
-        Answers caregiver questions about the elder parent's daily routine history, habits, and recorded events.
+        Answer caregiver questions about the elder parent's routine history, habits, and recorded events.
         Uses Amazon Bedrock memory Q&A sandboxed strictly to factual event logs.
 
+        VOICE TRIGGERS (Alexa+ Intent Matching):
+        - "Did Dad take his pills today?"
+        - "What time did Mom eat lunch?"
+        - "Was there any movement in the kitchen this morning?"
+
+        WHEN TO CALL:
+        - Call when family asks a specific factual question about past routine events.
+
         Parameters:
-            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
-            question: Specific query about the parent's routine (e.g. 'Did Mom take her pills today?')
+            person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
+            question: Specific query about the parent's routine
         """
         person_id = person.strip().lower()
         now = clock.now()
@@ -370,12 +471,16 @@ def register_tools(
             "person": person_id,
             "question": question,
             "answer": answer,
+            "voice_response": answer,
         }
 
     @server.tool()
     def tick_escalation(person: Optional[str] = None) -> Dict[str, Any]:
         """
-        Runs a scheduled routine check and advances the escalation state machine without waiting for user requests.
+        Autonomous periodic routine tick advancing the escalation state machine without waiting for user requests.
+
+        WHEN TO CALL:
+        - Called autonomously by background timers or Amazon EventBridge minute rules.
 
         Parameters:
             person: Optional identifier of the elder parent. If omitted, ticks all known persons.
@@ -384,6 +489,7 @@ def register_tools(
         if person:
             p_id = person.strip().lower()
             state = escalation_engine.tick(p_id, now)
+            voice_msg = f"Routine check completed for {p_id}. Current stage is {state.stage.value}."
             return {
                 "status": "ticked",
                 "timestamp": now.isoformat(),
@@ -391,6 +497,7 @@ def register_tools(
                 "stage": state.stage.value,
                 "risk_score": state.risk_score,
                 "reasons": state.reasons,
+                "voice_response": voice_msg,
             }
         else:
             results: Dict[str, Any] = {}
@@ -403,8 +510,10 @@ def register_tools(
                     "risk_score": st.risk_score,
                     "reasons": st.reasons,
                 }
+            voice_msg = f"Routine checks completed for {len(known_persons)} monitored profiles."
             return {
                 "status": "ticked",
                 "timestamp": now.isoformat(),
                 "persons": results,
+                "voice_response": voice_msg,
             }
