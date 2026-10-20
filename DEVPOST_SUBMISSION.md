@@ -123,7 +123,7 @@
 ## 3. Open Source Challenge Submission Fields
 
 - **Project Name:** CareLoop — Self-hosted MCP Server for Alexa+ Elderly Care Monitoring
-- **Primary Repository:** `https://github.com/your-username/careloop`
+- **Primary Repository:** `https://github.com/KarnailSingh87/careloop`
 - **License:** **MIT License** (`Copyright (c) 2026 CareLoop Contributors`). Permissive open-source license with zero restrictions on commercial or non-commercial adoption.
 - **Primary Technology Stack:** Python 3.11+, FastMCP / `mcp` SDK (spec 2025-11-25), Starlette ASGI, Pydantic v2, Amazon Bedrock (Converse API), Amazon DynamoDB, Amazon SNS, AWS CDK (Python), AWS SAM.
 

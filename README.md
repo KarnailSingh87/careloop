@@ -87,7 +87,7 @@ flowchart TD
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/careloop.git
+git clone https://github.com/KarnailSingh87/careloop.git
 cd careloop
 
 # Create and activate Python 3.11+ virtual environment
