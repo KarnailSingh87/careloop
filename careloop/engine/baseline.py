@@ -31,7 +31,8 @@ import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
-from careloop.models import Event, EventType
+from careloop.models import Event, EventType, LearnedBaseline
+from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
 
@@ -419,3 +420,26 @@ class BaselineEngine:
                 self.record_event(pid, ev_type, ev.timestamp, event_id=getattr(ev, "event_id", None))
                 total_loaded += 1
         return total_loaded
+
+    def persist_baselines(self, storage: StorageBase) -> int:
+        """
+        Persist all in-memory learned baseline states to storage.
+        """
+        count = 0
+        now = datetime.now(timezone.utc)
+        for (pid, rtype), state in self.baselines.items():
+            baseline = LearnedBaseline(
+                person_id=pid,
+                routine_type=rtype,
+                sample_count=state.count,
+                mean_time_minutes=round(state.mu_minutes, 2),
+                std_dev_minutes=round(state.sigma, 2),
+                earliest_time=state.expected_time_str,
+                latest_time=state.expected_time_str,
+                confidence_score=round(min(1.0, state.count / 20.0), 2),
+                last_updated=state.last_event_time or now,
+            )
+            storage.save_baseline(baseline)
+            count += 1
+        return count
+

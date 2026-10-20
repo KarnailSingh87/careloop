@@ -150,7 +150,22 @@ def create_server(
         if backend == "dynamodb":
             table_name = os.getenv("DYNAMODB_TABLE_NAME", "CareLoopData")
             region = os.getenv("AWS_REGION", "us-east-1")
-            storage = DynamoDBStorage(table_name=table_name, region_name=region)
+            endpoint_url = os.getenv("DYNAMODB_ENDPOINT_URL")
+            try:
+                storage = DynamoDBStorage(
+                    table_name=table_name,
+                    region_name=region,
+                    endpoint_url=endpoint_url,
+                )
+                storage.verify_table()
+            except Exception as e:
+                logger.critical(
+                    f"FATAL: DynamoDB storage configured (table={table_name}, region={region}) "
+                    f"but failed to verify: {e}. Production storage must not silently fall back to SQLite."
+                )
+                raise RuntimeError(
+                    f"DynamoDB storage configured but unavailable on table '{table_name}': {e}"
+                ) from e
         else:
             db_path = os.getenv("SQLITE_DB_PATH", "careloop_local.db")
             storage = SQLiteStorage(db_path=db_path)

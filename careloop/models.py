@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import uuid
 from pydantic import BaseModel, Field
 
@@ -130,7 +130,7 @@ class LearnedBaseline(BaseModel):
     Calculated purely via deterministic statistical methods (no LLM in the loop).
     """
     person_id: str
-    routine_type: RoutineType
+    routine_type: Union[RoutineType, str]
     sample_count: int
     mean_time_minutes: float = Field(description="Mean time in minutes from 00:00")
     std_dev_minutes: float = Field(description="Standard deviation in minutes")

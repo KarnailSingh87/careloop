@@ -1,17 +1,19 @@
 """
 SQLite implementation of the CareLoop storage interface.
 
-Provides zero-dependency local persistence for development, offline testing,
-and edge deployments.
+Provides zero-dependency, local, transactional persistence for development, offline testing,
+and edge deployments with ACID guarantees and safe concurrent access.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
+import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from careloop.models import (
     Event,
@@ -25,24 +27,56 @@ from careloop.models import (
     EscalationState,
     Reminder,
     ReminderStatus,
+    LearnedBaseline,
 )
-from careloop.storage.base import StorageBase, StaleStateError
+from careloop.storage.base import (
+    StorageBase,
+    StorageError,
+    StaleStateError,
+    StorageClosedError,
+    PrivacyViolationError,
+)
+
+logger = logging.getLogger(__name__)
+
+FORBIDDEN_AUDIO_KEYS = {
+    "audio", "raw_audio", "recording", "voice_recording",
+    "audio_bytes", "wav", "mp3", "pcm", "ambient_audio",
+}
 
 
 class SQLiteStorage(StorageBase):
-    """Local SQLite-backed storage implementation."""
+    """Local SQLite-backed storage implementation with WAL mode and thread safety."""
+
+    SCHEMA_VERSION = 3
 
     def __init__(self, db_path: str = "careloop_local.db") -> None:
         self.db_path = db_path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
+        self._closed = False
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+
+        # Configure connection for high-concurrency safety
+        try:
+            self._conn.execute("PRAGMA journal_mode=WAL;")
+            self._conn.execute("PRAGMA busy_timeout=5000;")
+            self._conn.execute("PRAGMA synchronous=NORMAL;")
+        except sqlite3.Error as e:
+            logger.debug(f"SQLite PRAGMA initialization notice: {e}")
+
         self._init_db()
 
+    def _check_closed(self) -> None:
+        if self._closed:
+            raise StorageClosedError("Storage connection has been closed.")
+
     def _init_db(self) -> None:
-        """Create necessary tables and indexes if they do not exist."""
+        """Create tables, indexes, and apply versioned migrations."""
         with self._lock:
+            self._check_closed()
             with self._conn:
+                # 1. Base Tables Creation
                 self._conn.executescript("""
                     CREATE TABLE IF NOT EXISTS events (
                         event_id TEXT PRIMARY KEY,
@@ -54,7 +88,7 @@ class SQLiteStorage(StorageBase):
                     CREATE INDEX IF NOT EXISTS idx_events_person_time 
                         ON events (person_id, timestamp DESC);
                     CREATE INDEX IF NOT EXISTS idx_events_type 
-                        ON events (person_id, event_type);
+                        ON events (person_id, event_type, timestamp DESC);
 
                     CREATE TABLE IF NOT EXISTS reminders (
                         reminder_id TEXT PRIMARY KEY,
@@ -65,7 +99,7 @@ class SQLiteStorage(StorageBase):
                         created_at TEXT NOT NULL
                     );
                     CREATE INDEX IF NOT EXISTS idx_reminders_person 
-                        ON reminders (person_id, status);
+                        ON reminders (person_id, status, scheduled_time ASC);
 
                     CREATE TABLE IF NOT EXISTS profiles (
                         person_id TEXT PRIMARY KEY,
@@ -93,7 +127,7 @@ class SQLiteStorage(StorageBase):
                         metadata TEXT NOT NULL
                     );
                     CREATE INDEX IF NOT EXISTS idx_alerts_person 
-                        ON alerts (person_id, status);
+                        ON alerts (person_id, status, created_at DESC);
 
                     CREATE TABLE IF NOT EXISTS escalation_states (
                         person_id TEXT PRIMARY KEY,
@@ -108,9 +142,28 @@ class SQLiteStorage(StorageBase):
                         version INTEGER NOT NULL DEFAULT 1,
                         metadata TEXT NOT NULL
                     );
+
+                    CREATE TABLE IF NOT EXISTS baselines (
+                        person_id TEXT NOT NULL,
+                        routine_type TEXT NOT NULL,
+                        sample_count INTEGER NOT NULL,
+                        mean_time_minutes REAL NOT NULL,
+                        std_dev_minutes REAL NOT NULL,
+                        earliest_time TEXT NOT NULL,
+                        latest_time TEXT NOT NULL,
+                        confidence_score REAL NOT NULL,
+                        last_updated TEXT NOT NULL,
+                        PRIMARY KEY (person_id, routine_type)
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_baselines_person 
+                        ON baselines (person_id);
                 """)
 
-                # Run migrations for existing databases
+                # 2. Incremental Migrations via PRAGMA user_version
+                cursor = self._conn.execute("PRAGMA user_version")
+                current_ver = cursor.fetchone()[0]
+
+                # Migration for legacy escalation_states columns
                 cursor = self._conn.execute("PRAGMA table_info(escalation_states)")
                 esc_cols = [r["name"] for r in cursor.fetchall()]
                 if "version" not in esc_cols:
@@ -122,6 +175,7 @@ class SQLiteStorage(StorageBase):
                 if "notification_id" not in esc_cols:
                     self._conn.execute("ALTER TABLE escalation_states ADD COLUMN notification_id TEXT")
 
+                # Migration for legacy alerts columns
                 cursor = self._conn.execute("PRAGMA table_info(alerts)")
                 alert_cols = [r["name"] for r in cursor.fetchall()]
                 if "notification_status" not in alert_cols:
@@ -135,13 +189,38 @@ class SQLiteStorage(StorageBase):
                 if "event_ids" not in alert_cols:
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN event_ids TEXT NOT NULL DEFAULT '[]'")
 
+                if current_ver < self.SCHEMA_VERSION:
+                    self._conn.execute(f"PRAGMA user_version = {self.SCHEMA_VERSION};")
+
     def save_event(self, event: Event) -> None:
+        """
+        Persist a routine event metadata entry.
+        Enforces privacy: audio payloads are strictly rejected.
+        Idempotent: events with duplicate event_id are not duplicated.
+        """
         with self._lock:
+            self._check_closed()
+
+            # 1. Validation & Privacy Enforcement
+            if not event.event_id:
+                event.event_id = str(uuid.uuid4())
+
+            if event.timestamp.tzinfo is None:
+                raise ValueError(f"Event timestamp {event.timestamp} must be timezone-aware.")
+
+            if event.metadata:
+                forbidden = FORBIDDEN_AUDIO_KEYS.intersection(k.lower() for k in event.metadata.keys())
+                if forbidden:
+                    raise PrivacyViolationError(
+                        f"Privacy violation: Audio/recording fields {forbidden} are strictly forbidden from CareLoop storage."
+                    )
+
             with self._conn:
                 self._conn.execute(
                     """
                     INSERT INTO events (event_id, person_id, event_type, timestamp, metadata)
                     VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(event_id) DO NOTHING
                     """,
                     (
                         event.event_id,
@@ -159,6 +238,7 @@ class SQLiteStorage(StorageBase):
         event_type: Optional[str] = None
     ) -> List[Event]:
         with self._lock:
+            self._check_closed()
             query = "SELECT * FROM events WHERE person_id = ?"
             params: list = [person_id]
             if event_type:
@@ -175,9 +255,8 @@ class SQLiteStorage(StorageBase):
             ts = datetime.fromisoformat(r["timestamp"])
             if ts.tzinfo is None:
                 ts = ts.replace(tzinfo=timezone.utc)
-            
+
             raw_type = r["event_type"]
-            # Map known routine strings like "medication" to EventType
             try:
                 e_type = EventType(raw_type)
             except ValueError:
@@ -197,8 +276,110 @@ class SQLiteStorage(StorageBase):
             )
         return events
 
+    # --- Baselines ---
+    def save_baseline(self, baseline: LearnedBaseline) -> None:
+        with self._lock:
+            self._check_closed()
+            routine_type_str = (
+                baseline.routine_type.value
+                if hasattr(baseline.routine_type, "value")
+                else str(baseline.routine_type)
+            )
+            with self._conn:
+                self._conn.execute(
+                    """
+                    INSERT OR REPLACE INTO baselines (
+                        person_id, routine_type, sample_count, mean_time_minutes,
+                        std_dev_minutes, earliest_time, latest_time, confidence_score, last_updated
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        baseline.person_id,
+                        routine_type_str,
+                        baseline.sample_count,
+                        baseline.mean_time_minutes,
+                        baseline.std_dev_minutes,
+                        baseline.earliest_time,
+                        baseline.latest_time,
+                        baseline.confidence_score,
+                        baseline.last_updated.isoformat(),
+                    ),
+                )
+
+    def get_baseline(self, person_id: str, routine_type: str) -> Optional[LearnedBaseline]:
+        with self._lock:
+            self._check_closed()
+            cursor = self._conn.execute(
+                "SELECT * FROM baselines WHERE person_id = ? AND routine_type = ?",
+                (person_id, routine_type),
+            )
+            r = cursor.fetchone()
+
+        if not r:
+            return None
+
+        last_updated = datetime.fromisoformat(r["last_updated"])
+        if last_updated.tzinfo is None:
+            last_updated = last_updated.replace(tzinfo=timezone.utc)
+
+        raw_routine = r["routine_type"]
+        try:
+            r_type = RoutineType(raw_routine)
+        except ValueError:
+            r_type = raw_routine
+
+        return LearnedBaseline(
+            person_id=r["person_id"],
+            routine_type=r_type,
+            sample_count=int(r["sample_count"]),
+            mean_time_minutes=float(r["mean_time_minutes"]),
+            std_dev_minutes=float(r["std_dev_minutes"]),
+            earliest_time=r["earliest_time"],
+            latest_time=r["latest_time"],
+            confidence_score=float(r["confidence_score"]),
+            last_updated=last_updated,
+        )
+
+    def list_baselines(self, person_id: str) -> List[LearnedBaseline]:
+        with self._lock:
+            self._check_closed()
+            cursor = self._conn.execute(
+                "SELECT * FROM baselines WHERE person_id = ? ORDER BY routine_type ASC",
+                (person_id,),
+            )
+            rows = cursor.fetchall()
+
+        baselines: List[LearnedBaseline] = []
+        for r in rows:
+            last_updated = datetime.fromisoformat(r["last_updated"])
+            if last_updated.tzinfo is None:
+                last_updated = last_updated.replace(tzinfo=timezone.utc)
+
+            raw_routine = r["routine_type"]
+            try:
+                r_type = RoutineType(raw_routine)
+            except ValueError:
+                r_type = raw_routine
+
+            baselines.append(
+                LearnedBaseline(
+                    person_id=r["person_id"],
+                    routine_type=r_type,
+                    sample_count=int(r["sample_count"]),
+                    mean_time_minutes=float(r["mean_time_minutes"]),
+                    std_dev_minutes=float(r["std_dev_minutes"]),
+                    earliest_time=r["earliest_time"],
+                    latest_time=r["latest_time"],
+                    confidence_score=float(r["confidence_score"]),
+                    last_updated=last_updated,
+                )
+            )
+        return baselines
+
+    # --- Reminders ---
     def save_reminder(self, reminder: Reminder) -> None:
         with self._lock:
+            self._check_closed()
             with self._conn:
                 self._conn.execute(
                     """
@@ -222,6 +403,7 @@ class SQLiteStorage(StorageBase):
         active_only: bool = True
     ) -> List[Reminder]:
         with self._lock:
+            self._check_closed()
             if active_only:
                 cursor = self._conn.execute(
                     "SELECT * FROM reminders WHERE person_id = ? AND status = ? ORDER BY scheduled_time ASC",
@@ -251,8 +433,10 @@ class SQLiteStorage(StorageBase):
             )
         return reminders
 
+    # --- Profiles ---
     def save_profile(self, profile: PersonProfile) -> None:
         with self._lock:
+            self._check_closed()
             with self._conn:
                 self._conn.execute(
                     """
@@ -271,6 +455,7 @@ class SQLiteStorage(StorageBase):
 
     def get_profile(self, person_id: str) -> Optional[PersonProfile]:
         with self._lock:
+            self._check_closed()
             cursor = self._conn.execute(
                 "SELECT * FROM profiles WHERE person_id = ?",
                 (person_id,),
@@ -296,6 +481,7 @@ class SQLiteStorage(StorageBase):
 
     def list_profiles(self) -> List[PersonProfile]:
         with self._lock:
+            self._check_closed()
             cursor = self._conn.execute("SELECT * FROM profiles ORDER BY person_id ASC")
             rows = cursor.fetchall()
 
@@ -317,8 +503,10 @@ class SQLiteStorage(StorageBase):
             )
         return profiles
 
+    # --- Alerts ---
     def save_alert(self, alert: Alert) -> None:
         with self._lock:
+            self._check_closed()
             with self._conn:
                 self._conn.execute(
                     """
@@ -353,6 +541,7 @@ class SQLiteStorage(StorageBase):
         active_only: bool = True
     ) -> List[Alert]:
         with self._lock:
+            self._check_closed()
             if active_only:
                 cursor = self._conn.execute(
                     "SELECT * FROM alerts WHERE person_id = ? AND status = 'ACTIVE' ORDER BY created_at DESC",
@@ -398,12 +587,14 @@ class SQLiteStorage(StorageBase):
             )
         return alerts
 
+    # --- Escalation State ---
     def save_escalation_state(
         self,
         state: EscalationState,
         check_version: bool = False,
     ) -> None:
         with self._lock:
+            self._check_closed()
             with self._conn:
                 if check_version:
                     cursor = self._conn.execute(
@@ -477,6 +668,7 @@ class SQLiteStorage(StorageBase):
 
     def get_escalation_state(self, person_id: str) -> Optional[EscalationState]:
         with self._lock:
+            self._check_closed()
             cursor = self._conn.execute(
                 "SELECT * FROM escalation_states WHERE person_id = ?",
                 (person_id,),
@@ -515,4 +707,6 @@ class SQLiteStorage(StorageBase):
 
     def close(self) -> None:
         with self._lock:
-            self._conn.close()
+            if not self._closed:
+                self._conn.close()
+                self._closed = True
