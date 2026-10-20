@@ -5,7 +5,7 @@
 | Benchmark Metric | Eleanor Davis (Age 78)<br><sub>Morning Routine</sub> | Arthur Davis / Dad (Age 81)<br><sub>Retired Veteran</sub> | Martha Jenkins (Age 84)<br><sub>Arthritis Schedule</sub> | **Combined Overall System** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Simulated Days Evaluated** | 60 Days | 60 Days | 60 Days | **180 Days** |
-| **Total Sensor Events Processed** | 474 | 474 | 474 | **1422 Events** |
+| **Total Sensor Events Processed** | 478 | 474 | 474 | **1426 Events** |
 | **Injected Ground-Truth Incidents** | 6 | 6 | 6 | **18 Incidents** |
 | - *Missed Prescription Medication* | 2 | 2 | 2 | **6** |
 | - *Daytime Inactivity / Falls (3h+)* | 2 | 2 | 2 | **6** |
