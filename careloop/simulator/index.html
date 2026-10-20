@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareLoop - Alexa+ Elder Care Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.25);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+      font-size: 22px;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .brand p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .clock-badge {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .clock-badge .time {
+      font-size: 18px;
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr 340px;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--success-glow);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .events-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+    }
+
+    .event-item .badge {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-pill { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-meal { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-movement { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-door { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    .alert-box {
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--danger-glow);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .alert-box h4 {
+      color: #f87171;
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .alert-box ul {
+      margin-left: 20px;
+      font-size: 12px;
+      color: #fca5a5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🛡️</div>
+      <div>
+        <h1>CareLoop</h1>
+        <p>Alexa+ Elder Care MCP Server · Streamable HTTP</p>
+      </div>
+    </div>
+    <div class="clock-badge">
+      <span>Simulated Clock (UTC):</span>
+      <span class="time" id="clock-display">08:15:00</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Left Column: Elder Profile & Health Status -->
+    <div class="card">
+      <h2>Elder Profile</h2>
+      <div class="profile-card">
+        <div class="avatar">ED</div>
+        <div>
+          <h3 style="font-size: 15px;">Eleanor Davis (Mom)</h3>
+          <p style="font-size: 12px; color: var(--text-muted);">Age 78 · Living Independently</p>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; color: var(--text-muted);">Routine Health:</span>
+        <span class="status-pill">● Low Risk</span>
+      </div>
+
+      <h2>Time Travel Control</h2>
+      <p style="font-size: 12px; color: var(--text-muted);">
+        Fast forward the simulated clock to test routine window checks and voice check-in escalation.
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button class="btn" onclick="advanceClock(30)">+30 Mins</button>
+        <button class="btn" onclick="advanceClock(60)">+1 Hour</button>
+        <button class="btn" onclick="advanceClock(180)">+3 Hours</button>
+        <button class="btn" onclick="advanceClock(1440)">+1 Day</button>
+      </div>
+    </div>
+
+    <!-- Center Column: Real-time Event Stream -->
+    <div class="card">
+      <h2>Routine Event Stream (Privacy Guaranteed: Metadata Only)</h2>
+      <div class="events-stream" id="events-stream">
+        <div class="event-item">
+          <div>
+            <strong>Morning Medication</strong>
+            <div style="font-size: 11px; color: var(--text-muted);">Smart pill dispenser verified</div>
+          </div>
+          <span class="badge badge-pill">pill</span>
+        </div>
+        <div class="event-item">
+          <div>
+            <strong>Kitchen Motion Detected</strong>
+            <div style="font-size: 11px; color: var(--text-muted);">PIR Sensor #2</div>
+          </div>
+          <span class="badge badge-movement">movement</span>
+        </div>
+        <div class="event-item">
+          <div>
+            <strong>Breakfast Logged</strong>
+            <div style="font-size: 11px; color: var(--text-muted);">Refrigerator door opened & coffee maker cycle</div>
+          </div>
+          <span class="badge badge-meal">meal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Alexa+ Voice Check-in & Caregiver Alerts -->
+    <div class="card">
+      <h2>Voice Check-In & Alerts</h2>
+      <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 12px; border: 1px solid var(--card-border);">
+        <div style="font-size: 11px; text-transform: uppercase; color: #60a5fa; font-weight: 700; margin-bottom: 6px;">Alexa+ Speech Prompt</div>
+        <p style="font-size: 13px; line-height: 1.4; color: #cbd5e1;">"Good morning Eleanor! Just checking in—did you take your morning blood pressure medication?"</p>
+      </div>
+
+      <div class="alert-box" id="active-alert">
+        <h4>🚨 Deterministic Alert</h4>
+        <ul id="alert-reasons">
+          <li>Morning blood pressure meds baseline window: 08:00 - 09:15 UTC</li>
+          <li>Current time: 09:45 UTC (30 mins past window)</li>
+          <li>Voice checkin attempted: No response detected</li>
+        </ul>
+        <div style="margin-top: 10px; font-size: 12px; font-weight: 600; color: #fca5a5;">
+          Dispatched SMS to caregiver Linda Davis: (555) 019-2834
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentTime = new Date("2026-10-20T08:15:00Z");
+    function updateClockDisplay() {
+      document.getElementById("clock-display").innerText = currentTime.toISOString().substring(11, 19);
+    }
+    function advanceClock(mins) {
+      currentTime = new Date(currentTime.getTime() + mins * 60000);
+      updateClockDisplay();
+    }
+  </script>
+</body>
+</html>

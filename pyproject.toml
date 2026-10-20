@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "careloop"
+version = "0.1.0"
+description = "Self-hosted MCP server for Alexa+ to care for elderly parents living alone"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "CareLoop Contributors" }
+]
+keywords = ["alexa", "mcp", "elderly-care", "iot", "bedrock", "aws", "modelcontextprotocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+]
+
+dependencies = [
+    "mcp>=1.2.0",
+    "pydantic>=2.6.0",
+    "boto3>=1.34.0",
+    "uvicorn>=0.30.0",
+    "starlette>=0.27.0",
+    "python-dateutil>=2.8.2",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+]
+
+[project.scripts]
+careloop = "careloop.server:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["."]
+
+[tool.hatch.build.targets.wheel]
+packages = ["careloop"]
