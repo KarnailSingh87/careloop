@@ -11,6 +11,7 @@ import argparse
 import asyncio
 from contextlib import asynccontextmanager
 import logging
+from datetime import datetime, timezone
 import os
 from typing import Optional, Tuple
 
@@ -21,15 +22,18 @@ except ImportError:
     from mcp.server.fastmcp import FastMCP  # type: ignore
 
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse, HTMLResponse
+from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.routing import Route
 import uvicorn
+from dateutil import parser as date_parser
+import time
 
 from careloop.clock import Clock, SystemClock, SimulatedClock
 from careloop.engine.baseline import BaselineEngine
 from careloop.engine.escalation import EscalationEngine
 from careloop.engine.risk import RiskEngine
 from careloop.llm.bedrock import BedrockAssistant
+from careloop.models import Event, EventType, EscalationStage, PersonProfile
 from careloop.notifier import get_default_notifier
 from careloop.server.tools import register_tools
 from careloop.storage.base import StorageBase
@@ -69,6 +73,13 @@ def create_server(
             clock = SystemClock()
 
     baseline_engine = BaselineEngine()
+    # Replay historical routines from storage so the baseline engine is pre-warmed beyond cold start
+    try:
+        loaded = baseline_engine.load_from_storage(storage)
+        logger.info(f"Pre-warmed baseline engine with {loaded} historical routine observations.")
+    except Exception as e:
+        logger.warning(f"Could not pre-warm baseline engine: {e}")
+
     risk_engine = RiskEngine()
     notifier = get_default_notifier()
     escalation_engine = EscalationEngine(
@@ -76,6 +87,8 @@ def create_server(
         risk_engine=risk_engine,
         baseline_engine=baseline_engine,
         notifier=notifier,
+        gentle_timeout_seconds=60.0,
+        repeat_timeout_seconds=60.0,
     )
     llm_assistant = BedrockAssistant()
 
@@ -125,6 +138,7 @@ def create_app(
                 await asyncio.sleep(tick_interval_seconds)
                 now = clock_inst.now()
                 # Run tick on monitored elders
+                escalation_inst.tick("dad", now)
                 escalation_inst.tick("eleanor", now)
             except asyncio.CancelledError:
                 break
@@ -152,19 +166,102 @@ def create_app(
 
     app.router.lifespan_context = lifespan_wrapper
 
+    def _get_sim_state(person_id: str = "dad"):
+        now = clock_inst.now()
+        profile = storage_inst.get_profile(person_id)
+        if not profile:
+            profile = PersonProfile(
+                person_id=person_id,
+                display_name="Arthur Davis (Dad)" if person_id == "dad" else "Eleanor Davis (Mom)",
+                timezone="America/New_York",
+            )
+
+        events = storage_inst.get_events(person_id, limit=50)
+        events_today = [e for e in events if e.timestamp.date() == now.date()]
+
+        # Evaluate risk
+        risk = escalation_inst.risk_engine.evaluate_person_risk(
+            person_id=person_id,
+            now=now,
+            baseline_engine=escalation_inst.baseline_engine,
+            events_today=events_today,
+        )
+
+        esc_state = storage_inst.get_escalation_state(person_id)
+        if not esc_state:
+            esc_state = escalation_inst.get_or_create_state(person_id, now)
+
+        alerts = storage_inst.get_alerts(person_id, active_only=False)
+        profiles = storage_inst.list_profiles()
+
+        return {
+            "clock": {
+                "utc": now.isoformat(),
+                "time_str": now.strftime("%H:%M:%S UTC"),
+                "date_str": now.strftime("%Y-%m-%d"),
+                "is_simulated": isinstance(clock_inst, SimulatedClock),
+            },
+            "person": {
+                "id": person_id,
+                "display_name": profile.display_name if profile else person_id.capitalize(),
+                "timezone": profile.timezone if profile else "America/New_York",
+                "emergency_contacts": [
+                    {"name": c.name, "relationship": c.relationship, "phone": c.phone}
+                    for c in (profile.emergency_contacts if profile else [])
+                ],
+            },
+            "escalation": {
+                "stage": esc_state.stage.value,
+                "risk_score": esc_state.risk_score,
+                "reasons": esc_state.reasons,
+                "last_updated": esc_state.last_updated.isoformat(),
+            },
+            "risk": {
+                "score": risk.score,
+                "level": risk.level,
+                "reasons": risk.reasons,
+                "anomalies": risk.anomalies,
+            },
+            "events_today": [
+                {
+                    "event_id": e.event_id,
+                    "type": e.event_type.value if hasattr(e.event_type, "value") else str(e.event_type),
+                    "time": e.timestamp.strftime("%H:%M"),
+                    "timestamp": e.timestamp.isoformat(),
+                    "metadata": e.metadata,
+                }
+                for e in sorted(events_today, key=lambda x: x.timestamp, reverse=True)
+            ],
+            "alerts": [
+                {
+                    "alert_id": a.alert_id,
+                    "level": a.level.value if hasattr(a.level, "value") else str(a.level),
+                    "title": a.title,
+                    "reasons": a.reasons,
+                    "status": a.status,
+                    "created_at": a.created_at.isoformat(),
+                    "time_str": a.created_at.strftime("%H:%M UTC"),
+                }
+                for a in alerts
+            ],
+            "available_profiles": [
+                {"id": p.person_id, "name": p.display_name} for p in profiles
+            ],
+        }
+
     # Health check endpoint for AWS ECS / ALB / local verification
     async def health_endpoint(request):
-        state = storage_inst.get_escalation_state("eleanor")
+        state = storage_inst.get_escalation_state("dad") or storage_inst.get_escalation_state("eleanor")
         return JSONResponse({
             "status": "healthy",
             "service": "careloop",
             "version": "0.1.0",
             "clock_utc": clock_inst.now().isoformat(),
-            "monitored_person": "eleanor",
+            "monitored_person": "dad",
             "escalation_stage": state.stage.value if state else "normal",
         })
 
-    # Optional local simulator dashboard endpoint
+    # Simulator dashboard endpoint
     async def simulator_endpoint(request):
         sim_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "simulator", "index.html"
@@ -174,8 +271,166 @@ def create_app(
                 return HTMLResponse(f.read())
         return HTMLResponse("<h1>CareLoop Simulator UI</h1><p>Running on /mcp</p>")
 
+    async def root_endpoint(request):
+        return RedirectResponse(url="/simulator")
+
+    # API endpoints for Simulator UI
+    async def api_state_endpoint(request):
+        person_id = request.query_params.get("person", "dad").strip().lower()
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_clock_advance(request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        minutes = int(body.get("minutes", 60))
+        person_id = body.get("person", "dad").strip().lower()
+
+        if isinstance(clock_inst, SimulatedClock):
+            clock_inst.advance(minutes * 60)
+            now = clock_inst.now()
+            escalation_inst.tick(person_id, now)
+
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_clock_set(request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        time_val = body.get("time", "14:00")
+        person_id = body.get("person", "dad").strip().lower()
+
+        if isinstance(clock_inst, SimulatedClock):
+            now = clock_inst.now()
+            if time_val in ("2pm", "14:00", "today_14:00"):
+                target = now.replace(hour=14, minute=0, second=0, microsecond=0)
+            else:
+                try:
+                    parsed = date_parser.parse(time_val)
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(tzinfo=timezone.utc)
+                    target = parsed
+                except Exception:
+                    target = now.replace(hour=14, minute=0, second=0, microsecond=0)
+            clock_inst.set_time(target)
+            escalation_inst.tick(person_id, target)
+
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_clock_reset(request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        person_id = body.get("person", "dad").strip().lower()
+
+        if isinstance(clock_inst, SimulatedClock):
+            base_reset = datetime(2026, 10, 20, 8, 15, 0, tzinfo=timezone.utc)
+            clock_inst.set_time(base_reset)
+            escalation_inst.reset_to_normal(person_id, base_reset, reason="Simulation reset to 08:15 AM")
+            escalation_inst.reset_to_normal("eleanor", base_reset, reason="Simulation reset to 08:15 AM")
+
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_mcp_call(request):
+        start_time = time.time()
+        try:
+            body = await request.json()
+        except Exception as e:
+            return JSONResponse({"error": f"Invalid JSON body: {e}"}, status_code=400)
+
+        tool_name = body.get("tool")
+        arguments = body.get("arguments", {})
+
+        if not tool_name:
+            return JSONResponse({"error": "Missing 'tool' in request body"}, status_code=400)
+
+        try:
+            call_res = await server.call_tool(tool_name, arguments)
+            duration_ms = round((time.time() - start_time) * 1000, 2)
+
+            res_data = None
+            if hasattr(call_res, "structured_content") and call_res.structured_content:
+                res_data = call_res.structured_content.get("result", call_res.structured_content)
+            elif hasattr(call_res, "content") and call_res.content:
+                try:
+                    res_data = json.loads(call_res.content[0].text)
+                except Exception:
+                    res_data = call_res.content[0].text
+
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": body.get("id", int(time.time() * 1000)),
+                "tool": tool_name,
+                "arguments": arguments,
+                "result": res_data,
+                "raw_text": call_res.content[0].text if hasattr(call_res, "content") and call_res.content else "",
+                "is_error": getattr(call_res, "is_error", False),
+                "duration_ms": duration_ms,
+                "protocol_version": "2025-11-25",
+            })
+        except Exception as e:
+            duration_ms = round((time.time() - start_time) * 1000, 2)
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": body.get("id", int(time.time() * 1000)),
+                "tool": tool_name,
+                "arguments": arguments,
+                "error": {"code": -32603, "message": str(e)},
+                "is_error": True,
+                "duration_ms": duration_ms,
+                "protocol_version": "2025-11-25",
+            }, status_code=500)
+
+    async def api_mcp_tools(request):
+        tool_objs = await server.list_tools()
+        tools_list = []
+        for t in tool_objs:
+            tools_list.append({
+                "name": t.name,
+                "description": t.description,
+                "parameters": getattr(t, "parameters", {}),
+            })
+        return JSONResponse({"tools": tools_list})
+
+    async def api_demo_skips_lunch_setup(request):
+        person_id = "dad"
+        if isinstance(clock_inst, SimulatedClock):
+            clock_inst.set_time(datetime(2026, 10, 20, 8, 30, 0, tzinfo=timezone.utc))
+
+        # Seed morning routine today
+        storage_inst.save_event(
+            Event(
+                person_id=person_id,
+                event_type=EventType.MOVEMENT,
+                timestamp=datetime(2026, 10, 20, 7, 30, 0, tzinfo=timezone.utc),
+                metadata={"source": "bedroom_motion", "room": "bedroom"},
+            )
+        )
+        storage_inst.save_event(
+            Event(
+                person_id=person_id,
+                event_type=EventType.PILL,
+                timestamp=datetime(2026, 10, 20, 8, 15, 0, tzinfo=timezone.utc),
+                metadata={"medication": "blood_pressure_lisinopril", "source": "smart_pillbox"},
+            )
+        )
+        escalation_inst.reset_to_normal(person_id, clock_inst.now(), reason="Dad skips lunch scenario setup")
+
+        return JSONResponse(_get_sim_state(person_id))
+
+    app.routes.append(Route("/", root_endpoint, methods=["GET"]))
     app.routes.append(Route("/health", health_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator", simulator_endpoint, methods=["GET"]))
+    app.routes.append(Route("/api/state", api_state_endpoint, methods=["GET"]))
+    app.routes.append(Route("/api/clock/advance", api_clock_advance, methods=["POST"]))
+    app.routes.append(Route("/api/clock/set", api_clock_set, methods=["POST"]))
+    app.routes.append(Route("/api/clock/reset", api_clock_reset, methods=["POST"]))
+    app.routes.append(Route("/api/mcp/call", api_mcp_call, methods=["POST"]))
+    app.routes.append(Route("/api/mcp/tools", api_mcp_tools, methods=["GET"]))
+    app.routes.append(Route("/api/demo/skips-lunch/setup", api_demo_skips_lunch_setup, methods=["POST"]))
 
     return app
 

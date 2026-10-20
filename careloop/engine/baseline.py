@@ -206,27 +206,32 @@ class BaselineEngine:
                 ],
             )
 
-        # Check if event was already completed today
+        # Calculate grace window
+        grace_margin = max(self.k * state.sigma, self.min_grace_minutes)
+
+        # Check if event was already completed today for this routine window
         if events_today:
             for ev in events_today:
                 ev_type_norm = self._normalize_event_type(
                     ev.event_type.value if hasattr(ev.event_type, "value") else str(ev.event_type)
                 )
                 if ev_type_norm == norm_type:
-                    return RoutineEvaluation(
-                        person_id=person,
-                        event_type=norm_type,
-                        status="completed",
-                        is_missed=False,
-                        expected_time=state.expected_time_str,
-                        reasons=[
-                            f"Event '{norm_type}' was logged at {ev.timestamp.strftime('%H:%M')} UTC today."
-                        ],
-                    )
+                    # Check if the event matches this specific routine window
+                    # (e.g. for multiple meals a day, breakfast 4 hours earlier does not fulfill lunch)
+                    ev_minute = ev.timestamp.hour * 60.0 + ev.timestamp.minute + (ev.timestamp.second / 60.0)
+                    dist = abs(circular_minute_difference(ev_minute, state.mu_minutes))
+                    if state.count < self.min_observations or dist <= max(grace_margin + 30.0, 120.0):
+                        return RoutineEvaluation(
+                            person_id=person,
+                            event_type=norm_type,
+                            status="completed",
+                            is_missed=False,
+                            expected_time=state.expected_time_str,
+                            reasons=[
+                                f"Event '{norm_type}' was logged at {ev.timestamp.strftime('%H:%M')} UTC today."
+                            ],
+                        )
 
-        # Calculate grace window
-        # grace_margin = max(k * sigma, min_grace_minutes)
-        grace_margin = max(self.k * state.sigma, self.min_grace_minutes)
         current_minute = current_time.hour * 60.0 + current_time.minute + (current_time.second / 60.0)
 
         # Difference in time from expected mu to current time
@@ -263,3 +268,31 @@ class BaselineEngine:
                 f"Within normal schedule window for '{norm_type}'. Expected at {state.expected_time_str} UTC (grace window until {window_end_str} UTC)."
             ],
         )
+
+    def load_from_storage(
+        self,
+        storage: Any,
+        person_ids: Optional[List[str]] = None,
+        limit_per_person: int = 500,
+    ) -> int:
+        """
+        Replay historical events from storage to initialize baseline EWMA states.
+        Avoids cold start if historical observations already exist in the database.
+        """
+        if person_ids is None:
+            profiles = getattr(storage, "list_profiles", lambda: [])()
+            if profiles:
+                person_ids = [p.person_id for p in profiles]
+            else:
+                person_ids = ["eleanor", "dad"]
+
+        total_loaded = 0
+        for pid in person_ids:
+            events = storage.get_events(pid, limit=limit_per_person)
+            # Replay events in chronological order
+            events_sorted = sorted(events, key=lambda e: e.timestamp)
+            for ev in events_sorted:
+                ev_type = ev.event_type.value if hasattr(ev.event_type, "value") else str(ev.event_type)
+                self.record_event(pid, ev_type, ev.timestamp)
+                total_loaded += 1
+        return total_loaded

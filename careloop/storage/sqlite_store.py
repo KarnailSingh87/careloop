@@ -260,6 +260,29 @@ class SQLiteStorage(StorageBase):
             created_at=created,
         )
 
+    def list_profiles(self) -> List[PersonProfile]:
+        with self._lock:
+            cursor = self._conn.execute("SELECT * FROM profiles ORDER BY person_id ASC")
+            rows = cursor.fetchall()
+
+        profiles: List[PersonProfile] = []
+        for r in rows:
+            contacts_data = json.loads(r["emergency_contacts"])
+            contacts = [EmergencyContact(**c) for c in contacts_data]
+            created = datetime.fromisoformat(r["created_at"])
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            profiles.append(
+                PersonProfile(
+                    person_id=r["person_id"],
+                    display_name=r["display_name"],
+                    timezone=r["timezone"],
+                    emergency_contacts=contacts,
+                    created_at=created,
+                )
+            )
+        return profiles
+
     def save_alert(self, alert: Alert) -> None:
         with self._lock:
             with self._conn:

@@ -54,6 +54,10 @@ class StorageBase(ABC):
         """Fetch an elder's profile by person_id."""
         raise NotImplementedError
 
+    def list_profiles(self) -> List[PersonProfile]:
+        """List all elder profiles."""
+        return []
+
     @abstractmethod
     def save_alert(self, alert: Alert) -> None:
         """Persist a deterministic alert."""

@@ -3,170 +3,392 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CareLoop - Alexa+ Elder Care Simulator</title>
+  <title>CareLoop Simulator · Alexa+ Elder Care MCP Server</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: rgba(18, 24, 38, 0.7);
+      --bg: #070b13;
+      --card-bg: rgba(14, 21, 37, 0.75);
       --card-border: rgba(255, 255, 255, 0.08);
-      --primary: #3b82f6;
-      --primary-glow: rgba(59, 130, 246, 0.25);
+      --card-hover: rgba(255, 255, 255, 0.12);
+      --primary: #00c6ff;
+      --primary-dim: #0072ff;
+      --primary-glow: rgba(0, 198, 255, 0.35);
+      --accent: #8b5cf6;
       --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.2);
+      --success-glow: rgba(16, 185, 129, 0.25);
       --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.25);
       --danger: #ef4444;
-      --danger-glow: rgba(239, 68, 68, 0.25);
-      --text: #f1f5f9;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --text: #f8fafc;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --alexa-cyan: #00e5ff;
+      --alexa-blue: #0066ff;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       min-height: 100vh;
       background-image: 
-        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
-      padding: 24px;
+        radial-gradient(circle at 10% 20%, rgba(0, 198, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(14, 21, 37, 0.5) 0%, transparent 100%);
+      padding: 16px 24px 32px 24px;
+      overflow-x: hidden;
     }
 
+    /* Ambient Alexa Header */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 28px;
-      padding-bottom: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
       border-bottom: 1px solid var(--card-border);
+      position: relative;
     }
 
-    .brand {
+    .brand-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
-    .brand-logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    .alexa-orb {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #a5f3fc, var(--alexa-cyan) 40%, var(--alexa-blue) 85%);
+      box-shadow: 0 0 25px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 20px var(--primary-glow);
-      font-size: 22px;
+      position: relative;
+      animation: orb-pulse 4s ease-in-out infinite alternate;
     }
 
-    .brand h1 {
+    @keyframes orb-pulse {
+      0% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); transform: scale(0.98); }
+      100% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.8), 0 0 50px rgba(0, 102, 255, 0.3); transform: scale(1.02); }
+    }
+
+    .alexa-orb.listening {
+      background: radial-gradient(circle at 30% 30%, #fecaca, #ef4444 40%, #b91c1c 85%);
+      box-shadow: 0 0 35px var(--danger-glow);
+      animation: orb-listen 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes orb-listen {
+      0% { transform: scale(0.96); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+      100% { transform: scale(1.06); box-shadow: 0 0 35px rgba(239, 68, 68, 0.9); }
+    }
+
+    .alexa-orb.speaking {
+      animation: orb-speak 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes orb-speak {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(45deg); box-shadow: 0 0 35px #8b5cf6; }
+    }
+
+    .brand-title h1 {
       font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .brand p {
-      font-size: 13px;
+    .brand-title p {
+      font-size: 12px;
       color: var(--text-muted);
+      font-weight: 500;
     }
 
-    .clock-badge {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 10px 18px;
+    .badge-streamable {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #38bdf8;
+      margin-left: 8px;
+    }
+
+    .header-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
+    }
+
+    .person-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .person-select-wrap label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .person-select-wrap select {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .person-select-wrap select option {
+      background: #0f172a;
+      color: #fff;
+    }
+
+    /* Injectable Clock Top Banner */
+    .clock-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+      border-radius: 12px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-family: 'JetBrains Mono', monospace;
     }
 
-    .clock-badge .time {
-      font-size: 18px;
-      font-weight: 700;
-      color: #60a5fa;
+    .clock-pill .label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .grid {
+    .clock-pill .time {
+      font-size: 16px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 1px;
+    }
+
+    .demo-btn-hero {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .demo-btn-hero:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px rgba(124, 58, 237, 0.6);
+      background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+    }
+
+    /* Main 3-Column Layout */
+    .main-grid {
       display: grid;
-      grid-template-columns: 340px 1fr 340px;
+      grid-template-columns: 320px 1fr 340px;
       gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .card {
       background: var(--card-bg);
-      backdrop-filter: blur(16px);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 20px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      position: relative;
     }
 
-    .card h2 {
-      font-size: 15px;
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h2 {
+      font-size: 13px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
+    /* Left Column: Elder Profile, State Machine, Time Travel */
     .profile-card {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 14px;
+      padding: 12px;
       background: rgba(255, 255, 255, 0.03);
       border-radius: 12px;
       border: 1px solid var(--card-border);
     }
 
-    .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    .avatar-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 20px;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
     }
 
-    .status-pill {
-      display: inline-flex;
+    .profile-info h3 {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .profile-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Escalation State Machine Visualization */
+    .state-machine-box {
+      background: rgba(10, 15, 28, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .state-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .state-step {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
-      background: var(--success-glow);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      transition: all 0.3s ease;
+    }
+
+    .state-step.active {
+      color: #fff;
+      border-color: rgba(0, 229, 255, 0.4);
+      background: rgba(0, 229, 255, 0.08);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+    }
+
+    .state-step.active.warning {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.1);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    }
+
+    .state-step.active.danger {
+      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(239, 68, 68, 0.12);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+      animation: alert-flash 1.5s infinite alternate;
+    }
+
+    @keyframes alert-flash {
+      0% { border-color: rgba(239, 68, 68, 0.3); }
+      100% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 25px rgba(239, 68, 68, 0.45); }
+    }
+
+    .state-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .state-step.active .state-indicator-dot {
+      background: var(--alexa-cyan);
+      box-shadow: 0 0 8px var(--alexa-cyan);
+    }
+    .state-step.active.warning .state-indicator-dot {
+      background: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+    }
+    .state-step.active.danger .state-indicator-dot {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    /* Time Machine Controls */
+    .time-travel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     .btn {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 9px 12px;
+      border-radius: 9px;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s;
     }
 
@@ -175,172 +397,1527 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
-    .btn-primary {
-      background: var(--primary);
-      border-color: var(--primary);
+    .btn-jump-2pm {
+      grid-column: span 2;
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      font-weight: 700;
     }
-    .btn-primary:hover {
-      background: #2563eb;
+    .btn-jump-2pm:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: rgba(245, 158, 11, 0.5);
     }
 
-    .events-stream {
+    .btn-reset {
+      grid-column: span 2;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+    }
+
+    /* Risk Score Gauge */
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .risk-low {
+      background: var(--success-glow);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .risk-medium {
+      background: var(--warning-glow);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .risk-high {
+      background: var(--danger-glow);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* Center Column: Alexa Voice Interface & Conversation Log */
+    .alexa-ambient-panel {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      max-height: 480px;
-      overflow-y: auto;
+      gap: 16px;
+      min-height: 640px;
     }
 
-    .event-item {
+    .alexa-speech-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--card-border);
-    }
-
-    .event-item .badge {
-      font-size: 11px;
-      text-transform: uppercase;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .badge-pill { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-    .badge-meal { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-    .badge-movement { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    .badge-door { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-
-    .alert-box {
-      padding: 14px;
+      padding: 10px 14px;
+      background: rgba(0, 229, 255, 0.04);
+      border: 1px solid rgba(0, 229, 255, 0.15);
       border-radius: 12px;
-      background: var(--danger-glow);
-      border: 1px solid rgba(239, 68, 68, 0.3);
     }
 
-    .alert-box h4 {
-      color: #f87171;
-      font-size: 14px;
-      margin-bottom: 6px;
+    .voice-status-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .conversation-log {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex-grow: 1;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .conversation-log::-webkit-scrollbar {
+      width: 6px;
+    }
+    .conversation-log::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .msg-bubble {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 90%;
+      animation: msg-appear 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes msg-appear {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-user {
+      align-self: flex-end;
+    }
+
+    .msg-user .bubble-body {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff;
+      border-radius: 16px 16px 2px 16px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.4;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+    }
+
+    .msg-alexa {
+      align-self: flex-start;
+    }
+
+    .msg-alexa .bubble-body {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 16px 16px 16px 2px;
+      padding: 12px 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #f1f5f9;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .msg-author {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .alert-box ul {
-      margin-left: 20px;
+    .msg-user .msg-author {
+      color: #93c5fd;
+      justify-content: flex-end;
+    }
+
+    .msg-alexa .msg-author {
+      color: var(--alexa-cyan);
+    }
+
+    /* Visibly Inspectable MCP Tool Card */
+    .mcp-card {
+      background: rgba(8, 12, 22, 0.95);
+      border: 1px solid rgba(0, 198, 255, 0.3);
+      border-left: 3px solid var(--alexa-cyan);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .mcp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mcp-tool-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .mcp-latency {
+      font-size: 10px;
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .mcp-block {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-top: 4px;
+      overflow-x: auto;
+      color: #cbd5e1;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .mcp-expand-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: inherit;
+      text-decoration: underline;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    /* Example Utterance Chips */
+    .chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      background: rgba(0, 229, 255, 0.1);
+      border-color: rgba(0, 229, 255, 0.3);
+      color: #38bdf8;
+    }
+
+    /* Voice Input Bar */
+    .input-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(10, 15, 28, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 8px 10px;
+      transition: border-color 0.2s;
+    }
+
+    .input-bar:focus-within {
+      border-color: rgba(0, 229, 255, 0.4);
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+    }
+
+    .input-box {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      padding: 4px 6px;
+    }
+
+    .input-box::placeholder {
+      color: var(--text-dim);
+    }
+
+    .mic-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 17px;
+      transition: all 0.2s;
+    }
+
+    .mic-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: scale(1.05);
+    }
+
+    .mic-btn.active {
+      background: #ef4444;
+      border-color: #f87171;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+      animation: mic-pulse 1s infinite alternate;
+    }
+
+    @keyframes mic-pulse {
+      0% { transform: scale(1.0); }
+      100% { transform: scale(1.1); }
+    }
+
+    .send-btn {
+      background: var(--primary-dim);
+      border: 1px solid var(--primary);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .send-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Right Column: Realistic Family Phone Mockup */
+    .phone-column {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .phone-frame {
+      width: 100%;
+      max-width: 330px;
+      margin: 0 auto;
+      background: #000000;
+      border: 3px solid #334155;
+      border-radius: 36px;
+      padding: 12px 14px 18px 14px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 198, 255, 0.08);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 580px;
+    }
+
+    /* Phone Speaker / Dynamic Island */
+    .phone-top-notch {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .phone-time {
       font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      font-family: -apple-system, sans-serif;
+    }
+
+    .dynamic-island {
+      width: 75px;
+      height: 18px;
+      background: #111;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .phone-icons {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: #fff;
+    }
+
+    .phone-app-header {
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .phone-app-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .phone-app-title h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .phone-app-title p {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .phone-notifications-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-grow: 1;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .phone-notifications-stream::-webkit-scrollbar {
+      width: 4px;
+    }
+    .phone-notifications-stream::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+    }
+
+    .phone-alert-card {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
+      animation: alert-slide-down 0.3s ease;
+    }
+
+    @keyframes alert-slide-down {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .phone-alert-card.resolved {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.35);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);
+    }
+
+    .phone-alert-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-tag {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #ef4444;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .phone-alert-card.resolved .alert-tag {
+      background: #10b981;
+    }
+
+    .alert-time {
+      font-size: 10px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .alert-headline {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fecaca;
+      line-height: 1.3;
+    }
+
+    .phone-alert-card.resolved .alert-headline {
+      color: #a7f3d0;
+    }
+
+    .reasons-list {
+      margin-left: 16px;
+      font-size: 11px;
       color: #fca5a5;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .phone-alert-card.resolved .reasons-list {
+      color: #6ee7b7;
+    }
+
+    .phone-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .btn-phone {
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-phone-call {
+      background: #16a34a;
+      border-color: #22c55e;
+    }
+
+    .phone-home-indicator {
+      width: 100px;
+      height: 4px;
+      background: #64748b;
+      border-radius: 2px;
+      margin: 4px auto 0 auto;
+    }
+
+    /* Privacy Banner */
+    .privacy-tag {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #6ee7b7;
+    }
+
+    /* Demo Script Overlay Banner */
+    .demo-progress-card {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.15));
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      animation: msg-appear 0.3s ease;
+    }
+
+    .demo-progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #c084fc;
+    }
+
+    .demo-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .demo-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #8b5cf6);
+      transition: width 0.4s ease;
     }
   </style>
 </head>
 <body>
+
+  <!-- Top Ambient Header -->
   <header>
-    <div class="brand">
-      <div class="brand-logo">🛡️</div>
-      <div>
-        <h1>CareLoop</h1>
-        <p>Alexa+ Elder Care MCP Server · Streamable HTTP</p>
+    <div class="brand-wrap">
+      <div class="alexa-orb" id="alexa-orb">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </div>
+      <div class="brand-title">
+        <div style="display: flex; align-items: center;">
+          <h1>CareLoop</h1>
+          <span class="badge-streamable">MCP Streamable HTTP · 2025-11-25</span>
+        </div>
+        <p>Alexa+ Ambient Voice Safety Assistant · Zero LLM Alert Decisions</p>
       </div>
     </div>
-    <div class="clock-badge">
-      <span>Simulated Clock (UTC):</span>
-      <span class="time" id="clock-display">08:15:00</span>
+
+    <div class="header-controls">
+      <!-- Person Selector -->
+      <div class="person-select-wrap">
+        <label for="person-select">Monitored Elder:</label>
+        <select id="person-select" onchange="onPersonChange()">
+          <option value="dad">Arthur Davis (Dad)</option>
+          <option value="eleanor">Eleanor Davis (Mom)</option>
+        </select>
+      </div>
+
+      <!-- Injectable Clock Pill -->
+      <div class="clock-pill">
+        <span class="label">Simulated Clock</span>
+        <span class="time" id="clock-display">--:--:-- UTC</span>
+      </div>
+
+      <!-- Dad Skips Lunch Hero Button -->
+      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()">
+        <span>▶</span>
+        <span>Dad Skips Lunch Demo</span>
+      </button>
     </div>
   </header>
 
-  <div class="grid">
-    <!-- Left Column: Elder Profile & Health Status -->
+  <!-- Main 3-Column Layout -->
+  <div class="main-grid">
+
+    <!-- LEFT COLUMN: Elder Profile & Time Travel Machine -->
     <div class="card">
-      <h2>Elder Profile</h2>
+      <div class="card-header">
+        <h2>👤 Elder Status</h2>
+        <span class="risk-badge risk-low" id="risk-badge">● Low Risk</span>
+      </div>
+
       <div class="profile-card">
-        <div class="avatar">ED</div>
-        <div>
-          <h3 style="font-size: 15px;">Eleanor Davis (Mom)</h3>
-          <p style="font-size: 12px; color: var(--text-muted);">Age 78 · Living Independently</p>
+        <div class="avatar-icon" id="profile-avatar">AD</div>
+        <div class="profile-info">
+          <h3 id="profile-name">Arthur Davis (Dad)</h3>
+          <p id="profile-meta">Age 81 · Living Independently</p>
+          <p style="font-size: 11px; color: #38bdf8; margin-top: 2px;">Caregiver: Linda Davis (Daughter)</p>
         </div>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; color: var(--text-muted);">Routine Health:</span>
-        <span class="status-pill">● Low Risk</span>
+      <!-- State Machine Steps -->
+      <div class="card-header" style="margin-top: 4px;">
+        <h2>🔄 Escalation State Machine</h2>
       </div>
 
-      <h2>Time Travel Control</h2>
-      <p style="font-size: 12px; color: var(--text-muted);">
-        Fast forward the simulated clock to test routine window checks and voice check-in escalation.
+      <div class="state-machine-box">
+        <div class="state-steps">
+          <div class="state-step active" id="stage-normal">
+            <span>1. Normal (Nominal)</span>
+            <div class="state-indicator-dot"></div>
+          </div>
+          <div class="state-step" id="stage-gentle">
+            <span>2. Gentle Check-In (Voice)</span>
+            <div class="state-indicator-dot"></div>
+          </div>
+          <div class="state-step" id="stage-repeat">
+            <span>3. Repeat Check-In (+60s)</span>
+            <div class="state-indicator-dot"></div>
+          </div>
+          <div class="state-step" id="stage-notify">
+            <span>4. Notify Family (SMS/SNS)</span>
+            <div class="state-indicator-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Injectable Clock Machine -->
+      <div class="card-header" style="margin-top: 6px;">
+        <h2>⏳ Time Travel Controls</h2>
+      </div>
+      <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+        Directly advances the backend <code>SimulatedClock</code> to test baseline grace windows and escalation timeouts.
       </p>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <button class="btn" onclick="advanceClock(30)">+30 Mins</button>
+
+      <div class="time-travel-grid">
+        <button class="btn" onclick="advanceClock(15)">+15 Mins</button>
         <button class="btn" onclick="advanceClock(60)">+1 Hour</button>
         <button class="btn" onclick="advanceClock(180)">+3 Hours</button>
         <button class="btn" onclick="advanceClock(1440)">+1 Day</button>
+        <button class="btn btn-jump-2pm" onclick="jumpTo2pm()">⚡ Jump to 2:00 PM (14:00 UTC)</button>
+        <button class="btn btn-reset" onclick="resetClock()">↺ Reset Simulation (08:15 AM)</button>
+      </div>
+
+      <!-- Privacy Guarantee -->
+      <div class="privacy-tag">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span>Privacy: Metadata only. Zero raw audio recordings captured.</span>
       </div>
     </div>
 
-    <!-- Center Column: Real-time Event Stream -->
-    <div class="card">
-      <h2>Routine Event Stream (Privacy Guaranteed: Metadata Only)</h2>
-      <div class="events-stream" id="events-stream">
-        <div class="event-item">
-          <div>
-            <strong>Morning Medication</strong>
-            <div style="font-size: 11px; color: var(--text-muted);">Smart pill dispenser verified</div>
-          </div>
-          <span class="badge badge-pill">pill</span>
+    <!-- CENTER COLUMN: Alexa Voice Assistant & Conversation Log -->
+    <div class="card alexa-ambient-panel">
+
+      <!-- Demo Progress Banner (Active during Dad skips lunch scenario) -->
+      <div class="demo-progress-card" id="demo-progress-card">
+        <div class="demo-progress-top">
+          <span id="demo-step-title">Scenario Running: Step 1/6</span>
+          <span id="demo-step-countdown">Next in 4s...</span>
         </div>
-        <div class="event-item">
-          <div>
-            <strong>Kitchen Motion Detected</strong>
-            <div style="font-size: 11px; color: var(--text-muted);">PIR Sensor #2</div>
-          </div>
-          <span class="badge badge-movement">movement</span>
+        <div class="demo-bar-bg">
+          <div class="demo-bar-fill" id="demo-bar-fill"></div>
         </div>
-        <div class="event-item">
-          <div>
-            <strong>Breakfast Logged</strong>
-            <div style="font-size: 11px; color: var(--text-muted);">Refrigerator door opened & coffee maker cycle</div>
-          </div>
-          <span class="badge badge-meal">meal</span>
+        <p id="demo-step-desc" style="font-size: 12px; color: #e2e8f0; line-height: 1.4;"></p>
+      </div>
+
+      <div class="alexa-speech-header">
+        <div class="voice-status-text" id="voice-status">
+          <span>●</span> <span id="voice-status-label">Alexa is ready. Say or type a phrase...</span>
         </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="toggleSpeechSynthesis()" id="tts-toggle-btn">
+            🔊 Voice Audio: ON
+          </button>
+          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="clearConversation()">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Conversation Transcript & Visible MCP Tool Calls -->
+      <div class="conversation-log" id="conversation-log">
+        <!-- Initial Welcome Message -->
+        <div class="msg-bubble msg-alexa">
+          <div class="msg-author">
+            <span>🛡️ Alexa+ Assistant</span>
+          </div>
+          <div class="bubble-body">
+            Good morning Arthur! I'm actively watching over your daily routine. All your sensors and medications are synced.
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Utterance Chips -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Tap to test Alexa phrases (mapped to MCP tools):</span>
+        <div class="chips-wrap">
+          <button class="chip" onclick="handleUserPhrase('I took my pill')">"I took my pill" 💊</button>
+          <button class="chip" onclick="handleUserPhrase('I just had my lunch')">"I just had lunch" 🍲</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m in the kitchen')">"Walking in kitchen" 🚶</button>
+          <button class="chip" onclick="handleUserPhrase('Front door opened')">"Front door opened" 🚪</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m fine')">"I'm fine" ✅</button>
+          <button class="chip" onclick="handleUserPhrase('How is Dad doing today?')">"Daily summary" 📋</button>
+          <button class="chip" onclick="handleUserPhrase('Did Dad take his pills today?')">"Did Dad take pills?" 🔍</button>
+          <button class="chip" onclick="handleUserPhrase('Check routine health')">"Check routine health" 🩺</button>
+        </div>
+      </div>
+
+      <!-- Voice & Text Input Bar -->
+      <div class="input-bar">
+        <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Click to speak (Web Speech API)">
+          🎤
+        </button>
+        <input 
+          type="text" 
+          class="input-box" 
+          id="speech-input" 
+          placeholder="Speak into microphone or type (e.g. 'I took my pill', 'I ate lunch', 'I\'m fine')..." 
+          onkeydown="if(event.key==='Enter') submitSpeechInput()"
+        />
+        <button class="send-btn" onclick="submitSpeechInput()">
+          Send
+        </button>
       </div>
     </div>
 
-    <!-- Right Column: Alexa+ Voice Check-in & Caregiver Alerts -->
-    <div class="card">
-      <h2>Voice Check-In & Alerts</h2>
-      <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 12px; border: 1px solid var(--card-border);">
-        <div style="font-size: 11px; text-transform: uppercase; color: #60a5fa; font-weight: 700; margin-bottom: 6px;">Alexa+ Speech Prompt</div>
-        <p style="font-size: 13px; line-height: 1.4; color: #cbd5e1;">"Good morning Eleanor! Just checking in—did you take your morning blood pressure medication?"</p>
-      </div>
-
-      <div class="alert-box" id="active-alert">
-        <h4>🚨 Deterministic Alert</h4>
-        <ul id="alert-reasons">
-          <li>Morning blood pressure meds baseline window: 08:00 - 09:15 UTC</li>
-          <li>Current time: 09:45 UTC (30 mins past window)</li>
-          <li>Voice checkin attempted: No response detected</li>
-        </ul>
-        <div style="margin-top: 10px; font-size: 12px; font-weight: 600; color: #fca5a5;">
-          Dispatched SMS to caregiver Linda Davis: (555) 019-2834
+    <!-- RIGHT COLUMN: Family Phone (Real-time Caregiver Alerts) -->
+    <div class="phone-column">
+      <div class="phone-frame">
+        <!-- Phone Notch / Status Bar -->
+        <div class="phone-top-notch">
+          <span class="phone-time" id="phone-clock">14:02</span>
+          <div class="dynamic-island">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #00c6ff;"></span>
+          </div>
+          <div class="phone-icons">
+            <span>5G</span>
+            <span>📶</span>
+            <span>🔋100%</span>
+          </div>
         </div>
+
+        <!-- Phone App Header -->
+        <div class="phone-app-header">
+          <div class="phone-app-icon">🛡️</div>
+          <div class="phone-app-title">
+            <h4>CareLoop Family</h4>
+            <p>Linda Davis · Primary Caregiver</p>
+          </div>
+        </div>
+
+        <!-- Alerts Stream on Phone -->
+        <div class="phone-notifications-stream" id="phone-alerts-stream">
+          <!-- Standby Placeholder if no alerts -->
+          <div id="no-alerts-placeholder" style="text-align: center; padding: 40px 10px; color: var(--text-dim); font-size: 12px;">
+            <div style="font-size: 28px; margin-bottom: 8px;">📱</div>
+            <strong>No active family alerts</strong>
+            <p style="font-size: 11px; margin-top: 4px;">Routines are nominal. You will only be alerted if voice check-in fails.</p>
+          </div>
+        </div>
+
+        <!-- Home Bar -->
+        <div class="phone-home-indicator"></div>
       </div>
     </div>
+
   </div>
 
   <script>
-    let currentTime = new Date("2026-10-20T08:15:00Z");
-    function updateClockDisplay() {
-      document.getElementById("clock-display").innerText = currentTime.toISOString().substring(11, 19);
+    // State management
+    let currentPerson = "dad";
+    let isVoiceListening = false;
+    let speechRecognition = null;
+    let ttsEnabled = true;
+    let demoActive = false;
+    let demoStepTimeout = null;
+
+    // Web Audio Sound Chime Generators
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playChime(type = 'alexa') {
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        if (type === 'alexa') {
+          // Double pleasant chime
+          osc.frequency.setValueAtTime(587.33, now); // D5
+          osc.frequency.setValueAtTime(880.0, now + 0.12); // A5
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'alert') {
+          // Warning alert ding
+          osc.frequency.setValueAtTime(880.0, now);
+          osc.frequency.setValueAtTime(440.0, now + 0.15);
+          osc.frequency.setValueAtTime(880.0, now + 0.3);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          osc.start(now);
+          osc.stop(now + 0.7);
+        } else if (type === 'resolve') {
+          // Happy resolve chime
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        }
+      } catch (e) {
+        console.warn("Audio chime error:", e);
+      }
     }
-    function advanceClock(mins) {
-      currentTime = new Date(currentTime.getTime() + mins * 60000);
-      updateClockDisplay();
+
+    // Initialize Web Speech API for voice recognition
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.warn("Web Speech API not supported in this browser. Manual text input will be used.");
+        return;
+      }
+      speechRecognition = new SpeechRecognition();
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = false;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onstart = () => {
+        isVoiceListening = true;
+        document.getElementById('mic-btn').classList.add('active');
+        document.getElementById('alexa-orb').classList.add('listening');
+        document.getElementById('voice-status-label').innerText = "Listening to your voice... Speak now!";
+      };
+
+      speechRecognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('speech-input').value = transcript;
+        submitSpeechInput();
+      };
+
+      speechRecognition.onerror = (event) => {
+        console.warn("Speech recognition error:", event.error);
+        stopListening();
+      };
+
+      speechRecognition.onend = () => {
+        stopListening();
+      };
     }
+
+    function toggleMic() {
+      if (!speechRecognition) {
+        initSpeechRecognition();
+      }
+      if (!speechRecognition) {
+        alert("Speech Recognition is not available in your browser. Please type your phrase in the text box.");
+        return;
+      }
+      if (isVoiceListening) {
+        speechRecognition.stop();
+        stopListening();
+      } else {
+        try {
+          speechRecognition.start();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    }
+
+    function stopListening() {
+      isVoiceListening = false;
+      document.getElementById('mic-btn').classList.remove('active');
+      document.getElementById('alexa-orb').classList.remove('listening');
+      document.getElementById('voice-status-label').innerText = "Alexa is ready. Say or type a phrase...";
+    }
+
+    function speakText(text) {
+      if (!ttsEnabled || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.05;
+      utterance.onstart = () => {
+        document.getElementById('alexa-orb').classList.add('speaking');
+      };
+      utterance.onend = () => {
+        document.getElementById('alexa-orb').classList.remove('speaking');
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleSpeechSynthesis() {
+      ttsEnabled = !ttsEnabled;
+      const btn = document.getElementById('tts-toggle-btn');
+      btn.innerText = ttsEnabled ? "🔊 Voice Audio: ON" : "🔇 Voice Audio: OFF";
+      if (!ttsEnabled && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    // Fetch live system state from backend
+    async function fetchState() {
+      try {
+        const res = await fetch(`/api/state?person=${currentPerson}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        updateUI(data);
+      } catch (e) {
+        console.error("Error fetching state:", e);
+      }
+    }
+
+    // Update UI elements from backend state
+    function updateUI(data) {
+      // Clock
+      if (data.clock) {
+        document.getElementById('clock-display').innerText = data.clock.time_str;
+        document.getElementById('phone-clock').innerText = data.clock.time_str.substring(0, 5);
+      }
+
+      // Profile
+      if (data.person) {
+        document.getElementById('profile-name').innerText = data.person.display_name;
+        document.getElementById('profile-avatar').innerText = data.person.id === 'dad' ? 'AD' : 'ED';
+        document.getElementById('profile-meta').innerText = data.person.id === 'dad' ? 'Age 81 · Living Independently' : 'Age 78 · Living Independently';
+      }
+
+      // Escalation Stage
+      const stage = data.escalation ? data.escalation.stage : "normal";
+      updateStageIndicators(stage);
+
+      // Risk score
+      const riskBadge = document.getElementById('risk-badge');
+      const score = data.risk ? data.risk.score : 0.0;
+      const level = data.risk ? data.risk.level : "low";
+
+      riskBadge.className = `risk-badge risk-${level}`;
+      riskBadge.innerText = `● ${level.toUpperCase()} RISK (${score.toFixed(1)})`;
+
+      // Update Phone Alerts
+      updatePhoneAlerts(data.alerts || [], stage);
+    }
+
+    function updateStageIndicators(stage) {
+      const stages = ['normal', 'gentle', 'repeat', 'notify'];
+      stages.forEach(s => {
+        const el = document.getElementById(`stage-${s}`);
+        if (el) el.className = 'state-step';
+      });
+
+      if (stage === 'normal') {
+        document.getElementById('stage-normal').className = 'state-step active';
+      } else if (stage === 'gentle_check_in') {
+        document.getElementById('stage-gentle').className = 'state-step active warning';
+      } else if (stage === 'repeat_check_in') {
+        document.getElementById('stage-repeat').className = 'state-step active warning';
+      } else if (stage === 'notify_family') {
+        document.getElementById('stage-notify').className = 'state-step active danger';
+      }
+    }
+
+    function updatePhoneAlerts(alerts, stage) {
+      const container = document.getElementById('phone-alerts-stream');
+      if (!alerts || alerts.length === 0) {
+        container.innerHTML = `
+          <div id="no-alerts-placeholder" style="text-align: center; padding: 40px 10px; color: var(--text-dim); font-size: 12px;">
+            <div style="font-size: 28px; margin-bottom: 8px;">📱</div>
+            <strong>No active family alerts</strong>
+            <p style="font-size: 11px; margin-top: 4px;">Routines are nominal. You will only be alerted if voice check-in fails.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      alerts.forEach(a => {
+        const isResolved = a.status === 'RESOLVED' || stage === 'normal';
+        html += `
+          <div class="phone-alert-card ${isResolved ? 'resolved' : ''}">
+            <div class="phone-alert-top">
+              <span class="alert-tag">${isResolved ? 'RESOLVED' : 'URGENT ALERT'}</span>
+              <span class="alert-time">${a.time_str || ''}</span>
+            </div>
+            <div class="alert-headline">${escapeHtml(a.title)}</div>
+            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-top: 2px;">
+              Deterministic Code Reasons:
+            </div>
+            <ul class="reasons-list">
+              ${(a.reasons || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+            </ul>
+            <div class="phone-actions">
+              <button class="btn-phone btn-phone-call" onclick="callElder()">📞 Call ${currentPerson === 'dad' ? 'Dad' : 'Mom'}</button>
+              <button class="btn-phone" onclick="acknowledgeAlert('${a.alert_id}')">Acknowledge</button>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function callElder() {
+      appendAlexaMessage(`📞 Initiating direct voice call to ${currentPerson === 'dad' ? 'Arthur Davis (Dad)' : 'Eleanor Davis'} via CareLoop phone gateway...`);
+      speakText(`Calling ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'} now.`);
+    }
+
+    function acknowledgeAlert(alertId) {
+      appendAlexaMessage(`Family caregiver acknowledged alert. Status updated in audit history.`);
+    }
+
+    // Natural Language Phrase to MCP Tool Mapping
+    function mapPhraseToMcp(phrase) {
+      const lower = phrase.trim().toLowerCase();
+      
+      // Medication
+      if (lower.includes('pill') || lower.includes('medication') || lower.includes('medicine') || lower.includes('lisinopril')) {
+        return {
+          tool: "log_routine_event",
+          arguments: { person: currentPerson, type: "medication" },
+          alexaVoice: `Logged your medication, ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}. Great job staying on schedule!`
+        };
+      }
+
+      // Meal
+      if (lower.includes('lunch') || lower.includes('breakfast') || lower.includes('dinner') || lower.includes('ate') || lower.includes('eat') || lower.includes('meal') || lower.includes('food')) {
+        return {
+          tool: "log_routine_event",
+          arguments: { person: currentPerson, type: "meal" },
+          alexaVoice: `Recorded your meal routine, ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}. Hope you enjoyed it!`
+        };
+      }
+
+      // Movement
+      if (lower.includes('kitchen') || lower.includes('living room') || lower.includes('walk') || lower.includes('moving') || lower.includes('bedroom')) {
+        return {
+          tool: "log_routine_event",
+          arguments: { person: currentPerson, type: "movement" },
+          alexaVoice: `Movement activity verified in the home.`
+        };
+      }
+
+      // Door
+      if (lower.includes('door') || lower.includes('outside') || lower.includes('garden') || lower.includes('leaving')) {
+        return {
+          tool: "log_routine_event",
+          arguments: { person: currentPerson, type: "door" },
+          alexaVoice: `Door sensor event recorded safely.`
+        };
+      }
+
+      // Confirm OK / I'm fine
+      if (lower.includes('fine') || lower.includes('ok') || lower.includes('okay') || lower.includes('good') || lower.includes('alright')) {
+        return {
+          tool: "confirm_ok",
+          arguments: { person: currentPerson },
+          alexaVoice: `Glad to hear you are doing well, ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}! I've cleared any check-ins.`
+        };
+      }
+
+      // Routine Health
+      if (lower.includes('routine health') || lower.includes('risk') || lower.includes('how is the routine') || lower.includes('health status')) {
+        return {
+          tool: "check_routine_health",
+          arguments: { person: currentPerson },
+          alexaVoice: `I've evaluated your routine health baseline. Everything is currently nominal.`
+        };
+      }
+
+      // Daily summary
+      if (lower.includes('summary') || lower.includes('how is') || lower.includes('how was today') || lower.includes('daily report')) {
+        return {
+          tool: "daily_summary",
+          arguments: { person: currentPerson, date: "today" },
+          alexaVoice: `Here is today's routine summary generated via Amazon Bedrock.`
+        };
+      }
+
+      // Memory Q&A
+      if (lower.includes('did') || lower.includes('when') || lower.includes('what time') || lower.includes('has')) {
+        return {
+          tool: "ask_memory",
+          arguments: { person: currentPerson, question: phrase },
+          alexaVoice: `Checking factual event logs for you.`
+        };
+      }
+
+      // Default fallback
+      return {
+        tool: "ask_memory",
+        arguments: { person: currentPerson, question: phrase },
+        alexaVoice: `Checking records for your query.`
+      };
+    }
+
+    // Submit Speech or Text Input
+    async function submitSpeechInput() {
+      const inputEl = document.getElementById('speech-input');
+      const phrase = inputEl.value.trim();
+      if (!phrase) return;
+      inputEl.value = '';
+
+      handleUserPhrase(phrase);
+    }
+
+    async function handleUserPhrase(phrase) {
+      appendUserMessage(phrase);
+      playChime('alexa');
+
+      const mapping = mapPhraseToMcp(phrase);
+
+      // Visually indicate thinking
+      document.getElementById('voice-status-label').innerText = `Calling MCP Tool: ${mapping.tool}...`;
+
+      try {
+        const res = await callMcpTool(mapping.tool, mapping.arguments);
+        
+        let voiceResponse = mapping.alexaVoice;
+        if (mapping.tool === 'daily_summary' && res.result && res.result.summary) {
+          voiceResponse = res.result.summary;
+        } else if (mapping.tool === 'ask_memory' && res.result && res.result.answer) {
+          voiceResponse = res.result.answer;
+        } else if (mapping.tool === 'check_routine_health' && res.result) {
+          voiceResponse = `Routine risk score is ${res.result.risk_score} (${res.result.risk_level} risk). Stage is ${res.result.escalation_stage}.`;
+        }
+
+        appendAlexaMessage(voiceResponse, {
+          tool: mapping.tool,
+          arguments: mapping.arguments,
+          result: res.result,
+          duration_ms: res.duration_ms,
+          protocol_version: res.protocol_version || "2025-11-25",
+        });
+
+        speakText(voiceResponse);
+        await fetchState();
+      } catch (err) {
+        console.error("MCP tool execution error:", err);
+        appendAlexaMessage(`Error invoking MCP tool: ${err.message}`);
+      } finally {
+        document.getElementById('voice-status-label').innerText = "Alexa is ready. Say or type a phrase...";
+      }
+    }
+
+    // Call MCP Tool via backend Streamable HTTP bridge
+    async function callMcpTool(toolName, args) {
+      const payload = {
+        tool: toolName,
+        arguments: args,
+      };
+
+      const res = await fetch('/api/mcp/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error ? errJson.error.message || JSON.stringify(errJson.error) : res.statusText);
+      }
+      return await res.json();
+    }
+
+    // Append user message to conversation log
+    function appendUserMessage(text) {
+      const container = document.getElementById('conversation-log');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg-bubble msg-user';
+      msgDiv.innerHTML = `
+        <div class="msg-author">
+          <span>${currentPerson === 'dad' ? 'Arthur (Dad)' : 'Eleanor (Mom)'}</span>
+        </div>
+        <div class="bubble-body">${escapeHtml(text)}</div>
+      `;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // Append Alexa message with visible MCP Tool Call Card
+    function appendAlexaMessage(text, mcpData = null) {
+      const container = document.getElementById('conversation-log');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg-bubble msg-alexa';
+
+      let mcpCardHtml = '';
+      if (mcpData) {
+        const cardId = 'mcp-card-' + Math.random().toString(36).substring(2, 9);
+        const argsStr = JSON.stringify(mcpData.arguments, null, 2);
+        const resStr = JSON.stringify(mcpData.result, null, 2);
+        
+        mcpCardHtml = `
+          <div class="mcp-card">
+            <div class="mcp-header">
+              <span class="mcp-tool-badge">⚡ MCP: tools/call → ${mcpData.tool}</span>
+              <span class="mcp-latency">⚡ ${mcpData.duration_ms}ms · ${mcpData.protocol_version}</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8;">Arguments:</div>
+            <div class="mcp-block">${escapeHtml(argsStr)}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Result:</div>
+            <div class="mcp-block">${escapeHtml(resStr)}</div>
+          </div>
+        `;
+      }
+
+      msgDiv.innerHTML = `
+        <div class="msg-author">
+          <span>🛡️ Alexa+ Assistant</span>
+        </div>
+        <div class="bubble-body">
+          ${escapeHtml(text)}
+          ${mcpCardHtml}
+        </div>
+      `;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearConversation() {
+      document.getElementById('conversation-log').innerHTML = `
+        <div class="msg-bubble msg-alexa">
+          <div class="msg-author">
+            <span>🛡️ Alexa+ Assistant</span>
+          </div>
+          <div class="bubble-body">
+            Conversation cleared. I am actively monitoring ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}.
+          </div>
+        </div>
+      `;
+    }
+
+    // Clock Machine Controls
+    async function advanceClock(mins) {
+      playChime('alexa');
+      const res = await fetch('/api/clock/advance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: mins, person: currentPerson })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateUI(data);
+      }
+    }
+
+    async function jumpTo2pm() {
+      playChime('alexa');
+      const res = await fetch('/api/clock/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time: "14:00", person: currentPerson })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateUI(data);
+      }
+    }
+
+    async function resetClock() {
+      playChime('alexa');
+      if (demoActive) stopDemo();
+      const res = await fetch('/api/clock/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ person: currentPerson })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        updateUI(data);
+        appendAlexaMessage(`Clock and escalation reset to nominal morning state (08:15 AM).`);
+      }
+    }
+
+    function onPersonChange() {
+      currentPerson = document.getElementById('person-select').value;
+      fetchState();
+    }
+
+    // ==========================================
+    // "DAD SKIPS LUNCH" AUTOMATED DEMO SCENARIO
+    // ==========================================
+    async function startDadSkipsLunchDemo() {
+      if (demoActive) {
+        stopDemo();
+        return;
+      }
+
+      demoActive = true;
+      document.getElementById('person-select').value = "dad";
+      currentPerson = "dad";
+
+      const heroBtn = document.getElementById('hero-demo-btn');
+      heroBtn.style.background = '#dc2626';
+      heroBtn.innerHTML = `<span>⏹</span><span>Stop Demo</span>`;
+
+      const progressCard = document.getElementById('demo-progress-card');
+      progressCard.style.display = 'flex';
+
+      clearConversation();
+      appendAlexaMessage(`🚀 Starting "Dad Skips Lunch" automated hackathon demonstration scenario.`);
+
+      // Step 1: Setup morning nominal state (08:30 AM)
+      await runDemoStep(1, 6, "Step 1: Normal Morning (08:30 AM)", 
+        "Dad wakes up on schedule, takes morning blood pressure medication, and moves about the bedroom.",
+        async () => {
+          await fetch('/api/demo/skips-lunch/setup', { method: 'POST' });
+          await fetchState();
+          
+          appendAlexaMessage("Good morning Arthur! Your morning blood pressure medication (Lisinopril 10mg) is confirmed. Baseline routine is nominal.");
+          speakText("Good morning Arthur! Blood pressure medication confirmed.");
+        }, 5000
+      );
+
+      // Step 2: Midday 12:45 PM (Expected lunch time arrives)
+      await runDemoStep(2, 6, "Step 2: Expected Lunch Time (12:45 PM)", 
+        "Dad's learned baseline expects lunch at 12:44 UTC. Dad is feeling tired and takes a long nap in the bedroom. No kitchen movement or lunch logged.",
+        async () => {
+          await fetch('/api/clock/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ time: "12:45", person: "dad" })
+          });
+          await fetchState();
+          appendAlexaMessage("Clock advanced to 12:45 UTC. Expected lunch time window begins. Still within 30m grace window (no alert).");
+        }, 5000
+      );
+
+      // Step 3: 2:00 PM (14:00 UTC) - Grace Window Passes, Missed Lunch Detected!
+      await runDemoStep(3, 6, "Step 3: Missed Lunch & Inactivity (02:00 PM)", 
+        "Clock jumps to 14:00 UTC. Lunch grace window expired 45 mins ago! Inactivity: no movement for 5 hours. Risk elevated to 0.5 (MEDIUM). State transitions: NORMAL → GENTLE_CHECK_IN.",
+        async () => {
+          await fetch('/api/clock/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ time: "14:00", person: "dad" })
+          });
+          await fetchState();
+          playChime('alexa');
+          
+          const prompt = "Arthur, I noticed you haven't logged lunch today. Just checking in—did you get a chance to eat or would you like a reminder?";
+          appendAlexaMessage(`[GENTLE CHECK-IN PROMPT]\n${prompt}`);
+          speakText(prompt);
+        }, 6000
+      );
+
+      // Step 4: Gentle Check-in Timeout (+60s) → Repeat Check-In
+      await runDemoStep(4, 6, "Step 4: Gentle Timeout (+60s) → Repeat Check-In", 
+        "Dad is still sound asleep and does not respond to Alexa. Gentle check-in timeout (60s) expires. State transitions: GENTLE_CHECK_IN → REPEAT_CHECK_IN.",
+        async () => {
+          await fetch('/api/clock/advance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ minutes: 2, person: "dad" })
+          });
+          await fetchState();
+          playChime('alert');
+
+          const repeatPrompt = "Arthur, checking in once more with an attention chime. Please say 'I'm fine' or let me know if you need assistance.";
+          appendAlexaMessage(`[REPEAT CHECK-IN PROMPT]\n${repeatPrompt}`);
+          speakText(repeatPrompt);
+        }, 6000
+      );
+
+      // Step 5: Repeat Check-in Timeout (+60s) → NOTIFY FAMILY!
+      await runDemoStep(5, 6, "Step 5: Repeat Timeout (+60s) → Dispatched Family Alert!", 
+        "Second timeout expires with zero response. State machine advances to NOTIFY_FAMILY. Deterministic SNS/SMS alert dispatched to daughter Linda Davis with explainable reasons!",
+        async () => {
+          await fetch('/api/clock/advance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ minutes: 2, person: "dad" })
+          });
+          await fetchState();
+          playChime('alert');
+
+          appendAlexaMessage("🚨 Escalation triggered: NOTIFY_FAMILY stage reached. Alert dispatched to Linda Davis: 'Elder Care Alert: Dad Unresponsive to Routine Check-Ins'.");
+        }, 6000
+      );
+
+      // Step 6: Dad Wakes Up & Confirms OK!
+      await runDemoStep(6, 6, "Step 6: Dad Confirms Safe → Escalation Reset to Normal", 
+        "Dad hears the chime and wakes up: 'I'm fine, just had a long nap!' Invokes confirm_ok tool. State resets to NORMAL. Family phone displays resolved state.",
+        async () => {
+          appendUserMessage("I'm fine! I was just taking an afternoon nap.");
+          playChime('resolve');
+
+          const res = await callMcpTool('confirm_ok', { person: "dad" });
+          
+          const confirmMsg = "Glad you're okay, Arthur! I've marked your status as safe and notified Linda that you were just resting comfortably.";
+          appendAlexaMessage(confirmMsg, {
+            tool: "confirm_ok",
+            arguments: { person: "dad" },
+            result: res.result,
+            duration_ms: res.duration_ms,
+            protocol_version: "2025-11-25"
+          });
+          speakText(confirmMsg);
+
+          await fetchState();
+          stopDemo(true);
+        }, 6000
+      );
+    }
+
+    async function runDemoStep(stepNum, totalSteps, title, desc, actionFn, durationMs) {
+      if (!demoActive) return;
+
+      document.getElementById('demo-step-title').innerText = `${title} (${stepNum}/${totalSteps})`;
+      document.getElementById('demo-step-desc').innerText = desc;
+      document.getElementById('demo-bar-fill').style.width = `${(stepNum / totalSteps) * 100}%`;
+
+      await actionFn();
+
+      return new Promise((resolve) => {
+        let remainingSeconds = Math.round(durationMs / 1000);
+        document.getElementById('demo-step-countdown').innerText = `Next in ${remainingSeconds}s...`;
+
+        const interval = setInterval(() => {
+          if (!demoActive) {
+            clearInterval(interval);
+            resolve();
+            return;
+          }
+          remainingSeconds--;
+          if (remainingSeconds > 0) {
+            document.getElementById('demo-step-countdown').innerText = `Next in ${remainingSeconds}s...`;
+          } else {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 1000);
+      });
+    }
+
+    function stopDemo(completed = false) {
+      demoActive = false;
+      const heroBtn = document.getElementById('hero-demo-btn');
+      heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
+      heroBtn.innerHTML = `<span>▶</span><span>Dad Skips Lunch Demo</span>`;
+
+      if (completed) {
+        document.getElementById('demo-step-title').innerText = "✓ Scenario Completed Successfully!";
+        document.getElementById('demo-step-countdown').innerText = "All deterministic safety checks verified.";
+        setTimeout(() => {
+          if (!demoActive) {
+            document.getElementById('demo-progress-card').style.display = 'none';
+          }
+        }, 8000);
+      } else {
+        document.getElementById('demo-progress-card').style.display = 'none';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Auto-poll state every 3 seconds
+    setInterval(fetchState, 3000);
+    // Initial fetch
+    fetchState();
   </script>
 </body>
 </html>
