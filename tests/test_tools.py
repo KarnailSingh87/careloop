@@ -80,6 +80,41 @@ async def test_check_routine_health(service):
 
 
 @pytest.mark.asyncio
+async def test_check_routine_health_persisted_assessment_and_reasons(service):
+    server, storage, clock = service
+    from careloop.models import EscalationState, EscalationStage
+
+    # Seed an escalation state for eleanor at gentle_check_in
+    state = EscalationState(
+        person_id="eleanor",
+        stage=EscalationStage.GENTLE_CHECK_IN,
+        entered_at=clock.now(),
+        last_updated=clock.now(),
+        risk_score=0.45,
+        reasons=["Medication window expired", "No motion detected in hallway"],
+        notification_state="none",
+        version=1,
+    )
+    storage.save_escalation_state(state)
+
+    res = await server.call_tool("check_routine_health", {"person": "eleanor"})
+    assert not res.is_error
+    data_str = res.content[0].text
+    import json
+    data = json.loads(data_str) if data_str.startswith("{") else None
+    if data:
+        assert data["person"] == "eleanor"
+        assert data["escalation_stage"] == "gentle_check_in"
+        assert data["risk_score"] >= 0.3
+        assert len(data["reasons"]) >= 1
+        assert "notification_state" in data
+    else:
+        assert "gentle_check_in" in data_str
+        assert "Medication window expired" in data_str or "routine warning" in data_str
+
+
+
+@pytest.mark.asyncio
 async def test_schedule_reminder(service):
     server, storage, clock = service
     res = await server.call_tool(

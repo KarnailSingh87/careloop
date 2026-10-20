@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import json
 import logging
 from typing import Any, Dict, Optional
+import uuid
 
 from dateutil import parser as date_parser
 
@@ -136,6 +137,7 @@ def register_tools(
             event.person_id,
             now=event_time,
             reason=f"Observed new routine event: {event.event_type.value}",
+            event_id=event.event_id,
         )
 
         logger.info(
@@ -206,6 +208,7 @@ def register_tools(
             "risk_score": state.risk_score,
             "reasons": state.reasons,
             "escalation_stage": state.stage.value,
+            "notification_state": state.notification_state,
             "last_evaluated": now.isoformat(),
             "voice_response": voice_msg,
         }
@@ -317,6 +320,7 @@ def register_tools(
         }
         alert_level = level_map.get(severity.lower(), AlertLevel.ANOMALY_WARNING)
 
+        decision_id = str(uuid.uuid4())
         alert = Alert(
             person_id=person_id,
             level=alert_level,
@@ -325,7 +329,9 @@ def register_tools(
             reasons=reasons,
             recommended_action="Contact elder parent directly or check the home monitoring dashboard.",
             status="ACTIVE",
-            metadata={"severity": severity, "source": "notify_family_tool"},
+            notification_status="pending",
+            event_ids=esc_state.event_references.copy() if esc_state else [],
+            metadata={"severity": severity, "source": "notify_family_tool", "decision_id": decision_id},
         )
         storage.save_alert(alert)
 
@@ -336,6 +342,16 @@ def register_tools(
             reasons=reasons,
             contacts=contacts,
         )
+
+        if delivery_success:
+            alert.notification_status = "delivered"
+            alert.delivered_at = now
+            alert.delivery_error = None
+        else:
+            alert.notification_status = "failed"
+            alert.delivery_error = "Notification dispatch returned false"
+            alert.retry_count += 1
+        storage.save_alert(alert)
 
         recipient_names = ", ".join(c.name for c in contacts) if contacts else "family caregivers"
         voice_msg = f"I've sent an alert to {person_id.capitalize()}'s {recipient_names}."

@@ -30,7 +30,7 @@ from careloop.models import (
     Reminder,
     ReminderStatus,
 )
-from careloop.storage.base import StorageBase
+from careloop.storage.base import StorageBase, StaleStateError
 
 logger = logging.getLogger(__name__)
 
@@ -259,6 +259,11 @@ class DynamoDBStorage(StorageBase):
                 "recommended_action": alert.recommended_action,
                 "routine_type": alert.routine_type.value if alert.routine_type else None,
                 "status": alert.status,
+                "notification_status": alert.notification_status,
+                "delivered_at": alert.delivered_at.isoformat() if alert.delivered_at else None,
+                "delivery_error": alert.delivery_error,
+                "retry_count": alert.retry_count,
+                "event_ids": json.dumps(alert.event_ids),
                 "metadata": json.dumps(alert.metadata),
                 "item_type": "ALERT",
             }
@@ -289,6 +294,11 @@ class DynamoDBStorage(StorageBase):
                 created = datetime.fromisoformat(item["created_at"])
                 if created.tzinfo is None:
                     created = created.replace(tzinfo=timezone.utc)
+                delivered = None
+                if item.get("delivered_at"):
+                    delivered = datetime.fromisoformat(item["delivered_at"])
+                    if delivered.tzinfo is None:
+                        delivered = delivered.replace(tzinfo=timezone.utc)
                 alerts.append(
                     Alert(
                         alert_id=item["alert_id"],
@@ -300,6 +310,11 @@ class DynamoDBStorage(StorageBase):
                         recommended_action=item["recommended_action"],
                         routine_type=RoutineType(item["routine_type"]) if item.get("routine_type") else None,
                         status=item["status"],
+                        notification_status=item.get("notification_status", "pending"),
+                        delivered_at=delivered,
+                        delivery_error=item.get("delivery_error"),
+                        retry_count=int(item.get("retry_count", 0)),
+                        event_ids=json.loads(item.get("event_ids", "[]")),
                         metadata=json.loads(item["metadata"]),
                     )
                 )
@@ -308,7 +323,11 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to query alerts from DynamoDB: {e}")
             return []
 
-    def save_escalation_state(self, state: EscalationState) -> None:
+    def save_escalation_state(
+        self,
+        state: EscalationState,
+        check_version: bool = False,
+    ) -> None:
         try:
             item = {
                 "PK": f"PERSON#{state.person_id}",
@@ -319,10 +338,31 @@ class DynamoDBStorage(StorageBase):
                 "last_updated": state.last_updated.isoformat(),
                 "risk_score": str(state.risk_score),
                 "reasons": json.dumps(state.reasons),
+                "event_references": json.dumps(state.event_references),
+                "notification_state": state.notification_state,
+                "notification_id": state.notification_id,
+                "version": state.version,
                 "metadata": json.dumps(state.metadata),
                 "item_type": "ESCALATION_STATE",
             }
-            self._table.put_item(Item=item)
+            if check_version:
+                try:
+                    new_ver = state.version + 1
+                    item["version"] = new_ver
+                    self._table.put_item(
+                        Item=item,
+                        ConditionExpression="attribute_not_exists(PK) OR version = :ver",
+                        ExpressionAttributeValues={":ver": state.version},
+                    )
+                    state.version = new_ver
+                except ClientError as e:
+                    if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                        raise StaleStateError(
+                            f"Optimistic lock conflict on DynamoDB for {state.person_id}: version {state.version} already modified"
+                        ) from e
+                    raise
+            else:
+                self._table.put_item(Item=item)
         except ClientError as e:
             logger.error(f"Failed to save escalation state to DynamoDB: {e}")
             raise
@@ -351,6 +391,10 @@ class DynamoDBStorage(StorageBase):
                 last_updated=updated,
                 risk_score=float(item["risk_score"]),
                 reasons=json.loads(item["reasons"]),
+                event_references=json.loads(item.get("event_references", "[]")),
+                notification_state=item.get("notification_state", "none"),
+                notification_id=item.get("notification_id"),
+                version=int(item.get("version", 1)),
                 metadata=json.loads(item["metadata"]),
             )
         except ClientError as e:

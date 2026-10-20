@@ -266,3 +266,81 @@ def test_storage_medication_event_mapping_sqlite(temp_store):
     events = temp_store.get_events("eleanor")
     assert len(events) == 1
     assert events[0].event_type == EventType.PILL
+
+
+def test_sqlite_escalation_state_optimistic_locking(temp_store):
+    from careloop.storage.base import StaleStateError
+    from careloop.models import EscalationState, EscalationStage
+
+    t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
+    state = EscalationState(
+        person_id="eleanor",
+        stage=EscalationStage.NORMAL,
+        entered_at=t0,
+        last_updated=t0,
+        version=1,
+    )
+    temp_store.save_escalation_state(state, check_version=False)
+
+    # Valid optimistic update
+    state.stage = EscalationStage.GENTLE_CHECK_IN
+    temp_store.save_escalation_state(state, check_version=True)
+    assert state.version == 2
+
+    persisted = temp_store.get_escalation_state("eleanor")
+    assert persisted.version == 2
+    assert persisted.stage == EscalationStage.GENTLE_CHECK_IN
+
+    # Stale write with version 1 must raise StaleStateError
+    stale_state = EscalationState(
+        person_id="eleanor",
+        stage=EscalationStage.REPEAT_CHECK_IN,
+        entered_at=t0,
+        last_updated=t0,
+        version=1,
+    )
+    with pytest.raises(StaleStateError):
+        temp_store.save_escalation_state(stale_state, check_version=True)
+
+
+def test_dynamodb_escalation_state_optimistic_locking():
+    from unittest.mock import MagicMock
+    from botocore.exceptions import ClientError
+    from careloop.storage.dynamo_store import DynamoDBStorage
+    from careloop.storage.base import StaleStateError
+    from careloop.models import EscalationState, EscalationStage
+
+    mock_table = MagicMock()
+    mock_resource = MagicMock()
+    mock_resource.Table.return_value = mock_table
+    store = DynamoDBStorage(table_name="CareLoopData", dynamodb_resource=mock_resource)
+
+    t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
+    state = EscalationState(
+        person_id="eleanor",
+        stage=EscalationStage.NORMAL,
+        entered_at=t0,
+        last_updated=t0,
+        version=1,
+    )
+
+    # 1. Successful update
+    store.save_escalation_state(state, check_version=True)
+    assert state.version == 2
+    mock_table.put_item.assert_called()
+
+    # 2. Simulate ConditionalCheckFailedException
+    mock_table.put_item.side_effect = ClientError(
+        {"Error": {"Code": "ConditionalCheckFailedException", "Message": "Conditional check failed"}},
+        "PutItem",
+    )
+    stale_state = EscalationState(
+        person_id="eleanor",
+        stage=EscalationStage.REPEAT_CHECK_IN,
+        entered_at=t0,
+        last_updated=t0,
+        version=1,
+    )
+    with pytest.raises(StaleStateError):
+        store.save_escalation_state(stale_state, check_version=True)
+
