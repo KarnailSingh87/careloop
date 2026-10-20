@@ -71,8 +71,55 @@ async def run_client_test(server_url: str) -> None:
                 )
                 print("    Response:", res_health.content[0].text if res_health.content else res_health)
 
-                # 6. Call tool: schedule_reminder
-                print("\n[6] Calling schedule_reminder(person='eleanor', text='Hydrate and take afternoon walk', time='15:00')...")
+                # 6. Call tool: tick_escalation
+                print("\n[6] Calling tick_escalation(person='eleanor')...")
+                res_tick = await session.call_tool(
+                    "tick_escalation",
+                    arguments={"person": "eleanor"},
+                )
+                print("    Response:", res_tick.content[0].text if res_tick.content else res_tick)
+
+                # 7. Call tool: confirm_ok
+                print("\n[7] Calling confirm_ok(person='eleanor')...")
+                res_ok = await session.call_tool(
+                    "confirm_ok",
+                    arguments={"person": "eleanor"},
+                )
+                print("    Response:", res_ok.content[0].text if res_ok.content else res_ok)
+
+                # 8. Call tool: daily_summary
+                print("\n[8] Calling daily_summary(person='eleanor', date='today')...")
+                res_summary = await session.call_tool(
+                    "daily_summary",
+                    arguments={"person": "eleanor", "date": "today"},
+                )
+                print("    Response:", res_summary.content[0].text if res_summary.content else res_summary)
+
+                # 9. Call tool: ask_memory
+                print("\n[9] Calling ask_memory(person='eleanor', question='Did Eleanor take her morning medicine?')...")
+                res_mem = await session.call_tool(
+                    "ask_memory",
+                    arguments={
+                        "person": "eleanor",
+                        "question": "Did Eleanor take her morning medicine?",
+                    },
+                )
+                print("    Response:", res_mem.content[0].text if res_mem.content else res_mem)
+
+                # 10. Call tool: notify_family
+                print("\n[10] Calling notify_family(person='eleanor', severity='high', message='Routine check-in test alert')...")
+                res_notify = await session.call_tool(
+                    "notify_family",
+                    arguments={
+                        "person": "eleanor",
+                        "severity": "high",
+                        "message": "Routine check-in test alert dispatched via CareLoop.",
+                    },
+                )
+                print("    Response:", res_notify.content[0].text if res_notify.content else res_notify)
+
+                # 11. Call tool: schedule_reminder
+                print("\n[11] Calling schedule_reminder(person='eleanor', text='Hydrate and take afternoon walk', time='15:00')...")
                 res_rem = await session.call_tool(
                     "schedule_reminder",
                     arguments={
@@ -82,17 +129,6 @@ async def run_client_test(server_url: str) -> None:
                     },
                 )
                 print("    Response:", res_rem.content[0].text if res_rem.content else res_rem)
-
-                # 7. Call tool: respond_to_checkin ("I'm fine")
-                print("\n[7] Calling respond_to_checkin(person='eleanor', response_text='I am fine, thank you!')...")
-                res_checkin = await session.call_tool(
-                    "respond_to_checkin",
-                    arguments={
-                        "person": "eleanor",
-                        "response_text": "I am fine, thank you!",
-                    },
-                )
-                print("    Response:", res_checkin.content[0].text if res_checkin.content else res_checkin)
 
                 print("\n" + "=" * 60)
                 print("✅ All MCP tools executed successfully over Streamable HTTP!")

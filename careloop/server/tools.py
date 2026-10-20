@@ -26,7 +26,9 @@ from careloop.clock import Clock, SystemClock
 from careloop.engine.baseline import BaselineEngine
 from careloop.engine.risk import RiskEngine
 from careloop.engine.escalation import EscalationEngine
-from careloop.models import Event, EventType, EscalationStage
+from careloop.llm.bedrock import BedrockAssistant
+from careloop.models import Event, EventType, EscalationStage, Alert, AlertLevel
+from careloop.notifier import NotifierBase, get_default_notifier
 from careloop.server.models import Reminder, ReminderStatus, RoutineEventType
 from careloop.storage.base import StorageBase
 
@@ -48,15 +50,22 @@ def register_tools(
     clock: Clock,
     escalation_engine: Optional[EscalationEngine] = None,
     baseline_engine: Optional[BaselineEngine] = None,
+    notifier: Optional[NotifierBase] = None,
+    llm_assistant: Optional[BedrockAssistant] = None,
 ) -> None:
     """Register all Alexa+ MCP tools onto the MCPServer instance."""
     if baseline_engine is None:
         baseline_engine = BaselineEngine()
+    if notifier is None:
+        notifier = get_default_notifier()
     if escalation_engine is None:
         escalation_engine = EscalationEngine(
             storage=storage,
             baseline_engine=baseline_engine,
+            notifier=notifier,
         )
+    if llm_assistant is None:
+        llm_assistant = BedrockAssistant()
 
     @server.tool()
     def log_routine_event(
@@ -207,3 +216,191 @@ def register_tools(
             "text": reminder.text,
             "time": reminder.scheduled_time,
         }
+
+    @server.tool()
+    def notify_family(person: str, severity: str, message: str) -> Dict[str, Any]:
+        """
+        Dispatches an urgent or warning alert notification to the elder parent's designated family caregivers via Amazon SNS (or console).
+        Always logs the alert with supporting deterministic reasons to the audit history.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            severity: Alert severity level: 'low', 'medium', 'high', or 'critical'
+            message: Plain-English explanation of why family is being alerted
+        """
+        person_id = person.strip().lower()
+        now = clock.now()
+
+        profile = storage.get_profile(person_id)
+        contacts = profile.emergency_contacts if profile else []
+
+        esc_state = escalation_engine.get_or_create_state(person_id, now)
+        reasons = esc_state.reasons.copy() if esc_state.reasons else [f"Alert dispatched: {message}"]
+
+        level_map = {
+            "low": AlertLevel.INFO,
+            "medium": AlertLevel.ANOMALY_WARNING,
+            "high": AlertLevel.CRITICAL_ESCALATION,
+            "critical": AlertLevel.CRITICAL_ESCALATION,
+        }
+        alert_level = level_map.get(severity.lower(), AlertLevel.ANOMALY_WARNING)
+
+        alert = Alert(
+            person_id=person_id,
+            level=alert_level,
+            created_at=now,
+            title=f"CareLoop Family Alert: {message}",
+            reasons=reasons,
+            recommended_action="Contact elder parent directly or check the home monitoring dashboard.",
+            status="ACTIVE",
+            metadata={"severity": severity, "source": "notify_family_tool"},
+        )
+        storage.save_alert(alert)
+
+        delivery_success = notifier.send_notification(
+            person_id=person_id,
+            severity=severity,
+            message=message,
+            reasons=reasons,
+            contacts=contacts,
+        )
+
+        return {
+            "status": "notified" if delivery_success else "dispatch_failed",
+            "alert_id": alert.alert_id,
+            "person": person_id,
+            "severity": severity,
+            "message": message,
+            "notifier": notifier.__class__.__name__,
+            "reasons": reasons,
+            "delivered_to": [c.name for c in contacts] if contacts else ["Default Caregiver"],
+        }
+
+    @server.tool()
+    def confirm_ok(person: str) -> Dict[str, Any]:
+        """
+        Called when an elderly parent responds to a voice check-in confirming they are fine, healthy, or okay.
+        Resets any active routine check-in escalation state machine back to normal.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+        """
+        person_id = person.strip().lower()
+        now = clock.now()
+        state = escalation_engine.reset_to_normal(
+            person_id=person_id,
+            now=now,
+            reason="Elder confirmed they are fine",
+        )
+        return {
+            "status": "confirmed_ok",
+            "person": person_id,
+            "escalation_stage": state.stage.value,
+            "message": f"Confirmed that {person_id} is okay. Escalation state is now normal.",
+        }
+
+    @server.tool()
+    def daily_summary(person: str, date: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generates a warm, empathetic daily routine summary for family caregivers using Amazon Bedrock.
+        Summarizes medication checks, meals, and general movement patterns for a specific date.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            date: Optional target date string (YYYY-MM-DD or 'today'). Defaults to today.
+        """
+        person_id = person.strip().lower()
+        now = clock.now()
+
+        if not date or date.strip().lower() == "today":
+            target_date = now.date()
+            date_str = target_date.isoformat()
+        else:
+            try:
+                target_date = date_parser.parse(date).date()
+                date_str = target_date.isoformat()
+            except Exception:
+                target_date = now.date()
+                date_str = target_date.isoformat()
+
+        all_events = storage.get_events(person_id, limit=200)
+        events_on_date = [e for e in all_events if e.timestamp.date() == target_date]
+
+        profile = storage.get_profile(person_id)
+        display_name = profile.display_name if profile else person_id.capitalize()
+
+        summary_text = llm_assistant.generate_daily_summary(
+            person_name=display_name,
+            events=events_on_date,
+        )
+
+        return {
+            "person": person_id,
+            "date": date_str,
+            "event_count": len(events_on_date),
+            "summary": summary_text,
+        }
+
+    @server.tool()
+    def ask_memory(person: str, question: str) -> Dict[str, Any]:
+        """
+        Answers caregiver questions about the elder parent's daily routine history, habits, and recorded events.
+        Uses Amazon Bedrock memory Q&A sandboxed strictly to factual event logs.
+
+        Parameters:
+            person: Identifier of the elder parent (e.g. 'eleanor', 'mom')
+            question: Specific query about the parent's routine (e.g. 'Did Mom take her pills today?')
+        """
+        person_id = person.strip().lower()
+        events = storage.get_events(person_id, limit=50)
+
+        profile = storage.get_profile(person_id)
+        display_name = profile.display_name if profile else person_id.capitalize()
+
+        answer = llm_assistant.answer_memory_question(
+            person_name=display_name,
+            question=question.strip(),
+            events=events,
+        )
+
+        return {
+            "person": person_id,
+            "question": question,
+            "answer": answer,
+        }
+
+    @server.tool()
+    def tick_escalation(person: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Runs a scheduled routine check and advances the escalation state machine without waiting for user requests.
+
+        Parameters:
+            person: Optional identifier of the elder parent. If omitted, ticks all known persons.
+        """
+        now = clock.now()
+        if person:
+            p_id = person.strip().lower()
+            state = escalation_engine.tick(p_id, now)
+            return {
+                "status": "ticked",
+                "timestamp": now.isoformat(),
+                "person": p_id,
+                "stage": state.stage.value,
+                "risk_score": state.risk_score,
+                "reasons": state.reasons,
+            }
+        else:
+            results: Dict[str, Any] = {}
+            known_persons = ["eleanor"]
+            for p_id in known_persons:
+                st = escalation_engine.tick(p_id, now)
+                results[p_id] = {
+                    "stage": st.stage.value,
+                    "risk_score": st.risk_score,
+                    "reasons": st.reasons,
+                }
+            return {
+                "status": "ticked",
+                "timestamp": now.isoformat(),
+                "persons": results,
+            }

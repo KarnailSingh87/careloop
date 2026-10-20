@@ -42,12 +42,14 @@ class EscalationEngine:
         storage: StorageBase,
         risk_engine: Optional[RiskEngine] = None,
         baseline_engine: Optional[BaselineEngine] = None,
+        notifier: Optional[Any] = None,
         gentle_timeout_seconds: float = 60.0,   # Default demo timeout: 60s
         repeat_timeout_seconds: float = 60.0,   # Default demo timeout: 60s
     ) -> None:
         self.storage = storage
         self.risk_engine = risk_engine or RiskEngine()
         self.baseline_engine = baseline_engine
+        self.notifier = notifier
         self.gentle_timeout_seconds = gentle_timeout_seconds
         self.repeat_timeout_seconds = repeat_timeout_seconds
 
@@ -187,6 +189,9 @@ class EscalationEngine:
                     f"after {elapsed:.1f}s timeout. Dispatched family alert!"
                 )
                 # Dispatch deterministic family Alert to storage
+                profile = self.storage.get_profile(person_id)
+                contacts = profile.emergency_contacts if profile else None
+
                 alert = Alert(
                     person_id=person_id,
                     level=AlertLevel.CRITICAL_ESCALATION,
@@ -201,6 +206,15 @@ class EscalationEngine:
                     metadata={"risk_score": risk.score, "risk_level": risk.level},
                 )
                 self.storage.save_alert(alert)
+
+                if self.notifier:
+                    self.notifier.send_notification(
+                        person_id=person_id,
+                        severity="high",
+                        message=alert.title,
+                        reasons=alert.reasons,
+                        contacts=contacts,
+                    )
             else:
                 state.last_updated = now
 
