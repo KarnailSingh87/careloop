@@ -187,18 +187,83 @@ npx tsc --noEmit
 
 ---
 
-## 6. Audit Conclusion & Immediate Next Action
+## 6. Audit & Remediation Status Summary
 
-CareLoop has achieved full functional implementation across its MCP server, 60-day baseline engine, escalation state machine, dual-theme simulator, and AWS deployment manifests.
+CareLoop has achieved full functional implementation across its MCP server, 60-day baseline engine, escalation state machine, dual-theme simulator, and AWS deployment manifests. All identified P0 and P1 issues have been remediated in place with accompanying regression tests.
 
-**Exact Test Results**:
-- **Pytest**: `79 passed in 7.30s` (Exit Code 0)
-- **Coverage**: `82% total statement coverage`
-- **Client Test**: `All 9 MCP tools executed successfully over Streamable HTTP` (Exit Code 0)
-- **Benchmark Replay**: `18/18 Incidents Detected (100.0% Recall), 0.00% False-Alarm Rate` (Exit Code 0)
-- **TypeScript**: `0 errors` via `npx tsc --noEmit`
+**Current Test Results (Post-Remediation)**:
+- **Pytest**: `84 passed in 5.04s` (Exit Code 0) — *up from 79 passed*
+- **Coverage**: `82% total statement coverage` (1,439 statements evaluated)
+- **Streamable HTTP MCP Client**: `All 9 MCP tools executed successfully over Streamable HTTP` (Exit Code 0)
+- **60-Day Benchmark Replay**: `18/18 Incidents Detected (100.0% Recall), 0.00% False-Alarm Rate` across 459 evaluations (Exit Code 0)
+- **TypeScript**: `0 errors` via `npx tsc --noEmit` (Exit Code 0)
+- **Packaging & CLI**: `careloop --help` executed cleanly from installed package (Exit Code 0)
 
-**Highest-Priority Next Action**:
-Execute **P1.1** and **P1.2** remediation:
-1. Harden token validation with `hmac.compare_digest` in `careloop/server/main.py`.
-2. Add auth header injection in `deploy/tick_lambda/tick_handler.py` so EventBridge scheduled ticks work seamlessly against authenticated servers.
+---
+
+## 7. Remediation & Fix Verification Log
+
+### Fix 1: Timing Side-Channel Protection (P1.1)
+- **Problem**: In `careloop/server/main.py:120`, the bearer auth middleware compared incoming tokens using `!=`, which is subject to timing side-channel attacks allowing iterative token reconstruction.
+- **Remediation**: Replaced with constant-time `hmac.compare_digest(extracted_token, self.auth_token)`.
+- **Regression Test**: Added `tests/test_auth.py::test_auth_invalid_tokens_rejected` testing prefix mismatches, empty tokens, trailing/leading bytes, and invalid tokens.
+- **Verification Command**:
+  ```bash
+  .venv/bin/pytest tests/test_auth.py -k test_auth_invalid_tokens_rejected
+  ```
+- **Exit Code**: `0` (1 passed, total suite 8/8 passed).
+
+### Fix 2: EventBridge Tick Lambda Authentication Forwarding (P1.2)
+- **Problem**: `deploy/tick_lambda/tick_handler.py` sent bare POST requests to `/api/mcp/call`. If the MCP server was launched with `ALEXA_AUTH_TOKEN`, scheduled EventBridge ticks would be rejected with 401 Unauthorized.
+- **Remediation**: Updated `tick_handler.py` to inspect `ALEXA_AUTH_TOKEN` or `MCP_AUTH_TOKEN` from the environment and inject both `Authorization: Bearer <token>` and `x-alexa-auth-token: <token>` headers.
+- **Regression Test**: Added `tests/test_deployment.py::test_tick_handler_with_auth_token` verifying header injection.
+- **Verification Command**:
+  ```bash
+  .venv/bin/pytest tests/test_deployment.py -k test_tick_handler_with_auth_token
+  ```
+- **Exit Code**: `0` (1 passed, total suite 7/7 passed).
+
+### Fix 3: Storage Interface Standardization & Event Mapping Consistency (P1.3)
+- **Problem**:
+  1. `StorageBase.list_profiles` was not decorated with `@abstractmethod`, allowing incomplete storage subclasses to be instantiated.
+  2. `DynamoDBStorage.get_events()` mapped raw event type `"medication"` to `EventType.CUSTOM` instead of `EventType.PILL`, diverging from `SQLiteStorage`.
+- **Remediation**:
+  1. Marked `list_profiles` as `@abstractmethod` in `careloop/storage/base.py`.
+  2. Aligned `careloop/storage/dynamo_store.py` to map `"medication"` to `EventType.PILL`.
+- **Regression Tests**: Added `test_storage_base_cannot_instantiate_incomplete`, `test_storage_medication_event_mapping_dynamodb`, and `test_storage_medication_event_mapping_sqlite` in `tests/test_storage.py`.
+- **Verification Command**:
+  ```bash
+  .venv/bin/pytest tests/test_storage.py
+  ```
+- **Exit Code**: `0` (8 passed).
+
+### Fix 4: Hermetic Test Isolation & Accidental AWS Side Effect Elimination (P1.4)
+- **Problem**: `test_daily_summary_three_sentences_fallback` in `tests/test_bedrock.py` passed `bedrock_client=None`, triggering `_get_client()` to instantiate a real `boto3.client("bedrock-runtime")`. If ambient AWS credentials existed on the host, real HTTPS requests could be dispatched during unit testing.
+- **Remediation**:
+  1. Created `tests/conftest.py` with an autouse fixture setting dummy AWS credentials (`AWS_ACCESS_KEY_ID="testing"`, etc.).
+  2. Injected a mock client with `converse.side_effect = Exception("Bedrock service offline")` into `test_daily_summary_three_sentences_fallback` to test the fallback hermetically.
+- **Verification Command**:
+  ```bash
+  .venv/bin/pytest tests/test_bedrock.py
+  ```
+- **Exit Code**: `0` (6 passed).
+
+### Fix 5: Package Installation & CLI Entrypoint Verification (P0)
+- **Problem**: Python 3.12 ignores `.pth` files starting with an underscore (`_editable_impl_*.pth`), which could cause `careloop` binary to fail with `ModuleNotFoundError` when installed as an editable egg link.
+- **Remediation**: Built standard wheel package with `pip install .` including static simulator assets (`careloop/simulator/index.html`).
+- **Verification Command**:
+  ```bash
+  .venv/bin/careloop --help
+  ```
+- **Exit Code**: `0` (Prints full usage and arguments for host, port, db, clock, storage, dynamo-table, tick-interval, and auth-token).
+
+---
+
+## 8. Unresolved Issues & Environmental Limitations
+
+1. **Live AWS Cloud Integration Testing**:
+   - *Limitation*: Unit and integration tests verify DynamoDB and Bedrock operations against mocks and interface contracts. End-to-end testing against real AWS endpoints (`https://bedrock-runtime.us-east-1.amazonaws.com` and real DynamoDB tables) requires an active AWS account with provisioned IAM credentials, which are intentionally decoupled from the local test harness to maintain zero external network side effects.
+2. **P2 Enhancement: Configurable CORS Origin Whitelist**:
+   - Currently, `careloop/server/main.py` uses `allow_origins=["*"]` to simplify local testing across localhost ports (`8000`, `3000`, `5173`) and the Alexa+ developer console simulator. For strict enterprise deployments, an environment variable `CORS_ALLOWED_ORIGINS` can restrict this to specific domain origins.
+3. **P2 Enhancement: DynamoDB TTL Expiration**:
+   - Long-term historical events in DynamoDB can leverage DynamoDB native TTL by writing an epoch `ttl` attribute on `Event` items to automatically retire motion sensor records older than 90 days.
