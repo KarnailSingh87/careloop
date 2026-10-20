@@ -329,9 +329,11 @@ def register_tools(
         profile = storage.get_profile(person_id)
         display_name = profile.display_name if profile else person_id.capitalize()
 
-        summary_text = llm_assistant.generate_daily_summary(
-            person_name=display_name,
-            events=events_on_date,
+        summary_text = llm_assistant.daily_summary(
+            person=person_id,
+            target_date=target_date,
+            storage=storage,
+            display_name=display_name,
         )
 
         return {
@@ -352,15 +354,16 @@ def register_tools(
             question: Specific query about the parent's routine (e.g. 'Did Mom take her pills today?')
         """
         person_id = person.strip().lower()
-        events = storage.get_events(person_id, limit=50)
-
+        now = clock.now()
         profile = storage.get_profile(person_id)
         display_name = profile.display_name if profile else person_id.capitalize()
 
-        answer = llm_assistant.answer_memory_question(
-            person_name=display_name,
+        answer = llm_assistant.ask_memory(
+            person=person_id,
             question=question.strip(),
-            events=events,
+            storage=storage,
+            now=now,
+            display_name=display_name,
         )
 
         return {
