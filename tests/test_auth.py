@@ -113,3 +113,36 @@ def test_cors_options_preflight(auth_client):
     )
     assert res.status_code == 200
     assert res.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_auth_invalid_tokens_rejected(auth_client):
+    client, token = auth_client
+
+    # Partial prefix match must be rejected (avoids timing or prefix vulnerability)
+    res_prefix = client.get(
+        "/api/state?person=dad",
+        headers={"Authorization": f"Bearer {token[:-1]}"},
+    )
+    assert res_prefix.status_code == 401
+
+    # Empty token rejected
+    res_empty = client.get(
+        "/api/state?person=dad",
+        headers={"Authorization": "Bearer "},
+    )
+    assert res_empty.status_code == 401
+
+    # Extra character rejected
+    res_extra = client.get(
+        "/api/state?person=dad",
+        headers={"Authorization": f"Bearer {token}x"},
+    )
+    assert res_extra.status_code == 401
+
+    # Completely wrong token rejected
+    res_wrong = client.get(
+        "/api/state?person=dad",
+        headers={"Authorization": "Bearer completely-wrong-token-abc"},
+    )
+    assert res_wrong.status_code == 401
+

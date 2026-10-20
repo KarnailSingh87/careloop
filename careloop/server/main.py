@@ -116,8 +116,9 @@ class AlexaAuthMiddleware:
             extracted_token = api_key_header
         elif query_token:
             extracted_token = query_token
+        import hmac
 
-        if extracted_token != self.auth_token:
+        if not hmac.compare_digest(extracted_token, self.auth_token):
             logger.warning(f"Unauthorized request to {path}: missing or invalid Alexa+ auth token")
             response = JSONResponse(
                 {

@@ -31,7 +31,9 @@ def test_model_id_from_env_var(monkeypatch):
 
 
 def test_daily_summary_three_sentences_fallback():
-    assistant = BedrockAssistant(bedrock_client=None)  # Offline fallback
+    mock_client = MagicMock()
+    mock_client.converse.side_effect = Exception("Bedrock service offline")
+    assistant = BedrockAssistant(bedrock_client=mock_client)  # Offline fallback
     ref_time = datetime(2026, 10, 20, 8, 30, 0, tzinfo=timezone.utc)
 
     events = [

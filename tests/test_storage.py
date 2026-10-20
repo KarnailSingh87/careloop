@@ -215,3 +215,54 @@ def test_dynamodb_storage_mocked():
     assert esc is not None
     assert esc.stage == EscalationStage.GENTLE_CHECK_IN
     assert esc.risk_score == 0.45
+
+
+def test_storage_base_cannot_instantiate_incomplete():
+    from careloop.storage.base import StorageBase
+
+    class IncompleteStorage(StorageBase):
+        pass
+
+    with pytest.raises(TypeError):
+        IncompleteStorage()
+
+
+def test_storage_medication_event_mapping_dynamodb():
+    from unittest.mock import MagicMock
+    import json
+    from careloop.storage.dynamo_store import DynamoDBStorage
+
+    mock_table = MagicMock()
+    mock_resource = MagicMock()
+    mock_resource.Table.return_value = mock_table
+    store = DynamoDBStorage(table_name="CareLoopData", dynamodb_resource=mock_resource)
+
+    mock_table.query.return_value = {
+        "Items": [
+            {
+                "event_id": "ev_med_1",
+                "person_id": "dad",
+                "event_type": "medication",
+                "timestamp": "2026-10-20T08:00:00+00:00",
+                "metadata": json.dumps({"medication": "metformin"}),
+            }
+        ]
+    }
+    events = store.get_events("dad")
+    assert len(events) == 1
+    assert events[0].event_type == EventType.PILL
+
+
+def test_storage_medication_event_mapping_sqlite(temp_store):
+    # Directly insert raw 'medication' row to simulate legacy event
+    with temp_store._conn:
+        temp_store._conn.execute(
+            """
+            INSERT INTO events (event_id, person_id, event_type, timestamp, metadata)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ("ev_raw_med", "eleanor", "medication", "2026-10-20T08:00:00+00:00", '{"medication": "metformin"}'),
+        )
+    events = temp_store.get_events("eleanor")
+    assert len(events) == 1
+    assert events[0].event_type == EventType.PILL

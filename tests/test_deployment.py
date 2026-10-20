@@ -33,6 +33,24 @@ def test_tick_handler_success(monkeypatch):
         assert res["result"]["status"] == "ticked"
 
 
+def test_tick_handler_with_auth_token(monkeypatch):
+    monkeypatch.setenv("MCP_SERVER_URL", "http://careloop-alb.us-east-1.elb.amazonaws.com")
+    monkeypatch.setenv("ALEXA_AUTH_TOKEN", "alexa_sec_999")
+
+    mock_resp = MagicMock()
+    mock_resp.getcode.return_value = 200
+    mock_resp.read.return_value = json.dumps({"status": "ticked"}).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen:
+        res = handler({}, None)
+        assert res["statusCode"] == 200
+        assert mock_urlopen.called
+        req = mock_urlopen.call_args[0][0]
+        assert req.get_header("Authorization") == "Bearer alexa_sec_999"
+        assert req.get_header("X-alexa-auth-token") == "alexa_sec_999"
+
+
 def test_tick_handler_http_error(monkeypatch):
     monkeypatch.setenv("MCP_SERVER_URL", "http://careloop-alb.us-east-1.elb.amazonaws.com")
 

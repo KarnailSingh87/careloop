@@ -35,10 +35,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     }
 
     req_data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    auth_token = (os.getenv("ALEXA_AUTH_TOKEN") or os.getenv("MCP_AUTH_TOKEN") or "").strip()
+    if auth_token:
+        headers["Authorization"] = f"Bearer {auth_token}"
+        headers["x-alexa-auth-token"] = auth_token
+
     req = urllib.request.Request(
         target_endpoint,
         data=req_data,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 

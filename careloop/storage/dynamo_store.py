@@ -98,11 +98,20 @@ class DynamoDBStorage(StorageBase):
                 ts = datetime.fromisoformat(item["timestamp"])
                 if ts.tzinfo is None:
                     ts = ts.replace(tzinfo=timezone.utc)
+                raw_type = item.get("event_type", "")
+                try:
+                    e_type = EventType(raw_type)
+                except ValueError:
+                    if raw_type == "medication":
+                        e_type = EventType.PILL
+                    else:
+                        e_type = EventType.CUSTOM
+
                 events.append(
                     Event(
                         event_id=item["event_id"],
                         person_id=item["person_id"],
-                        event_type=EventType(item["event_type"]) if item["event_type"] in [e.value for e in EventType] else EventType.CUSTOM,
+                        event_type=e_type,
                         timestamp=ts,
                         metadata=json.loads(item["metadata"]),
                     )
