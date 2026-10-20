@@ -191,9 +191,9 @@ npx tsc --noEmit
 
 CareLoop has achieved full functional implementation across its MCP server, 60-day baseline engine, escalation state machine, dual-theme simulator, and AWS deployment manifests. All identified P0 and P1 issues have been remediated in place with accompanying regression tests.
 
-**Current Test Results (Post-Remediation)**:
-- **Pytest**: `84 passed in 5.04s` (Exit Code 0) — *up from 79 passed*
-- **Coverage**: `82% total statement coverage` (1,439 statements evaluated)
+**Current Test Results (Post-Remediation & Engine Hardening)**:
+- **Pytest**: `92 passed in 4.92s` (Exit Code 0) — *up from 79 passed*
+- **Coverage**: `82% total statement coverage` (1,523 statements evaluated)
 - **Streamable HTTP MCP Client**: `All 9 MCP tools executed successfully over Streamable HTTP` (Exit Code 0)
 - **60-Day Benchmark Replay**: `18/18 Incidents Detected (100.0% Recall), 0.00% False-Alarm Rate` across 459 evaluations (Exit Code 0)
 - **TypeScript**: `0 errors` via `npx tsc --noEmit` (Exit Code 0)

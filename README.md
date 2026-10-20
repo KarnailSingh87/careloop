@@ -8,7 +8,7 @@
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
 [![AWS DynamoDB](https://img.shields.io/badge/AWS-DynamoDB%20Encrypted-blue.svg)](https://aws.amazon.com/dynamodb/)
-[![Tests Passing](https://img.shields.io/badge/tests-79%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-92%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -35,7 +35,7 @@ Every day, millions of aging parents live independently while their adult childr
   - **Full IaC Packaging**: Production-grade **AWS CDK (Python)** in [deploy/cdk/](file:///Users/harsh/Desktop/Alexa+/deploy/cdk/) and **AWS SAM** in [template.yaml](file:///Users/harsh/Desktop/Alexa+/template.yaml).
 - **Open Source Mini-Challenge**:
   - 100% open-source under the **MIT License**.
-  - Fully typed with Pydantic v2 domain models and validated by **79 pytest tests** (100% pass rate).
+  - Fully typed with Pydantic v2 domain models and validated by **92 pytest tests** (100% pass rate).
   - Zero proprietary vendor lock-in: runs identically on local SQLite or AWS DynamoDB.
 
 ---
@@ -78,6 +78,49 @@ flowchart TD
         Notifier -->|"AWS Mode"| SNS["Amazon SNS Topic<br/>CareLoopAlertsTopic<br/>• SMS / Push to Daughter Linda<br/>• Deterministic Reasons Included"]
     end
 ```
+
+---
+
+## Routine Anomaly Detection Policy & Mathematical Formulation
+
+CareLoop's anomaly engine ([careloop/engine/baseline.py](file:///Users/harsh/Desktop/Alexa+/careloop/engine/baseline.py)) learns and detects routine deviations through a mathematically grounded, clinically defensive architecture:
+
+### 1. Timezone-Aware Evaluation & Daylight Saving Time (DST) Handling
+- Every elder has a configured deployment timezone (e.g. `America/New_York`, `America/Chicago`, `Europe/London`).
+- All timestamps must be timezone-aware (naive timestamps raise `ValueError` to prevent silent mixing of local time and UTC).
+- Schedule baselines are evaluated in the elder's local wall-clock time. Consequently, when Daylight Saving Time transitions occur (e.g. EDT to EST), morning pills taken at 08:30 AM local time remain at 510.0 minutes both before and after the clock switch—preventing artificial 60-minute jumps and false anomalies.
+
+### 2. Circular Statistics on a 24-Hour Circle
+Daily routines oscillate around calendar boundaries (e.g. bedtime routines spanning 23:55 to 00:10). Standard linear averaging yields catastrophic variance explosion (averaging 5m and 1435m yields 720m—noon!).
+CareLoop uses the signed shortest circular distance on the 1440-minute circle:
+$$\Delta(a, b) = ((a - b + 720) \pmod{1440}) - 720 \in [-720, 720)$$
+
+Circular Exponentially Weighted Moving Average (EWMA) updates:
+$$\mu_{t} = (\mu_{t-1} + \alpha \cdot \Delta(x_t, \mu_{t-1})) \pmod{1440}$$
+$$\sigma^2_{t} = (1 - \alpha) \cdot \sigma^2_{t-1} + \alpha \cdot (\Delta(x_t, \mu_{t-1}))^2$$
+
+### 3. Robust Winsorized Updates Against Outliers
+When calibrated ($N \ge 5$), extreme deviations ($|z| > 3.0$) are flagged as anomalies, but the difference $\Delta$ applied to update the EWMA baseline is clamped to $\pm 3.0\sigma$:
+$$\Delta_{\text{effective}} = \max(-3\sigma, \min(3\sigma, \Delta))$$
+This guarantees that an isolated emergency or hospital visit does not destroy the learned routine baseline for subsequent weeks.
+
+### 4. Explicit Cold-Start Rule
+- When an individual routine has fewer than 5 valid observations ($N < 5$), anomaly detection and missed-event alerts are **strictly suppressed**.
+- `evaluate_routine()` explicitly returns `status="cold_start"`, preventing false alarms while the system is learning.
+
+### 5. Configurable Grace Period & Small-Sample Calibration Notice
+- Grace window formula: $W_{\text{grace}} = \mu + \max(k \cdot \sigma, \text{min\_grace\_minutes})$.
+- The minimum grace period defaults to **30 minutes** (configurable).
+- **Statistical Calibration Notice**: For small sample sizes ($N < 20$), sample variance is an empirical estimate subject to sampling noise. The condition $|z| > 2$ is an operational screening heuristic rather than an exact calibrated Gaussian 95% confidence interval. The combination of minimum grace windows and minimum variance floors ($\sigma \ge 5\text{m}$) prevents overly brittle thresholds.
+
+### 6. No Double-Counting & Late Event Recovery
+- An event occurring within the grace window is recognized as normal completed activity.
+- If an alert is triggered after the grace window expires and the elder subsequently completes the routine late, recording the event immediately clears the missed status and resets the escalation state machine to `NORMAL`.
+- A late event is **never counted as both an anomaly and a missed event** at the same evaluation time.
+
+### 7. Zero LLM in Life-Critical Decisions
+- All risk scores and state transitions are **100% deterministic code** in [careloop/engine/risk.py](file:///Users/harsh/Desktop/Alexa+/careloop/engine/risk.py) and [careloop/engine/escalation.py](file:///Users/harsh/Desktop/Alexa+/careloop/engine/escalation.py).
+- Amazon Bedrock is sandboxed strictly to family summaries and factual memory queries.
 
 ---
 
