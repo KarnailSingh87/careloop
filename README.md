@@ -8,7 +8,7 @@
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
 [![AWS DynamoDB](https://img.shields.io/badge/AWS-DynamoDB%20Encrypted-blue.svg)](https://aws.amazon.com/dynamodb/)
-[![Tests Passing](https://img.shields.io/badge/tests-92%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-98%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -35,7 +35,7 @@ Every day, millions of aging parents live independently while their adult childr
   - **Full IaC Packaging**: Production-grade **AWS CDK (Python)** in [deploy/cdk/](file:///Users/harsh/Desktop/Alexa+/deploy/cdk/) and **AWS SAM** in [template.yaml](file:///Users/harsh/Desktop/Alexa+/template.yaml).
 - **Open Source Mini-Challenge**:
   - 100% open-source under the **MIT License**.
-  - Fully typed with Pydantic v2 domain models and validated by **92 pytest tests** (100% pass rate).
+  - Fully typed with Pydantic v2 domain models and validated by **98 pytest tests** (100% pass rate).
   - Zero proprietary vendor lock-in: runs identically on local SQLite or AWS DynamoDB.
 
 ---
@@ -124,6 +124,60 @@ This guarantees that an isolated emergency or hospital visit does not destroy th
 
 ---
 
+## Persisted Escalation State Machine & Reliability Architecture
+
+CareLoop guarantees reliable routine escalation across server crashes, worker restarts, and repeated scheduled ticks through an optimistic concurrency controlled, idempotent state machine ([careloop/engine/escalation.py](file:///Users/harsh/Desktop/Alexa+/careloop/engine/escalation.py)):
+
+### State Machine Architecture (Mermaid)
+
+```mermaid
+stateDiagram-v2
+    [*] --> NORMAL: Initialize / Profile Created
+
+    NORMAL --> GENTLE_CHECK_IN: Risk Score >= 0.3 (Missed Routine / Inactivity)
+    NORMAL --> NORMAL: Repeated Tick (Risk < 0.3)
+
+    GENTLE_CHECK_IN --> GENTLE_CHECK_IN: Repeated Tick (Elapsed < gentle_timeout)
+    GENTLE_CHECK_IN --> REPEAT_CHECK_IN: Elapsed >= gentle_timeout (Unanswered Check-In)
+
+    REPEAT_CHECK_IN --> REPEAT_CHECK_IN: Repeated Tick (Elapsed < repeat_timeout)
+    REPEAT_CHECK_IN --> NOTIFY_FAMILY: Elapsed >= repeat_timeout (Decision: Alert Dispatched)
+
+    NOTIFY_FAMILY --> NOTIFY_FAMILY: Repeated Tick (Idempotent: No duplicate SMS / Alert)
+
+    GENTLE_CHECK_IN --> NORMAL: Qualifying Event / confirm_ok / "I'm fine"
+    REPEAT_CHECK_IN --> NORMAL: Qualifying Event / confirm_ok / "I'm fine"
+    NOTIFY_FAMILY --> NORMAL: Qualifying Event / confirm_ok / "I'm fine" (Resolves Active Alert)
+
+    state NOTIFY_FAMILY {
+        [*] --> DecisionMade: Persist Alert (pending)
+        DecisionMade --> DeliveryAttempt: Attempt Notifier Delivery
+        DeliveryAttempt --> Delivered: Success -> delivered_at set
+        DeliveryAttempt --> Failed: Failure -> record error, retry_count++
+        Failed --> DeliveryAttempt: retry_failed_notifications()
+    }
+```
+
+### State Transition & Reliability Matrix
+
+| Current Stage | Trigger / Evaluation Condition | Next Stage | Actions & State Changes | Verifying Automated Test |
+| :--- | :--- | :--- | :--- | :--- |
+| `NORMAL` | Risk score $< 0.3$ and level is "low" | `NORMAL` | `last_updated = now`. Nominal monitoring. | `test_transition_normal_to_normal_low_risk` |
+| `NORMAL` | Risk score $\ge 0.3$ (missed medication, inactivity) | `GENTLE_CHECK_IN` | `entered_at = now`, `notification_state = "none"`, record risk reasons and relevant event IDs. | `test_transition_normal_to_gentle_check_in` |
+| `GENTLE_CHECK_IN` | `elapsed < gentle_timeout_seconds` ($t < 60\text{s}$) | `GENTLE_CHECK_IN` | `last_updated = now`. Waiting for response or timeout. | `test_timeout_boundaries_exact` |
+| `GENTLE_CHECK_IN` | `elapsed >= gentle_timeout_seconds` ($t \ge 60\text{s}$) | `REPEAT_CHECK_IN` | `entered_at = now`, `notification_state = "none"`. Escalates to repeated audible chime. | `test_timeout_boundaries_exact` |
+| `REPEAT_CHECK_IN` | `elapsed < repeat_timeout_seconds` ($t < 60\text{s}$) | `REPEAT_CHECK_IN` | `last_updated = now`. Waiting for response or timeout. | `test_timeout_boundaries_exact` |
+| `REPEAT_CHECK_IN` | `elapsed >= repeat_timeout_seconds` ($t \ge 60\text{s}$) | `NOTIFY_FAMILY` | **Separation of Decision & Delivery**: Persists `Alert` (`notification_status="pending"`, evidence reasons, `decision_id`). Sets `state.notification_id = alert_id`. Attempts notifier delivery; on success marks `delivered` with `delivered_at=now`. | `test_notification_decision_separated_from_delivery` |
+| `NOTIFY_FAMILY` | Notification delivery fails (network/SNS error) | `NOTIFY_FAMILY` | Marks `notification_status="failed"`, records `delivery_error`, increments `retry_count`. State marked `"failed"`. | `test_notification_delivery_failure_and_retry` |
+| `NOTIFY_FAMILY` | `retry_failed_notifications()` executed | `NOTIFY_FAMILY` | Retries failed alert delivery without creating duplicate alerts. Upon success marks `"delivered"`. | `test_notification_delivery_failure_and_retry` |
+| `NOTIFY_FAMILY` | Repeated scheduled tick (`notification_state == "delivered"`) | `NOTIFY_FAMILY` | **Idempotent**: No new alerts created, no duplicate SMS/SNS messages dispatched. | `test_repeated_ticks_at_same_timestamp_are_idempotent` |
+| Any Stage | Elder says *"I'm fine"*, calls `confirm_ok`, or qualifying routine event logged | `NORMAL` | Authoritative reset: `entered_at = now`, `risk_score = 0.0`, `notification_state = "none"`. Automatically resolves any `ACTIVE` alerts in storage to `RESOLVED`. | `test_reset_on_qualifying_event_and_confirm_ok_resolves_active_alerts`, `test_confirm_ok_tool` |
+| Any Stage | Stale background worker write with outdated `version` | *Rejected* | **Optimistic Concurrency Control**: Rejects stale write by raising `StaleStateError`. Stale worker cannot overwrite newer state or user resets. | `test_concurrent_tick_optimistic_concurrency_conflict`, `test_stale_worker_cannot_overwrite_confirm_ok_or_event_reset` |
+| Any Stage | 0 events recorded past expected routine window | *Escalates* | **Zero-Safety-Inference**: Absence of sensor events is never inferred as safety; daytime inactivity and missed routine windows elevate risk score. | `test_zero_events_never_infers_safety` |
+| Any Stage | Server crashes or restarts | *Preserved* | **Stateless Persistence**: Complete state reload from DB (`SQLite` or `DynamoDB`). Resumes timeout tracking from persisted `entered_at`. | `test_stateless_server_persistence` |
+
+---
+
 ## Quickstart
 
 ### 1. Installation
@@ -177,7 +231,7 @@ python scripts/client_test.py --url http://127.0.0.1:8000/mcp
 
 ```bash
 pytest -v
-# 79 passed in 6.17s
+# 98 passed in 4.16s
 ```
 
 ---
