@@ -78,6 +78,8 @@ class EscalationEngine:
         Reset escalation state machine to 'normal'.
         Called when any new event is logged or when the person responds 'I'm fine'.
         """
+        if now.tzinfo is None:
+            raise ValueError(f"Reset timestamp {now} must be timezone-aware.")
         state = EscalationState(
             person_id=person_id,
             stage=EscalationStage.NORMAL,
@@ -101,6 +103,8 @@ class EscalationEngine:
         Process speech response from elder parent.
         If response indicates "I'm fine" or affirmative confirmation, resets state to normal.
         """
+        if now.tzinfo is None:
+            raise ValueError(f"Voice response timestamp {now} must be timezone-aware.")
         cleaned = response_text.strip().lower()
         reset_phrases = ["i'm fine", "im fine", "fine", "yes", "i did", "i took it", "all good", "okay", "ok"]
         is_fine = any(phrase in cleaned for phrase in reset_phrases)
@@ -134,6 +138,8 @@ class EscalationEngine:
           repeat_check_in -> notify_family (when repeat_timeout expires)
           notify_family -> stays until reset
         """
+        if now.tzinfo is None:
+            raise ValueError(f"Tick timestamp {now} must be timezone-aware.")
         state = self.get_or_create_state(person_id, now)
 
         # 1. Evaluate current routine risk

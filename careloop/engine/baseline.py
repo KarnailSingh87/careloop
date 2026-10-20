@@ -5,20 +5,57 @@ Implements:
 - Circular EWMA (Exponentially Weighted Moving Average) for time-of-day in minutes (0-1440)
   with proper handling of midnight wraparound.
 - Circular EWMA of variance to dynamically learn personal routine consistency.
-- z-score anomaly detection (|z| > 2 flags anomalous event timing).
-- Deterministic missed-event detection with configurable grace window
-  (mu + k*sigma, with minimum 30-minute grace period to prevent false alarms).
+- Robust Winsorized updates: extreme outliers (|z| > 3) are clamped during baseline
+  updates so isolated emergencies do not permanently distort the learned routine.
+- Configurable timezones: timestamps are converted to each person's configured timezone
+  (e.g., America/New_York) to maintain consistent daily schedules across Daylight Saving Time.
+- Deduplication: rapid successive events (<60s) or duplicate event IDs are rejected from
+  contaminating baseline sample count and variance.
+- Out-of-order handling: events arriving with historical timestamps are processed safely
+  without corrupting sequential moving averages.
 - Cold-start rule: strictly suppresses all alerts with fewer than 5 observations.
+- Configurable minimum grace window (defaults to 30 minutes).
+- Deterministic missed-event detection: an event is flagged as missed ONLY after its
+  grace window has expired and no qualifying event occurred during today's routine window.
+- Statistical calibration notice: for small sample sizes (N < 20), sample variance is an
+  empirical estimate subject to sampling noise; z-score thresholds are operational screening
+  heuristics rather than exact calibrated Gaussian probabilities.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, date
+import logging
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+from zoneinfo import ZoneInfo
 
 from careloop.models import Event, EventType
+
+logger = logging.getLogger(__name__)
+
+
+def validate_and_localize(
+    dt: datetime,
+    target_tz: Union[str, ZoneInfo] = "UTC",
+) -> datetime:
+    """
+    Validate that dt is timezone-aware and convert to target_tz.
+    Raises ValueError if dt is naive to prevent silent mixing of local time and UTC.
+    """
+    if dt.tzinfo is None:
+        raise ValueError(
+            f"Timestamp {dt} is naive. All timestamps in CareLoop must be timezone-aware."
+        )
+    if isinstance(target_tz, str):
+        try:
+            tz = ZoneInfo(target_tz)
+        except Exception:
+            tz = timezone.utc
+    else:
+        tz = target_tz
+    return dt.astimezone(tz)
 
 
 def circular_minute_difference(a: float, b: float) -> float:
@@ -33,23 +70,28 @@ def circular_minute_difference(a: float, b: float) -> float:
 
 @dataclass
 class BaselineState:
-    """Tracks EWMA statistics for a specific (person, event_type) pair."""
+    """Tracks circular EWMA statistics for a specific (person, event_type) pair."""
     person_id: str
     event_type: str
     count: int = 0
-    mu_minutes: float = 0.0          # Range: [0.0, 1440.0)
+    mu_minutes: float = 0.0          # Range: [0.0, 1440.0) in person's local time
     variance: float = 0.0            # Variance in minutes^2
     alpha: float = 0.2               # Smoothing factor
     last_event_time: Optional[datetime] = None
+    last_event_id: Optional[str] = None
+    timezone_name: str = "UTC"
 
     @property
     def sigma(self) -> float:
-        """Standard deviation in minutes (minimum floor of 1.0 to avoid division by zero)."""
-        return max(1.0, math.sqrt(max(0.0, self.variance)))
+        """
+        Standard deviation in minutes.
+        A floor of 5.0 minutes prevents division-by-zero and unrealistically narrow windows.
+        """
+        return max(5.0, math.sqrt(max(0.0, self.variance)))
 
     @property
     def expected_time_str(self) -> str:
-        """Formatted HH:MM time string."""
+        """Formatted HH:MM time string in local time."""
         total_mins = int(round(self.mu_minutes)) % 1440
         return f"{total_mins // 60:02d}:{total_mins % 60:02d}"
 
@@ -82,12 +124,39 @@ class BaselineEngine:
         k: float = 2.0,
         min_grace_minutes: float = 30.0,
         min_observations: int = 5,
+        default_timezone: str = "UTC",
+        person_timezones: Optional[Dict[str, str]] = None,
     ) -> None:
         self.alpha = alpha
         self.k = k
         self.min_grace_minutes = min_grace_minutes
         self.min_observations = min_observations
+        self.default_timezone = default_timezone
+        self.person_timezones: Dict[str, str] = {
+            k.strip().lower(): v for k, v in (person_timezones or {}).items()
+        }
         self.baselines: Dict[Tuple[str, str], BaselineState] = {}
+
+    def set_person_timezone(self, person: str, tz_name: str) -> None:
+        """Configure the timezone for a specific person profile."""
+        self.person_timezones[person.strip().lower()] = tz_name
+
+    def get_person_timezone_name(self, person: str) -> str:
+        """Return the timezone string for a person (e.g. 'America/New_York')."""
+        return self.person_timezones.get(person.strip().lower(), self.default_timezone)
+
+    def get_person_timezone(self, person: str) -> ZoneInfo:
+        """Return ZoneInfo object for person's configured timezone."""
+        tz_name = self.get_person_timezone_name(person)
+        try:
+            return ZoneInfo(tz_name)
+        except Exception:
+            logger.warning(f"Invalid timezone '{tz_name}' for person '{person}'. Falling back to UTC.")
+            return ZoneInfo("UTC")
+
+    def _to_person_local(self, person: str, dt: datetime) -> datetime:
+        """Convert a timezone-aware timestamp into the person's local timezone."""
+        return validate_and_localize(dt, self.get_person_timezone(person))
 
     def _normalize_event_type(self, event_type: str) -> str:
         """Standardize event type aliases (e.g. 'pill' -> 'medication')."""
@@ -97,12 +166,15 @@ class BaselineEngine:
         return t
 
     def get_or_create_state(self, person: str, event_type: str) -> BaselineState:
-        key = (person.strip().lower(), self._normalize_event_type(event_type))
+        norm_person = person.strip().lower()
+        norm_type = self._normalize_event_type(event_type)
+        key = (norm_person, norm_type)
         if key not in self.baselines:
             self.baselines[key] = BaselineState(
-                person_id=key[0],
-                event_type=key[1],
+                person_id=norm_person,
+                event_type=norm_type,
                 alpha=self.alpha,
+                timezone_name=self.get_person_timezone_name(person),
             )
         return self.baselines[key]
 
@@ -111,45 +183,83 @@ class BaselineEngine:
         person: str,
         event_type: str,
         timestamp: datetime,
+        event_id: Optional[str] = None,
     ) -> Tuple[float, bool]:
         """
         Record a routine event observation and update EWMA statistics.
 
+        Rules:
+        1. Timestamps must be timezone-aware; converted to person's local time.
+        2. Duplicate events (identical event_id or logged < 60s from last event) are ignored.
+        3. Out-of-order events (timestamp earlier than last_event_time) compute z-score safely
+           without corrupting the sequential EWMA state.
+        4. Cold-start (< 5 observations): is_anomaly is ALWAYS False.
+        5. Extreme outliers (|z| > 3.0) are clamped (Winsorized) during EWMA update to
+           prevent isolated emergencies from destroying the learned routine.
+
         Returns:
             (z_score, is_anomaly):
             - z_score: standard deviations from expected time
-            - is_anomaly: True if |z| > 2.0 (always False during cold-start < 5 samples)
+            - is_anomaly: True if |z| > 2.0 (only when count >= min_observations)
         """
+        local_dt = self._to_person_local(person, timestamp)
         state = self.get_or_create_state(person, event_type)
-        obs_minute = timestamp.hour * 60.0 + timestamp.minute + (timestamp.second / 60.0)
 
-        # 1. Cold start / initial observation
-        if state.count == 0:
-            state.mu_minutes = obs_minute % 1440.0
-            # Default initial variance ~15 minute std dev (225 min^2)
-            state.variance = 225.0
-            state.count = 1
-            state.last_event_time = timestamp
+        # 1. Deduplication check
+        if event_id and state.last_event_id and event_id == state.last_event_id:
+            logger.debug(f"Ignoring duplicate event_id={event_id} for {person}:{event_type}")
             return 0.0, False
 
-        # 2. Calculate signed circular difference from current mu to new observation
+        if state.last_event_time is not None:
+            delta_sec = abs((timestamp - state.last_event_time).total_seconds())
+            if delta_sec < 60.0:
+                logger.debug(f"Ignoring duplicate event for {person}:{event_type} within {delta_sec:.1f}s")
+                return 0.0, False
+
+        obs_minute = local_dt.hour * 60.0 + local_dt.minute + (local_dt.second / 60.0)
+
+        # 2. Cold-start initial observation
+        if state.count == 0:
+            state.mu_minutes = obs_minute % 1440.0
+            state.variance = 225.0  # Initial ~15 minute std dev
+            state.count = 1
+            state.last_event_time = timestamp
+            state.last_event_id = event_id
+            return 0.0, False
+
+        # 3. Out-of-order timestamp handling
+        if state.last_event_time is not None and timestamp < state.last_event_time:
+            diff = circular_minute_difference(obs_minute, state.mu_minutes)
+            z_score = diff / state.sigma
+            is_anomaly = (state.count >= self.min_observations) and (abs(z_score) > self.k)
+            logger.info(
+                f"Processed out-of-order event for {person}:{event_type} "
+                f"(ts={timestamp.isoformat()}, last={state.last_event_time.isoformat()})"
+            )
+            return round(z_score, 2), is_anomaly
+
+        # 4. Standard observation: circular difference from mu
         diff = circular_minute_difference(obs_minute, state.mu_minutes)
         sigma = state.sigma
         z_score = diff / sigma
 
-        # 3. Anomaly check: only evaluated after cold-start threshold
+        # Anomaly check: only evaluated after cold-start threshold
         is_anomaly = False
         if state.count >= self.min_observations:
-            is_anomaly = abs(z_score) > 2.0
+            is_anomaly = abs(z_score) > self.k
 
-        # 4. Circular EWMA update
-        # mu_new = (mu + alpha * diff) mod 1440
-        state.mu_minutes = (state.mu_minutes + self.alpha * diff) % 1440.0
+        # 5. Robust Winsorized EWMA update
+        # If extreme outlier (|z| > 3), clamp the deviation to 3*sigma to protect baseline
+        if state.count >= self.min_observations and abs(z_score) > 3.0:
+            effective_diff = max(-3.0 * sigma, min(3.0 * sigma, diff))
+        else:
+            effective_diff = diff
 
-        # Variance EWMA update: var_new = (1 - alpha) * var + alpha * (diff^2)
-        state.variance = (1.0 - self.alpha) * state.variance + self.alpha * (diff ** 2)
+        state.mu_minutes = (state.mu_minutes + self.alpha * effective_diff) % 1440.0
+        state.variance = (1.0 - self.alpha) * state.variance + self.alpha * (effective_diff ** 2)
         state.count += 1
         state.last_event_time = timestamp
+        state.last_event_id = event_id
 
         return round(z_score, 2), is_anomaly
 
@@ -188,11 +298,13 @@ class BaselineEngine:
         """
         Evaluate full routine status and produce deterministic audit reasons.
         """
+        current_local = self._to_person_local(person, current_time)
         norm_type = self._normalize_event_type(event_type)
         key = (person.strip().lower(), norm_type)
         state = self.baselines.get(key)
+        tz_name = self.get_person_timezone_name(person)
 
-        # Cold start check
+        # 1. Cold start check
         if state is None or state.count < self.min_observations:
             count = 0 if state is None else state.count
             return RoutineEvaluation(
@@ -202,46 +314,47 @@ class BaselineEngine:
                 is_missed=False,
                 is_anomaly=False,
                 reasons=[
-                    f"Cold start active: {count}/{self.min_observations} observations logged. Suppressing alerts."
+                    f"Cold start active: {count}/{self.min_observations} observations logged for {person}. Suppressing alerts."
                 ],
             )
 
-        # Calculate grace window
+        # 2. Calculate grace window
         grace_margin = max(self.k * state.sigma, self.min_grace_minutes)
 
-        # Check if event was already completed today for this routine window
+        # 3. Check if qualifying event was completed today in local calendar time
         if events_today:
             for ev in events_today:
                 ev_type_norm = self._normalize_event_type(
                     ev.event_type.value if hasattr(ev.event_type, "value") else str(ev.event_type)
                 )
                 if ev_type_norm == norm_type:
-                    # Check if the event matches this specific routine window
-                    # (e.g. for multiple meals a day, breakfast 4 hours earlier does not fulfill lunch)
-                    ev_minute = ev.timestamp.hour * 60.0 + ev.timestamp.minute + (ev.timestamp.second / 60.0)
-                    dist = abs(circular_minute_difference(ev_minute, state.mu_minutes))
-                    if state.count < self.min_observations or dist <= max(grace_margin + 30.0, 120.0):
-                        return RoutineEvaluation(
-                            person_id=person,
-                            event_type=norm_type,
-                            status="completed",
-                            is_missed=False,
-                            expected_time=state.expected_time_str,
-                            reasons=[
-                                f"Event '{norm_type}' was logged at {ev.timestamp.strftime('%H:%M')} UTC today."
-                            ],
-                        )
+                    ev_local = self._to_person_local(person, ev.timestamp)
+                    # Must be from the same local calendar day
+                    if ev_local.date() == current_local.date():
+                        ev_minute = ev_local.hour * 60.0 + ev_local.minute + (ev_local.second / 60.0)
+                        dist = abs(circular_minute_difference(ev_minute, state.mu_minutes))
+                        # Qualifies if within 4 hours (240m) of expected schedule or within grace margin + 60m
+                        if dist <= max(grace_margin + 60.0, 240.0):
+                            return RoutineEvaluation(
+                                person_id=person,
+                                event_type=norm_type,
+                                status="completed",
+                                is_missed=False,
+                                expected_time=state.expected_time_str,
+                                reasons=[
+                                    f"Event '{norm_type}' was logged at {ev_local.strftime('%H:%M')} {tz_name} today."
+                                ],
+                            )
 
-        current_minute = current_time.hour * 60.0 + current_time.minute + (current_time.second / 60.0)
-
-        # Difference in time from expected mu to current time
+        # 4. Check whether current time is past grace window
+        current_minute = current_local.hour * 60.0 + current_local.minute + (current_local.second / 60.0)
         diff_from_mu = circular_minute_difference(current_minute, state.mu_minutes)
 
         window_end_min = (state.mu_minutes + grace_margin) % 1440.0
         window_end_str = f"{int(window_end_min // 60):02d}:{int(window_end_min % 60):02d}"
 
-        # If current time is after expected time and past the grace margin
-        if diff_from_mu > grace_margin:
+        # If current time is after expected time and past the grace margin (and within 12 hours)
+        if diff_from_mu > grace_margin and diff_from_mu < 720.0:
             minutes_overdue = int(round(diff_from_mu - grace_margin))
             return RoutineEvaluation(
                 person_id=person,
@@ -251,9 +364,9 @@ class BaselineEngine:
                 expected_time=state.expected_time_str,
                 grace_window_minutes=round(grace_margin, 1),
                 reasons=[
-                    f"Expected '{norm_type}' around {state.expected_time_str} UTC (sigma={state.sigma:.1f}m).",
-                    f"Grace window ended at {window_end_str} UTC (+{grace_margin:.0f}m grace).",
-                    f"Current time is {current_time.strftime('%H:%M')} UTC ({minutes_overdue}m past grace window) with no event recorded today.",
+                    f"Expected '{norm_type}' around {state.expected_time_str} {tz_name} (sigma={state.sigma:.1f}m).",
+                    f"Grace window ended at {window_end_str} {tz_name} (+{grace_margin:.0f}m grace).",
+                    f"Current time is {current_local.strftime('%H:%M')} {tz_name} ({minutes_overdue}m past grace window) with no event recorded today.",
                 ],
             )
 
@@ -265,7 +378,7 @@ class BaselineEngine:
             expected_time=state.expected_time_str,
             grace_window_minutes=round(grace_margin, 1),
             reasons=[
-                f"Within normal schedule window for '{norm_type}'. Expected at {state.expected_time_str} UTC (grace window until {window_end_str} UTC)."
+                f"Within normal schedule window for '{norm_type}'. Expected at {state.expected_time_str} {tz_name} (grace window until {window_end_str} {tz_name})."
             ],
         )
 
@@ -279,6 +392,16 @@ class BaselineEngine:
         Replay historical events from storage to initialize baseline EWMA states.
         Avoids cold start if historical observations already exist in the database.
         """
+        # Synchronize person timezones if storage has profiles
+        if storage and hasattr(storage, "list_profiles"):
+            try:
+                profiles = storage.list_profiles()
+                for p in profiles:
+                    if getattr(p, "timezone", None):
+                        self.set_person_timezone(p.person_id, p.timezone)
+            except Exception as e:
+                logger.debug(f"Could not load profiles for timezone sync: {e}")
+
         if person_ids is None:
             profiles = getattr(storage, "list_profiles", lambda: [])()
             if profiles:
@@ -293,6 +416,6 @@ class BaselineEngine:
             events_sorted = sorted(events, key=lambda e: e.timestamp)
             for ev in events_sorted:
                 ev_type = ev.event_type.value if hasattr(ev.event_type, "value") else str(ev.event_type)
-                self.record_event(pid, ev_type, ev.timestamp)
+                self.record_event(pid, ev_type, ev.timestamp, event_id=getattr(ev, "event_id", None))
                 total_loaded += 1
         return total_loaded

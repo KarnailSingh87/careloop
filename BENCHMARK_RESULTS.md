@@ -5,7 +5,7 @@
 | Benchmark Metric | Eleanor Davis (Age 78)<br><sub>Morning Routine</sub> | Arthur Davis / Dad (Age 81)<br><sub>Retired Veteran</sub> | Martha Jenkins (Age 84)<br><sub>Arthritis Schedule</sub> | **Combined Overall System** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Simulated Days Evaluated** | 60 Days | 60 Days | 60 Days | **180 Days** |
-| **Total Sensor Events Processed** | 478 | 474 | 474 | **1426 Events** |
+| **Total Sensor Events Processed** | 480 | 476 | 474 | **1430 Events** |
 | **Injected Ground-Truth Incidents** | 6 | 6 | 6 | **18 Incidents** |
 | - *Missed Prescription Medication* | 2 | 2 | 2 | **6** |
 | - *Daytime Inactivity / Falls (3h+)* | 2 | 2 | 2 | **6** |
@@ -33,7 +33,7 @@
 | `INC-DAD-007` | Arthur | Day 16 | Missed Lunch | Expected 'meal' around 12:33 UTC (sigm... | 60.0 mins | **DETECTED (TP)** |
 | `INC-DAD-008` | Arthur | Day 24 | Missed Medication | Expected 'medication' around 08:03 UTC... | 60.0 mins | **DETECTED (TP)** |
 | `INC-DAD-009` | Arthur | Day 31 | Daytime Inactivity (Fall) | Prolonged daytime inactivity / zero mo... | 195.0 mins | **DETECTED (TP)** |
-| `INC-DAD-010` | Arthur | Day 39 | Missed Medication | Expected 'medication' around 08:06 UTC... | 60.0 mins | **DETECTED (TP)** |
+| `INC-DAD-010` | Arthur | Day 39 | Missed Medication | Expected 'medication' around 08:05 UTC... | 60.0 mins | **DETECTED (TP)** |
 | `INC-DAD-011` | Arthur | Day 46 | Missed Lunch | Expected 'meal' around 12:38 UTC (sigm... | 60.0 mins | **DETECTED (TP)** |
 | `INC-DAD-012` | Arthur | Day 55 | Daytime Inactivity (Fall) | Prolonged daytime inactivity / zero mo... | 195.0 mins | **DETECTED (TP)** |
 | `INC-MARTHA-013` | Martha | Day 18 | Missed Medication | Expected 'medication' around 09:15 UTC... | 60.0 mins | **DETECTED (TP)** |

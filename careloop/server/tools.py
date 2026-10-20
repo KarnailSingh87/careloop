@@ -56,6 +56,7 @@ def register_tools(
     """Register all Alexa+ MCP tools onto the MCPServer instance."""
     if baseline_engine is None:
         baseline_engine = BaselineEngine()
+        baseline_engine.load_from_storage(storage)
     if notifier is None:
         notifier = get_default_notifier()
     if escalation_engine is None:
@@ -128,7 +129,7 @@ def register_tools(
         storage.save_event(event)
 
         # Update baseline statistics
-        baseline_engine.record_event(event.person_id, event.event_type.value, event.timestamp)
+        baseline_engine.record_event(event.person_id, event.event_type.value, event.timestamp, event_id=event.event_id)
 
         # Any new event resets escalation back to normal
         escalation_engine.reset_to_normal(

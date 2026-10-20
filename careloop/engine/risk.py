@@ -113,8 +113,18 @@ class RiskEngine:
     ) -> RiskAssessment:
         """
         Inspect today's events and baseline learner to evaluate overall person risk.
+        Evaluates morning waking hours and nighttime sleep hours in the person's local timezone.
         """
+        if now.tzinfo is None:
+            raise ValueError(f"Evaluation timestamp {now} must be timezone-aware.")
+
         events = events_today or []
+
+        # Resolve person local timezone
+        person_tz = timezone.utc
+        if baseline_engine:
+            person_tz = baseline_engine.get_person_timezone(person_id)
+        local_now = now.astimezone(person_tz)
 
         med_missed = False
         meal_missed = False
@@ -123,13 +133,13 @@ class RiskEngine:
             meal_missed = (baseline_engine.check_missed(person_id, "meal", now, events) == "missed")
 
         # Check daytime movement
-        # If past morning waking hours (e.g. 09:00 UTC) and no movement in last 3 hours
+        # If past morning waking hours in person's local time (09:00) and no movement in last 3 hours
         movement_events = [
             e for e in events
             if (e.event_type == EventType.MOVEMENT or getattr(e.event_type, "value", None) == "movement")
         ]
         no_movement = False
-        if now.hour >= 9:
+        if local_now.hour >= 9:
             if not movement_events:
                 no_movement = True
             else:
@@ -137,13 +147,15 @@ class RiskEngine:
                 if (now - last_mov).total_seconds() > 3 * 3600:
                     no_movement = True
 
-        # Check odd hour activity (01:00 - 05:00 UTC/local)
-        odd_hour = any(
-            (1 <= e.timestamp.hour < 5)
-            for e in events
-            if e.event_type in (EventType.MOVEMENT, EventType.DOOR)
-            or getattr(e.event_type, "value", None) in ("movement", "door")
-        )
+        # Check odd hour activity in local night-time sleep window (01:00 - 05:00 local)
+        odd_hour = False
+        for e in events:
+            if e.event_type in (EventType.MOVEMENT, EventType.DOOR) or getattr(e.event_type, "value", None) in ("movement", "door"):
+                e_ts = e.timestamp if e.timestamp.tzinfo is not None else e.timestamp.replace(tzinfo=timezone.utc)
+                e_local = e_ts.astimezone(person_tz)
+                if 1 <= e_local.hour < 5:
+                    odd_hour = True
+                    break
 
         return self.calculate_risk(
             medication_missed=med_missed,

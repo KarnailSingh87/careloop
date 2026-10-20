@@ -186,3 +186,60 @@ def test_stateless_server_persistence(temp_env):
 
     # Must accurately transition to REPEAT_CHECK_IN based on persisted DB state!
     assert state2.stage == EscalationStage.REPEAT_CHECK_IN
+
+
+def test_repeated_ticks_at_same_timestamp_are_idempotent(temp_env):
+    """
+    Verify:
+    Calling tick() multiple times with the exact same timestamp is idempotent:
+    1. Does NOT advance stages prematurely.
+    2. Does NOT trigger multiple timeouts in 0 seconds.
+    3. Does NOT dispatch duplicate family alerts.
+    """
+    storage, clock, engine = temp_env
+    med_risk = RiskAssessment(score=0.4, level="medium", reasons=["Medication missed"])
+
+    # 1. First tick at t=0s -> GENTLE_CHECK_IN
+    t0 = clock.now()
+    s1 = engine.tick("eleanor", t0, forced_risk=med_risk)
+    assert s1.stage == EscalationStage.GENTLE_CHECK_IN
+
+    # Repeat tick 5 times at t0 -> Must remain in GENTLE_CHECK_IN!
+    for _ in range(5):
+        s_repeat = engine.tick("eleanor", t0, forced_risk=med_risk)
+        assert s_repeat.stage == EscalationStage.GENTLE_CHECK_IN
+
+    # 2. Advance clock past 60s gentle timeout (+65s) -> transitions to REPEAT_CHECK_IN
+    clock.advance(65)
+    t1 = clock.now()
+    s_repeat_stage = engine.tick("eleanor", t1, forced_risk=med_risk)
+    assert s_repeat_stage.stage == EscalationStage.REPEAT_CHECK_IN
+
+    # Repeat tick 5 times at t1 -> Must remain in REPEAT_CHECK_IN!
+    for _ in range(5):
+        s_repeat2 = engine.tick("eleanor", t1, forced_risk=med_risk)
+        assert s_repeat2.stage == EscalationStage.REPEAT_CHECK_IN
+
+    # 3. Advance clock past 60s repeat timeout (+65s) -> transitions to NOTIFY_FAMILY
+    clock.advance(65)
+    t2 = clock.now()
+    s_notify = engine.tick("eleanor", t2, forced_risk=med_risk)
+    assert s_notify.stage == EscalationStage.NOTIFY_FAMILY
+
+    # Repeat tick 5 times at t2 -> Must remain in NOTIFY_FAMILY and NOT duplicate alerts
+    for _ in range(5):
+        s_notify_repeat = engine.tick("eleanor", t2, forced_risk=med_risk)
+        assert s_notify_repeat.stage == EscalationStage.NOTIFY_FAMILY
+
+    # Verify that only ONE Alert was persisted
+    alerts = storage.get_alerts("eleanor", active_only=True)
+    assert len(alerts) == 1, f"Expected exactly 1 alert, found {len(alerts)}"
+
+
+def test_naive_tick_timestamp_rejected(temp_env):
+    storage, clock, engine = temp_env
+    naive_dt = datetime(2026, 10, 20, 8, 0, 0)  # No tzinfo
+
+    with pytest.raises(ValueError) as excinfo:
+        engine.tick("eleanor", naive_dt)
+    assert "timezone-aware" in str(excinfo.value)
