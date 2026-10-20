@@ -26,7 +26,7 @@ from careloop.models import (
     Reminder,
     ReminderStatus,
 )
-from careloop.storage.base import StorageBase
+from careloop.storage.base import StorageBase, StaleStateError
 
 
 class SQLiteStorage(StorageBase):
@@ -85,6 +85,11 @@ class SQLiteStorage(StorageBase):
                         recommended_action TEXT NOT NULL,
                         routine_type TEXT,
                         status TEXT NOT NULL,
+                        notification_status TEXT NOT NULL DEFAULT 'pending',
+                        delivered_at TEXT,
+                        delivery_error TEXT,
+                        retry_count INTEGER NOT NULL DEFAULT 0,
+                        event_ids TEXT NOT NULL DEFAULT '[]',
                         metadata TEXT NOT NULL
                     );
                     CREATE INDEX IF NOT EXISTS idx_alerts_person 
@@ -97,9 +102,38 @@ class SQLiteStorage(StorageBase):
                         last_updated TEXT NOT NULL,
                         risk_score REAL NOT NULL,
                         reasons TEXT NOT NULL,
+                        event_references TEXT NOT NULL DEFAULT '[]',
+                        notification_state TEXT NOT NULL DEFAULT 'none',
+                        notification_id TEXT,
+                        version INTEGER NOT NULL DEFAULT 1,
                         metadata TEXT NOT NULL
                     );
                 """)
+
+                # Run migrations for existing databases
+                cursor = self._conn.execute("PRAGMA table_info(escalation_states)")
+                esc_cols = [r["name"] for r in cursor.fetchall()]
+                if "version" not in esc_cols:
+                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+                if "event_references" not in esc_cols:
+                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN event_references TEXT NOT NULL DEFAULT '[]'")
+                if "notification_state" not in esc_cols:
+                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN notification_state TEXT NOT NULL DEFAULT 'none'")
+                if "notification_id" not in esc_cols:
+                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN notification_id TEXT")
+
+                cursor = self._conn.execute("PRAGMA table_info(alerts)")
+                alert_cols = [r["name"] for r in cursor.fetchall()]
+                if "notification_status" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN notification_status TEXT NOT NULL DEFAULT 'pending'")
+                if "delivered_at" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN delivered_at TEXT")
+                if "delivery_error" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN delivery_error TEXT")
+                if "retry_count" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0")
+                if "event_ids" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN event_ids TEXT NOT NULL DEFAULT '[]'")
 
     def save_event(self, event: Event) -> None:
         with self._lock:
@@ -290,8 +324,9 @@ class SQLiteStorage(StorageBase):
                     """
                     INSERT OR REPLACE INTO alerts (
                         alert_id, person_id, level, created_at, title, reasons,
-                        recommended_action, routine_type, status, metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        recommended_action, routine_type, status, notification_status,
+                        delivered_at, delivery_error, retry_count, event_ids, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         alert.alert_id,
@@ -303,6 +338,11 @@ class SQLiteStorage(StorageBase):
                         alert.recommended_action,
                         alert.routine_type.value if alert.routine_type else None,
                         alert.status,
+                        alert.notification_status,
+                        alert.delivered_at.isoformat() if alert.delivered_at else None,
+                        alert.delivery_error,
+                        alert.retry_count,
+                        json.dumps(alert.event_ids),
                         json.dumps(alert.metadata),
                     ),
                 )
@@ -330,6 +370,13 @@ class SQLiteStorage(StorageBase):
             created = datetime.fromisoformat(r["created_at"])
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
+
+            delivered = None
+            if "delivered_at" in r.keys() and r["delivered_at"]:
+                delivered = datetime.fromisoformat(r["delivered_at"])
+                if delivered.tzinfo is None:
+                    delivered = delivered.replace(tzinfo=timezone.utc)
+
             alerts.append(
                 Alert(
                     alert_id=r["alert_id"],
@@ -341,19 +388,77 @@ class SQLiteStorage(StorageBase):
                     recommended_action=r["recommended_action"],
                     routine_type=RoutineType(r["routine_type"]) if r["routine_type"] else None,
                     status=r["status"],
+                    notification_status=r["notification_status"] if "notification_status" in r.keys() else "pending",
+                    delivered_at=delivered,
+                    delivery_error=r["delivery_error"] if "delivery_error" in r.keys() else None,
+                    retry_count=int(r["retry_count"]) if "retry_count" in r.keys() else 0,
+                    event_ids=json.loads(r["event_ids"]) if ("event_ids" in r.keys() and r["event_ids"]) else [],
                     metadata=json.loads(r["metadata"]),
                 )
             )
         return alerts
 
-    def save_escalation_state(self, state: EscalationState) -> None:
+    def save_escalation_state(
+        self,
+        state: EscalationState,
+        check_version: bool = False,
+    ) -> None:
         with self._lock:
             with self._conn:
+                if check_version:
+                    cursor = self._conn.execute(
+                        "SELECT version, last_updated FROM escalation_states WHERE person_id = ?",
+                        (state.person_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        curr_ver = int(row["version"]) if "version" in row.keys() else 1
+                        curr_ts = datetime.fromisoformat(row["last_updated"])
+                        if curr_ts.tzinfo is None:
+                            curr_ts = curr_ts.replace(tzinfo=timezone.utc)
+
+                        # Reject stale update if stored version is newer or stored timestamp is strictly newer
+                        if curr_ver > state.version or curr_ts > state.last_updated:
+                            raise StaleStateError(
+                                f"Stale write rejected for {state.person_id}: stored version={curr_ver} > state version={state.version}"
+                            )
+
+                        cursor = self._conn.execute(
+                            """
+                            UPDATE escalation_states
+                            SET stage = ?, entered_at = ?, last_updated = ?, risk_score = ?,
+                                reasons = ?, event_references = ?, notification_state = ?,
+                                notification_id = ?, version = version + 1, metadata = ?
+                            WHERE person_id = ? AND version = ?
+                            """,
+                            (
+                                state.stage.value if hasattr(state.stage, "value") else str(state.stage),
+                                state.entered_at.isoformat(),
+                                state.last_updated.isoformat(),
+                                state.risk_score,
+                                json.dumps(state.reasons),
+                                json.dumps(state.event_references),
+                                state.notification_state,
+                                state.notification_id,
+                                json.dumps(state.metadata),
+                                state.person_id,
+                                state.version,
+                            ),
+                        )
+                        if cursor.rowcount == 0:
+                            raise StaleStateError(
+                                f"Optimistic lock conflict: version {state.version} already modified for {state.person_id}"
+                            )
+                        state.version += 1
+                        return
+
+                # Atomic insert or unconditional write
                 self._conn.execute(
                     """
                     INSERT OR REPLACE INTO escalation_states (
-                        person_id, stage, entered_at, last_updated, risk_score, reasons, metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        person_id, stage, entered_at, last_updated, risk_score, reasons,
+                        event_references, notification_state, notification_id, version, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         state.person_id,
@@ -362,6 +467,10 @@ class SQLiteStorage(StorageBase):
                         state.last_updated.isoformat(),
                         state.risk_score,
                         json.dumps(state.reasons),
+                        json.dumps(state.event_references),
+                        state.notification_state,
+                        state.notification_id,
+                        state.version,
                         json.dumps(state.metadata),
                     ),
                 )
@@ -385,6 +494,11 @@ class SQLiteStorage(StorageBase):
         if updated.tzinfo is None:
             updated = updated.replace(tzinfo=timezone.utc)
 
+        ev_refs = json.loads(r["event_references"]) if ("event_references" in r.keys() and r["event_references"]) else []
+        notif_state = r["notification_state"] if "notification_state" in r.keys() else "none"
+        notif_id = r["notification_id"] if "notification_id" in r.keys() else None
+        version = int(r["version"]) if "version" in r.keys() else 1
+
         return EscalationState(
             person_id=r["person_id"],
             stage=EscalationStage(r["stage"]),
@@ -392,6 +506,10 @@ class SQLiteStorage(StorageBase):
             last_updated=updated,
             risk_score=float(r["risk_score"]),
             reasons=json.loads(r["reasons"]),
+            event_references=ev_refs,
+            notification_state=notif_state,
+            notification_id=notif_id,
+            version=version,
             metadata=json.loads(r["metadata"]),
         )
 

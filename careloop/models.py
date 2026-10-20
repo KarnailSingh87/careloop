@@ -63,6 +63,10 @@ class EscalationState(BaseModel):
     last_updated: datetime
     risk_score: float = 0.0
     reasons: List[str] = Field(default_factory=list)
+    event_references: List[str] = Field(default_factory=list)
+    notification_state: str = "none"  # "none", "pending", "delivered", "failed"
+    notification_id: Optional[str] = None
+    version: int = 1
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -176,6 +180,11 @@ class Alert(BaseModel):
     recommended_action: str
     routine_type: Optional[RoutineType] = None
     status: str = "ACTIVE"  # ACTIVE, ACKNOWLEDGED, RESOLVED
+    notification_status: str = "pending"  # "pending", "delivered", "failed"
+    delivered_at: Optional[datetime] = None
+    delivery_error: Optional[str] = None
+    retry_count: int = 0
+    event_ids: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 

@@ -12,6 +12,11 @@ from typing import List, Optional
 from careloop.models import Event, PersonProfile, Alert, EscalationState, Reminder
 
 
+class StaleStateError(Exception):
+    """Raised when an escalation state write is rejected due to an optimistic concurrency conflict."""
+    pass
+
+
 class StorageBase(ABC):
     """Abstract Base Class defining the CareLoop storage contract."""
 
@@ -74,8 +79,12 @@ class StorageBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save_escalation_state(self, state: EscalationState) -> None:
-        """Persist per-person escalation state machine status."""
+    def save_escalation_state(
+        self,
+        state: EscalationState,
+        check_version: bool = False,
+    ) -> None:
+        """Persist per-person escalation state machine status with optional optimistic concurrency check."""
         raise NotImplementedError
 
     @abstractmethod
