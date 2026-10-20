@@ -977,6 +977,532 @@
       background: linear-gradient(90deg, #38bdf8, #8b5cf6);
       transition: width 0.4s ease;
     }
+
+    /* ==========================================================================
+       OFF-WHITE WARM THEME SUPPORT
+       ========================================================================== */
+    html[data-theme="off-white"],
+    body[data-theme="off-white"],
+    html.light,
+    body.light {
+      --bg: #f8f7f4;
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --card-border: rgba(228, 225, 218, 0.9);
+      --card-hover: rgba(214, 211, 203, 0.6);
+      --text: #1c1917;
+      --text-muted: #57534e;
+      --text-dim: #78716c;
+      --primary: #0284c7;
+      --primary-dim: #0369a1;
+      --primary-glow: rgba(2, 132, 199, 0.2);
+      --accent: #7c3aed;
+      --success: #059669;
+      --success-glow: rgba(5, 150, 105, 0.15);
+      --warning: #d97706;
+      --warning-glow: rgba(217, 119, 6, 0.15);
+      --danger: #dc2626;
+      --danger-glow: rgba(220, 38, 38, 0.2);
+      --alexa-cyan: #0284c7;
+      --alexa-blue: #2563eb;
+    }
+
+    html[data-theme="off-white"] body,
+    body[data-theme="off-white"] {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(2, 132, 199, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(217, 119, 6, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(240, 238, 233, 0.6) 0%, transparent 100%);
+    }
+
+    html[data-theme="off-white"] .brand-title h1 {
+      background: linear-gradient(135deg, #0f172a 30%, #0369a1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    html[data-theme="off-white"] .badge-streamable {
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.25);
+      color: #0369a1;
+    }
+
+    html[data-theme="off-white"] .person-select-wrap {
+      background: #ffffff;
+      border-color: #e4e1da;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    html[data-theme="off-white"] .person-select-wrap select {
+      color: #1c1917;
+    }
+    html[data-theme="off-white"] .person-select-wrap select option {
+      background: #ffffff;
+      color: #1c1917;
+    }
+
+    html[data-theme="off-white"] .clock-pill {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    html[data-theme="off-white"] .clock-pill .time {
+      color: #0284c7;
+    }
+
+    html[data-theme="off-white"] .card {
+      box-shadow: 0 4px 20px -2px rgba(28, 25, 23, 0.05), 0 2px 6px -1px rgba(28, 25, 23, 0.03);
+    }
+
+    html[data-theme="off-white"] .profile-card,
+    html[data-theme="off-white"] .state-machine-box {
+      background: #fbfbf9;
+      border-color: #e4e1da;
+    }
+
+    html[data-theme="off-white"] .state-step {
+      background: #f3f1ec;
+      color: #57534e;
+    }
+    html[data-theme="off-white"] .state-step.active {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-color: #7dd3fc;
+    }
+
+    html[data-theme="off-white"] .btn {
+      background: #ffffff;
+      border-color: #e4e1da;
+      color: #1c1917;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    html[data-theme="off-white"] .btn:hover {
+      background: #f5f4ef;
+      border-color: #d6d3cb;
+    }
+
+    html[data-theme="off-white"] .alexa-speech-header {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    html[data-theme="off-white"] .voice-status-text {
+      color: #15803d;
+    }
+
+    html[data-theme="off-white"] .msg-alexa .bubble-body {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #1e293b;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    html[data-theme="off-white"] .mcp-card {
+      background: #fbfbf9;
+      border: 1px solid #e4e1da;
+      border-left: 3px solid #0284c7;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    html[data-theme="off-white"] .mcp-block {
+      background: #f5f4ef;
+      color: #334155;
+      border: 1px solid #e4e1da;
+    }
+
+    html[data-theme="off-white"] .input-bar {
+      background: #ffffff;
+      border-color: #e4e1da;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    html[data-theme="off-white"] .input-box {
+      color: #1c1917;
+    }
+    html[data-theme="off-white"] .mic-btn {
+      background: #f5f4ef;
+      border-color: #e4e1da;
+      color: #1c1917;
+    }
+    html[data-theme="off-white"] .chip {
+      background: #f5f4ef;
+      border-color: #e4e1da;
+      color: #57534e;
+    }
+    html[data-theme="off-white"] .chip:hover {
+      background: #e0f2fe;
+      border-color: #bae6fd;
+      color: #0369a1;
+    }
+
+    /* Phone frame in off-white */
+    html[data-theme="off-white"] .phone-frame {
+      background: #18181b;
+      border-color: #cbd5e1;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(2, 132, 199, 0.08);
+    }
+
+    /* ==========================================================================
+       THEME TOGGLE PILL (matches components/ui/theme-toggle.tsx)
+       ========================================================================== */
+    .theme-toggle-wrap {
+      display: flex;
+      align-items: center;
+    }
+
+    .theme-toggle-pill {
+      position: relative;
+      display: flex;
+      width: 64px;
+      height: 32px;
+      padding: 3px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .theme-toggle-pill.is-dark {
+      background-color: #09090b;
+      border: 1px solid #27272a;
+    }
+
+    .theme-toggle-pill.is-light {
+      background-color: #ffffff;
+      border: 1px solid #e4e1da;
+    }
+
+    .theme-toggle-track {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      position: relative;
+    }
+
+    .theme-toggle-thumb {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .theme-toggle-pill.is-dark .theme-toggle-thumb {
+      transform: translateX(0);
+      background-color: #27272a;
+      color: #ffffff;
+    }
+
+    .theme-toggle-pill.is-light .theme-toggle-thumb {
+      transform: translateX(32px);
+      background-color: #f5f4ef;
+      border: 1px solid #e4e1da;
+      color: #d97706;
+    }
+
+    .theme-toggle-ghost {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .theme-toggle-pill.is-dark .theme-toggle-ghost {
+      background-color: transparent;
+      color: #71717a;
+    }
+
+    .theme-toggle-pill.is-light .theme-toggle-ghost {
+      transform: translateX(-32px);
+      background-color: transparent;
+      color: #a8a29e;
+    }
+
+    /* ==========================================================================
+       SIMPLE UNDERSTANDING BANNER (Instant Glanceable Status)
+       ========================================================================== */
+    .simple-banner {
+      background: var(--card-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    html[data-theme="off-white"] .simple-banner {
+      background: #ffffff;
+      border-color: #e4e1da;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .banner-status-icon-wrap {
+      width: 50px;
+      height: 50px;
+      min-width: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .banner-status-icon-wrap.warning {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+    }
+
+    .banner-status-icon-wrap.danger {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+      animation: pulse-danger 1.5s infinite alternate;
+    }
+
+    .banner-text-wrap {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .banner-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .banner-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    .banner-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .banner-pill.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .banner-pill.danger {
+      background: rgba(239, 68, 68, 0.18);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .banner-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .banner-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .banner-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      min-height: 40px;
+    }
+
+    .banner-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    html[data-theme="off-white"] .banner-btn {
+      background: #f5f4ef;
+      border-color: #e4e1da;
+      color: #1c1917;
+    }
+
+    html[data-theme="off-white"] .banner-btn:hover {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      color: #0369a1;
+    }
+
+    /* Unsplash Avatar Styling */
+    .avatar-wrap {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    .avatar-photo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+      display: block;
+    }
+
+    /* ==========================================================================
+       MOBILE RESPONSIVE & TAB SWITCHER
+       ========================================================================== */
+    .mobile-nav-tabs {
+      display: none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 6px;
+      margin-bottom: 16px;
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mobile-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 8px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      min-height: 44px; /* Touch target accessibility */
+    }
+
+    .mobile-tab-btn.active {
+      background: rgba(0, 198, 255, 0.12);
+      border-color: rgba(0, 198, 255, 0.4);
+      color: var(--primary);
+      box-shadow: 0 0 10px rgba(0, 198, 255, 0.15);
+    }
+
+    html[data-theme="off-white"] .mobile-tab-btn.active {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      color: #0369a1;
+    }
+
+    .mobile-badge {
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 9999px;
+    }
+
+    @media (max-width: 960px) {
+      body {
+        padding: 12px 12px 24px 12px;
+      }
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+      }
+      .brand-wrap {
+        justify-content: space-between;
+      }
+      .header-controls {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .person-select-wrap {
+        flex: 1 1 100%;
+      }
+      .clock-pill {
+        flex: 1;
+        justify-content: center;
+      }
+      .demo-btn-hero {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+      }
+      .mobile-nav-tabs {
+        display: grid;
+      }
+      .main-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .col-elder, .col-alexa, .col-phone {
+        display: none !important;
+      }
+      .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible {
+        display: flex !important;
+      }
+      .phone-frame {
+        max-width: 100%;
+      }
+      .simple-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .banner-quick-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .banner-btn {
+        flex: 1;
+        text-align: center;
+      }
+    }
+
+    @media (min-width: 961px) {
+      .col-elder, .col-alexa, .col-phone {
+        display: flex !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1001,6 +1527,42 @@
     </div>
 
     <div class="header-controls">
+      <!-- Sliding Theme Toggle Pill (Off-White Warm / Dark Mode) -->
+      <div class="theme-toggle-wrap">
+        <div
+          class="theme-toggle-pill is-dark"
+          id="theme-toggle"
+          onclick="toggleTheme()"
+          role="button"
+          tabindex="0"
+          aria-label="Switch to off-white theme"
+          title="Toggle Off-White Warm / Dark Theme"
+        >
+          <div class="theme-toggle-track">
+            <div class="theme-toggle-thumb" id="theme-toggle-thumb">
+              <!-- Lucide Moon Icon -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+            </div>
+            <div class="theme-toggle-ghost" id="theme-toggle-ghost">
+              <!-- Lucide Sun Icon -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Person Selector -->
       <div class="person-select-wrap">
         <label for="person-select">Monitored Elder:</label>
@@ -1031,22 +1593,62 @@
     </div>
   </header>
 
+  <!-- Simple Understanding Status Banner for Family & Caregivers -->
+  <div class="simple-banner" id="care-summary-banner">
+    <div class="banner-status-icon-wrap" id="banner-status-orb">
+      <span class="banner-emoji" id="banner-emoji">🟢</span>
+    </div>
+    <div class="banner-text-wrap">
+      <div class="banner-title-row">
+        <h2 class="banner-title" id="banner-title">Arthur is Doing Well at Home</h2>
+        <span class="banner-pill" id="banner-sub-pill">All Routines On Track</span>
+      </div>
+      <p class="banner-desc" id="banner-desc">
+        Morning blood pressure medication was logged at 8:05 AM. Next scheduled check-in: Lunch at 12:30 PM.
+      </p>
+    </div>
+    <div class="banner-quick-actions">
+      <button class="banner-btn" onclick="quickCheckIn()">🗣️ "How is Dad doing?"</button>
+      <button class="banner-btn" onclick="quickLogEvent('lunch')">🍲 "I ate lunch"</button>
+    </div>
+  </div>
+
+  <!-- Mobile Segmented Navigation Tabs (for smartphones & tablets) -->
+  <div class="mobile-nav-tabs" id="mobile-nav-tabs">
+    <button class="mobile-tab-btn active" id="tab-btn-alexa" onclick="switchMobileTab('alexa')">
+      <span>🛡️</span>
+      <span>Alexa Voice</span>
+    </button>
+    <button class="mobile-tab-btn" id="tab-btn-elder" onclick="switchMobileTab('elder')">
+      <span>👤</span>
+      <span>Elder Status</span>
+    </button>
+    <button class="mobile-tab-btn" id="tab-btn-phone" onclick="switchMobileTab('phone')">
+      <span>📱</span>
+      <span>Family Phone</span>
+      <span class="mobile-badge" id="mobile-alert-count" style="display:none;">1</span>
+    </button>
+  </div>
+
   <!-- Main 3-Column Layout -->
   <div class="main-grid">
 
     <!-- LEFT COLUMN: Elder Profile & Time Travel Machine -->
-    <div class="card">
+    <div class="card col-elder tab-visible">
       <div class="card-header">
         <h2>👤 Elder Status</h2>
         <span class="risk-badge risk-low" id="risk-badge">● Low Risk</span>
       </div>
 
       <div class="profile-card">
-        <div class="avatar-icon" id="profile-avatar">AD</div>
+        <div class="avatar-wrap">
+          <img id="profile-img" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80" alt="Arthur Davis" class="avatar-photo" onerror="this.style.display='none'; document.getElementById('profile-avatar').style.display='flex';" />
+          <div class="avatar-icon" id="profile-avatar" style="display: none;">AD</div>
+        </div>
         <div class="profile-info">
           <h3 id="profile-name">Arthur Davis (Dad)</h3>
           <p id="profile-meta">Age 81 · Living Independently</p>
-          <p style="font-size: 11px; color: #38bdf8; margin-top: 2px;">Caregiver: Linda Davis (Daughter)</p>
+          <p style="font-size: 11px; color: var(--primary); margin-top: 2px;">Caregiver: Linda Davis (Daughter)</p>
         </div>
       </div>
 
@@ -1103,7 +1705,7 @@
     </div>
 
     <!-- CENTER COLUMN: Alexa Voice Assistant & Conversation Log -->
-    <div class="card alexa-ambient-panel">
+    <div class="card alexa-ambient-panel col-alexa tab-visible">
 
       <!-- Demo Progress Banner (Active during Dad skips lunch scenario) -->
       <div class="demo-progress-card" id="demo-progress-card">
@@ -1178,7 +1780,7 @@
     </div>
 
     <!-- RIGHT COLUMN: Family Phone (Real-time Caregiver Alerts) -->
-    <div class="phone-column">
+    <div class="phone-column col-phone">
       <div class="phone-frame">
         <!-- Phone Notch / Status Bar -->
         <div class="phone-top-notch">
@@ -1227,6 +1829,81 @@
     let ttsEnabled = true;
     let demoActive = false;
     let demoStepTimeout = null;
+
+    // Theme Management (Off-White Warm / Dark Mode)
+    function initTheme() {
+      const stored = localStorage.getItem("careloop_theme");
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const isDark = stored ? stored === "dark" : prefersDark;
+      applyTheme(isDark);
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+      const nextDark = currentTheme === "off-white";
+      applyTheme(nextDark);
+    }
+
+    function applyTheme(isDark) {
+      const root = document.documentElement;
+      const togglePill = document.getElementById("theme-toggle");
+      if (isDark) {
+        root.setAttribute("data-theme", "dark");
+        root.classList.remove("light");
+        root.classList.add("dark");
+        localStorage.setItem("careloop_theme", "dark");
+        if (togglePill) {
+          togglePill.className = "theme-toggle-pill is-dark";
+          togglePill.setAttribute("aria-label", "Switch to off-white theme");
+          togglePill.setAttribute("title", "Currently Dark Theme · Click for Off-White");
+        }
+      } else {
+        root.setAttribute("data-theme", "off-white");
+        root.classList.remove("dark");
+        root.classList.add("light");
+        localStorage.setItem("careloop_theme", "off-white");
+        if (togglePill) {
+          togglePill.className = "theme-toggle-pill is-light";
+          togglePill.setAttribute("aria-label", "Switch to dark theme");
+          togglePill.setAttribute("title", "Currently Off-White Theme · Click for Dark");
+        }
+      }
+    }
+
+    // Mobile Segmented Navigation Tab Switcher
+    function switchMobileTab(tabName) {
+      const tabs = ['alexa', 'elder', 'phone'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.classList.remove('active');
+        const col = document.querySelector(`.col-${t}`);
+        if (col) col.classList.remove('tab-visible');
+      });
+
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const activeCol = document.querySelector(`.col-${tabName}`);
+      if (activeCol) activeCol.classList.add('tab-visible');
+
+      // Scroll smoothly to panel on mobile
+      if (window.innerWidth <= 960 && activeCol) {
+        activeCol.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Quick Action Helpers
+    function quickCheckIn() {
+      handleUserPhrase("How is Dad doing today?");
+    }
+
+    async function quickLogEvent(eventType) {
+      if (eventType === 'lunch') {
+        handleUserPhrase("I just had my lunch");
+      } else if (eventType === 'pill') {
+        handleUserPhrase("I took my pill");
+      }
+    }
 
     // Web Audio Sound Chime Generators
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1424,17 +2101,23 @@
         document.getElementById('phone-clock').innerText = data.clock.time_str.substring(0, 5);
       }
 
-      // Profile
+      // Profile & Unsplash Avatar Photo
       if (data.person) {
         document.getElementById('profile-name').innerText = data.person.display_name;
+        const profileImg = document.getElementById('profile-img');
+        const profileAvatar = document.getElementById('profile-avatar');
+
         if (data.person.id === 'martha') {
-          document.getElementById('profile-avatar').innerText = 'MJ';
+          profileAvatar.innerText = 'MJ';
+          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80";
           document.getElementById('profile-meta').innerText = 'Age 84 · Living in Condo · Caregiver: Sarah Jenkins';
         } else if (data.person.id === 'dad') {
-          document.getElementById('profile-avatar').innerText = 'AD';
+          profileAvatar.innerText = 'AD';
+          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80";
           document.getElementById('profile-meta').innerText = 'Age 81 · Living Independently · Caregiver: Linda Davis';
         } else {
-          document.getElementById('profile-avatar').innerText = 'ED';
+          profileAvatar.innerText = 'ED';
+          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80";
           document.getElementById('profile-meta').innerText = 'Age 78 · Living Independently · Caregiver: Linda Davis';
         }
       }
@@ -1442,6 +2125,9 @@
       // Escalation Stage
       const stage = data.escalation ? data.escalation.stage : "normal";
       updateStageIndicators(stage);
+
+      // Simple Understanding Banner
+      updateSimpleBanner(data);
 
       // Risk score
       const riskBadge = document.getElementById('risk-badge');
@@ -1453,6 +2139,55 @@
 
       // Update Phone Alerts
       updatePhoneAlerts(data.alerts || [], stage);
+    }
+
+    function updateSimpleBanner(data) {
+      const bannerOrb = document.getElementById('banner-status-orb');
+      const bannerEmoji = document.getElementById('banner-emoji');
+      const bannerTitle = document.getElementById('banner-title');
+      const bannerPill = document.getElementById('banner-sub-pill');
+      const bannerDesc = document.getElementById('banner-desc');
+      const mobileAlertCount = document.getElementById('mobile-alert-count');
+
+      if (!bannerOrb) return;
+
+      const stage = data.escalation ? data.escalation.stage : "normal";
+      const name = data.person ? data.person.display_name : "Elder";
+      const clockStr = data.clock ? data.clock.time_str : "--:--:-- UTC";
+      const activeAlerts = (data.alerts || []).filter(a => !a.resolved);
+
+      // Update mobile badge count
+      if (mobileAlertCount) {
+        if (activeAlerts.length > 0) {
+          mobileAlertCount.innerText = activeAlerts.length;
+          mobileAlertCount.style.display = 'inline-block';
+        } else {
+          mobileAlertCount.style.display = 'none';
+        }
+      }
+
+      if (stage === 'notify_family') {
+        bannerOrb.className = 'banner-status-icon-wrap danger';
+        bannerEmoji.innerText = '🚨';
+        bannerTitle.innerText = `Caregiver Action Needed for ${name}`;
+        bannerPill.className = 'banner-pill danger';
+        bannerPill.innerText = 'SMS Alert Dispatched';
+        bannerDesc.innerText = `No voice response was heard and no room movement was detected. CareLoop escalated and sent an emergency SMS alert to Linda Davis with full situation context.`;
+      } else if (stage === 'gentle_check_in' || stage === 'repeat_check_in') {
+        bannerOrb.className = 'banner-status-icon-wrap warning';
+        bannerEmoji.innerText = stage === 'repeat_check_in' ? '🟠' : '🟡';
+        bannerTitle.innerText = `Alexa is Checking In with ${name}`;
+        bannerPill.className = 'banner-pill warning';
+        bannerPill.innerText = stage === 'repeat_check_in' ? 'Repeat Check-In' : 'Gentle Voice Prompt';
+        bannerDesc.innerText = `${name} has been quiet during a scheduled routine window. Alexa initiated an ambient voice check-in over the Echo speaker.`;
+      } else {
+        bannerOrb.className = 'banner-status-icon-wrap';
+        bannerEmoji.innerText = '🟢';
+        bannerTitle.innerText = `${name} is Doing Well at Home`;
+        bannerPill.className = 'banner-pill';
+        bannerPill.innerText = 'All Routines On Track';
+        bannerDesc.innerText = `Simulated time is ${clockStr}. Daily activities and routines are nominal. CareLoop is ambiently monitoring without active alerts.`;
+      }
     }
 
     function updateStageIndicators(stage) {
@@ -1973,6 +2708,8 @@
         .replace(/'/g, '&#039;');
     }
 
+    // Initialize Theme (Off-White Warm vs Dark Mode)
+    initTheme();
     // Auto-poll state every 3 seconds
     setInterval(fetchState, 3000);
     // Initial fetch and auth status
