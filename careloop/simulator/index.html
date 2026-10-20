@@ -1007,6 +1007,7 @@
         <select id="person-select" onchange="onPersonChange()">
           <option value="dad">Arthur Davis (Dad)</option>
           <option value="eleanor">Eleanor Davis (Mom)</option>
+          <option value="martha">Martha Jenkins (Age 84)</option>
         </select>
       </div>
 
@@ -1376,8 +1377,16 @@
       // Profile
       if (data.person) {
         document.getElementById('profile-name').innerText = data.person.display_name;
-        document.getElementById('profile-avatar').innerText = data.person.id === 'dad' ? 'AD' : 'ED';
-        document.getElementById('profile-meta').innerText = data.person.id === 'dad' ? 'Age 81 · Living Independently' : 'Age 78 · Living Independently';
+        if (data.person.id === 'martha') {
+          document.getElementById('profile-avatar').innerText = 'MJ';
+          document.getElementById('profile-meta').innerText = 'Age 84 · Living in Condo · Caregiver: Sarah Jenkins';
+        } else if (data.person.id === 'dad') {
+          document.getElementById('profile-avatar').innerText = 'AD';
+          document.getElementById('profile-meta').innerText = 'Age 81 · Living Independently · Caregiver: Linda Davis';
+        } else {
+          document.getElementById('profile-avatar').innerText = 'ED';
+          document.getElementById('profile-meta').innerText = 'Age 78 · Living Independently · Caregiver: Linda Davis';
+        }
       }
 
       // Escalation Stage
