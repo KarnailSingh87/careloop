@@ -1,0 +1,417 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  CareLoop: Self-hosted Streamable HTTP MCP Server for Alexa+ Elderly Care.
+  Provisions DynamoDB with encryption at rest, SNS topic, least-privilege IAM roles,
+  ECS Fargate service with Application Load Balancer, and EventBridge 1-minute tick rule.
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-haiku-20240307-v1:0
+    Description: Amazon Bedrock Foundation Model ID for daily routine summaries and memory Q&A.
+
+  ContainerImageUri:
+    Type: String
+    Default: ""
+    Description: >
+      URI of the pre-built CareLoop container image in Amazon ECR.
+      Leave empty to use the local container image built by SAM or CDK.
+
+  CaregiverAlertEmail:
+    Type: String
+    Default: ""
+    Description: Optional email address to subscribe to CareLoop SNS alerts.
+
+Conditions:
+  HasEmail: !Not [!Equals [!Ref CaregiverAlertEmail, ""]]
+  UseCustomImage: !Not [!Equals [!Ref ContainerImageUri, ""]]
+
+Resources:
+  # ===========================================================================
+  # 1. DynamoDB: Single-Table Architecture with Encryption at Rest
+  # ===========================================================================
+  CareLoopTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CareLoopData
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # ===========================================================================
+  # 2. Amazon SNS: Family Alert Topic with Server-Side Encryption
+  # ===========================================================================
+  CareLoopTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: CareLoopAlertsTopic
+      DisplayName: CareLoop Elder Care Family Alerts
+      KmsMasterKeyId: alias/aws/sns
+
+  CareLoopEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasEmail
+    Properties:
+      TopicArn: !Ref CareLoopTopic
+      Protocol: email
+      Endpoint: !Ref CaregiverAlertEmail
+
+  # ===========================================================================
+  # 3. VPC & Networking for Streamable HTTP ECS Fargate Service
+  # ===========================================================================
+  CareLoopVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: CareLoop-VPC
+
+  CareLoopInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: CareLoop-IGW
+
+  CareLoopVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CareLoopVPC
+      InternetGatewayId: !Ref CareLoopInternetGateway
+
+  CareLoopSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CareLoopVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: CareLoop-Public-Subnet-1
+
+  CareLoopSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CareLoopVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: CareLoop-Public-Subnet-2
+
+  CareLoopRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CareLoopVPC
+      Tags:
+        - Key: Name
+          Value: CareLoop-Public-RouteTable
+
+  CareLoopRoute:
+    Type: AWS::EC2::Route
+    DependsOn: CareLoopVPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref CareLoopRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CareLoopInternetGateway
+
+  CareLoopSubnetRouteTableAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CareLoopSubnet1
+      RouteTableId: !Ref CareLoopRouteTable
+
+  CareLoopSubnetRouteTableAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CareLoopSubnet2
+      RouteTableId: !Ref CareLoopRouteTable
+
+  # Security Groups
+  CareLoopALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public access for CareLoop ALB on port 80
+      VpcId: !Ref CareLoopVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  CareLoopTaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Ingress from ALB to CareLoop Fargate tasks on port 8000
+      VpcId: !Ref CareLoopVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref CareLoopALBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # ===========================================================================
+  # 4. IAM Least-Privilege Roles
+  # ===========================================================================
+  CareLoopTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CareLoopTaskRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CareLoopTaskLeastPrivilegePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # DynamoDB: Read and write strictly to CareLoopData table
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:BatchWriteItem
+                Resource:
+                  - !GetAtt CareLoopTable.Arn
+                  - !Sub "${CareLoopTable.Arn}/*"
+
+              # SNS: Publish strictly to CareLoopAlertsTopic
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref CareLoopTopic
+
+              # Bedrock: Model invocation strictly for Claude 3 foundation models
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-*"
+
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  CareLoopExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CareLoopExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ===========================================================================
+  # 5. CloudWatch Logs & ECS Fargate Service
+  # ===========================================================================
+  CareLoopLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/careloop-mcp
+      RetentionInDays: 30
+
+  CareLoopCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: CareLoopCluster
+
+  CareLoopALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: CareLoop-ALB
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !Ref CareLoopSubnet1
+        - !Ref CareLoopSubnet2
+      SecurityGroups:
+        - !Ref CareLoopALBSecurityGroup
+
+  CareLoopTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: CareLoop-TargetGroup
+      Port: 8000
+      Protocol: HTTP
+      VpcId: !Ref CareLoopVPC
+      TargetType: ip
+      HealthCheckPath: /health
+      HealthCheckPort: 8000
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "15"
+
+  CareLoopListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref CareLoopALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref CareLoopTargetGroup
+
+  CareLoopTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: careloop-task
+      Cpu: "512"
+      Memory: "1024"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      TaskRoleArn: !GetAtt CareLoopTaskRole.Arn
+      ExecutionRoleArn: !GetAtt CareLoopExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: careloop-mcp
+          Image: !If
+            - UseCustomImage
+            - !Ref ContainerImageUri
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/careloop-mcp:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Environment:
+            - Name: MCP_HOST
+              Value: "0.0.0.0"
+            - Name: MCP_PORT
+              Value: "8000"
+            - Name: STORAGE_BACKEND
+              Value: "dynamodb"
+            - Name: DYNAMODB_TABLE_NAME
+              Value: !Ref CareLoopTable
+            - Name: NOTIFIER_TYPE
+              Value: "sns"
+            - Name: SNS_TOPIC_ARN
+              Value: !Ref CareLoopTopic
+            - Name: AWS_REGION
+              Value: !Ref "AWS::Region"
+            - Name: BEDROCK_MODEL_ID
+              Value: !Ref BedrockModelId
+            - Name: CLOCK_MODE
+              Value: "system"
+            - Name: ESCALATION_TICK_INTERVAL_SECONDS
+              Value: "60.0"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CareLoopLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: ecs
+
+  CareLoopService:
+    Type: AWS::ECS::Service
+    DependsOn: CareLoopListener
+    Properties:
+      ServiceName: CareLoopService
+      Cluster: !Ref CareLoopCluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      TaskDefinition: !Ref CareLoopTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref CareLoopSubnet1
+            - !Ref CareLoopSubnet2
+          SecurityGroups:
+            - !Ref CareLoopTaskSecurityGroup
+      LoadBalancers:
+        - ContainerName: careloop-mcp
+          ContainerPort: 8000
+          TargetGroupArn: !Ref CareLoopTargetGroup
+
+  # ===========================================================================
+  # 6. EventBridge Scheduled Rule: Autonomous Minute Tick
+  # ===========================================================================
+  CareLoopTickFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CareLoopTickRunner
+      CodeUri: ../tick_lambda/
+      Handler: tick_handler.handler
+      Runtime: python3.11
+      Timeout: 20
+      MemorySize: 128
+      Environment:
+        Variables:
+          MCP_SERVER_URL: !Sub "http://${CareLoopALB.DNSName}"
+      Events:
+        MinuteSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: "rate(1 minute)"
+            Description: "Autonomous routine health tick every minute"
+
+# =============================================================================
+# Outputs
+# =============================================================================
+Outputs:
+  PublicMcpEndpoint:
+    Description: Streamable HTTP MCP Server Endpoint (MCP spec 2025-11-25) for Alexa+
+    Value: !Sub "http://${CareLoopALB.DNSName}/mcp"
+
+  SimulatorUrl:
+    Description: Web Simulator UI with ambient voice assistant and live MCP inspector
+    Value: !Sub "http://${CareLoopALB.DNSName}/simulator"
+
+  HealthCheckUrl:
+    Description: Health check endpoint for monitoring and verification
+    Value: !Sub "http://${CareLoopALB.DNSName}/health"
+
+  DynamoDbTableName:
+    Description: Encrypted DynamoDB single-table name
+    Value: !Ref CareLoopTable
+
+  SnsTopicArn:
+    Description: Amazon SNS Alert Topic ARN
+    Value: !Ref CareLoopTopic

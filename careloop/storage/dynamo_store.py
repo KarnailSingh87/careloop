@@ -209,6 +209,33 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to get profile from DynamoDB: {e}")
             return None
 
+    def list_profiles(self) -> List[PersonProfile]:
+        try:
+            response = self._table.scan(
+                FilterExpression="SK = :sk",
+                ExpressionAttributeValues={":sk": "PROFILE"},
+            )
+            items = response.get("Items", [])
+            profiles: List[PersonProfile] = []
+            for item in items:
+                contacts = [EmergencyContact(**c) for c in json.loads(item.get("emergency_contacts", "[]"))]
+                created = datetime.fromisoformat(item["created_at"])
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                profiles.append(
+                    PersonProfile(
+                        person_id=item["person_id"],
+                        display_name=item["display_name"],
+                        timezone=item.get("timezone", "America/New_York"),
+                        emergency_contacts=contacts,
+                        created_at=created,
+                    )
+                )
+            return profiles
+        except ClientError as e:
+            logger.error(f"Failed to list profiles from DynamoDB: {e}")
+            return []
+
     def save_alert(self, alert: Alert) -> None:
         try:
             item = {

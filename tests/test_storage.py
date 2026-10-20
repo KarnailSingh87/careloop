@@ -120,3 +120,98 @@ def test_sqlite_alerts(temp_store):
     assert len(alerts) == 1
     assert alerts[0].title == "Missed morning medication"
     assert len(alerts[0].reasons) == 2
+
+
+def test_dynamodb_storage_mocked():
+    from unittest.mock import MagicMock
+    import json
+    from careloop.storage.dynamo_store import DynamoDBStorage
+    from careloop.models import EscalationState, EscalationStage
+
+    mock_table = MagicMock()
+    mock_resource = MagicMock()
+    mock_resource.Table.return_value = mock_table
+
+    store = DynamoDBStorage(table_name="CareLoopData", dynamodb_resource=mock_resource)
+
+    # 1. Event
+    t = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
+    event = Event(person_id="dad", event_type=EventType.PILL, timestamp=t, metadata={"pill": "aspirin"})
+    store.save_event(event)
+    mock_table.put_item.assert_called()
+
+    # Query event mock
+    mock_table.query.return_value = {
+        "Items": [
+            {
+                "event_id": event.event_id,
+                "person_id": "dad",
+                "event_type": "pill",
+                "timestamp": t.isoformat(),
+                "metadata": json.dumps({"pill": "aspirin"}),
+            }
+        ]
+    }
+    events = store.get_events("dad")
+    assert len(events) == 1
+    assert events[0].person_id == "dad"
+    assert events[0].event_type == EventType.PILL
+
+    # 2. Profile & List Profiles
+    contact = EmergencyContact(name="Linda", relationship="Daughter", phone="+15551234567")
+    profile = PersonProfile(person_id="dad", display_name="Arthur Davis", timezone="America/New_York", emergency_contacts=[contact])
+    store.save_profile(profile)
+
+    mock_table.get_item.return_value = {
+        "Item": {
+            "person_id": "dad",
+            "display_name": "Arthur Davis",
+            "timezone": "America/New_York",
+            "emergency_contacts": json.dumps([contact.model_dump()]),
+            "created_at": profile.created_at.isoformat(),
+        }
+    }
+    fetched_p = store.get_profile("dad")
+    assert fetched_p is not None
+    assert fetched_p.display_name == "Arthur Davis"
+
+    mock_table.scan.return_value = {
+        "Items": [
+            {
+                "person_id": "dad",
+                "display_name": "Arthur Davis",
+                "timezone": "America/New_York",
+                "emergency_contacts": json.dumps([contact.model_dump()]),
+                "created_at": profile.created_at.isoformat(),
+            }
+        ]
+    }
+    profiles = store.list_profiles()
+    assert len(profiles) == 1
+    assert profiles[0].person_id == "dad"
+
+    # 3. Escalation State
+    state = EscalationState(
+        person_id="dad",
+        stage=EscalationStage.GENTLE_CHECK_IN,
+        entered_at=t,
+        last_updated=t,
+        risk_score=0.45,
+        reasons=["Missed breakfast"],
+    )
+    store.save_escalation_state(state)
+    mock_table.get_item.return_value = {
+        "Item": {
+            "person_id": "dad",
+            "stage": "gentle_check_in",
+            "entered_at": t.isoformat(),
+            "last_updated": t.isoformat(),
+            "risk_score": "0.45",
+            "reasons": json.dumps(["Missed breakfast"]),
+            "metadata": json.dumps({}),
+        }
+    }
+    esc = store.get_escalation_state("dad")
+    assert esc is not None
+    assert esc.stage == EscalationStage.GENTLE_CHECK_IN
+    assert esc.risk_score == 0.45

@@ -1,0 +1,17 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.git
+.gitignore
+*.db
+careloop_local.db
+.env
+.coverage
+htmlcov
+dist
+build
+*.egg-info
+.DS_Store

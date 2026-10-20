@@ -394,7 +394,8 @@ def register_tools(
             }
         else:
             results: Dict[str, Any] = {}
-            known_persons = ["eleanor"]
+            profiles = storage.list_profiles()
+            known_persons = [p.person_id for p in profiles] if profiles else ["dad", "eleanor"]
             for p_id in known_persons:
                 st = escalation_engine.tick(p_id, now)
                 results[p_id] = {

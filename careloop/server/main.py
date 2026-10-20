@@ -443,6 +443,17 @@ def main() -> None:
     parser.add_argument("--db", default=os.getenv("SQLITE_DB_PATH", "careloop_local.db"), help="SQLite DB path")
     parser.add_argument("--clock", choices=["system", "simulated"], default="system", help="Clock mode")
     parser.add_argument(
+        "--storage",
+        choices=["sqlite", "dynamodb"],
+        default=os.getenv("STORAGE_BACKEND", "sqlite").lower(),
+        help="Storage backend ('sqlite' or 'dynamodb')",
+    )
+    parser.add_argument(
+        "--dynamo-table",
+        default=os.getenv("DYNAMODB_TABLE_NAME", "CareLoopData"),
+        help="DynamoDB table name when using dynamodb storage",
+    )
+    parser.add_argument(
         "--tick-interval",
         type=float,
         default=float(os.getenv("ESCALATION_TICK_INTERVAL_SECONDS", 30.0)),
@@ -457,7 +468,13 @@ def main() -> None:
     args = parser.parse_args()
 
     clock = SimulatedClock() if args.clock == "simulated" else SystemClock()
-    storage = SQLiteStorage(db_path=args.db)
+    if args.storage == "dynamodb":
+        region = os.getenv("AWS_REGION", "us-east-1")
+        storage = DynamoDBStorage(table_name=args.dynamo_table, region_name=region)
+        logger.info(f"Initialized DynamoDBStorage (table={args.dynamo_table}, region={region})")
+    else:
+        storage = SQLiteStorage(db_path=args.db)
+        logger.info(f"Initialized SQLiteStorage (db={args.db})")
 
     app = create_app(
         storage=storage,
