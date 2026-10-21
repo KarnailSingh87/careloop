@@ -208,6 +208,7 @@ def seed_database(
     total_days: int = 60,
     incidents_json_path: str = "scripts/ground_truth_incidents.json",
     seed: int = 42,
+    clean: bool = True,
 ) -> Dict[str, Any]:
     """
     Generate 60 simulated days of routine events for 3 personas with realistic noise
@@ -219,6 +220,14 @@ def seed_database(
     print(f"   Database: {db_path}")
     print(f"   Ground Truth File: {incidents_json_path}")
     print("=" * 70)
+    if clean and db_path != ":memory:" and os.path.exists(db_path):
+        for ext in ["", "-wal", "-shm"]:
+            fpath = f"{db_path}{ext}"
+            if os.path.exists(fpath):
+                try:
+                    os.remove(fpath)
+                except OSError:
+                    pass
 
     storage = SQLiteStorage(db_path=db_path)
 

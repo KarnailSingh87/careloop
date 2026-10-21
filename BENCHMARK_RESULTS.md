@@ -1,7 +1,7 @@
 # CareLoop: 60-Day Routine Safety Benchmark & Reproducible Evaluation Report
 
 > **Evaluation Overview**: Evaluated across **60 simulated days** (159 active elder-days evaluated; 7-day cold-start calibration period excluded) across 3 distinct personas with realistic Gaussian jitter, benign negative controls (late lunch within grace, delayed pills, weekend shifts), and 18 injected ground-truth safety incidents.
-> 
+>
 > **Evaluation Engine**: Reproducible evaluation replay via `careloop.clock.SimulatedClock` (Fixed seed: `42`).
 
 ---
@@ -95,5 +95,5 @@
 > **Synthetic Benchmark Disclaimer**: These reproducible benchmark metrics are computed on a synthetic dataset of 60 simulated days across 3 distinct elder personas generated with Gaussian jitter (sigma = 5-15 mins), weekend schedule shifts, and explicit benign controls under random seed `42`.
 >
 > While these results mathematically validate CareLoop's circular statistics and grace window algorithm against rigid static telecare thresholds, **synthetic simulation performance must not be conflated with clinical safety trials, real-world human telemetry, or FDA-cleared medical device efficacy**.
-> 
+>
 > Real-world home environments introduce sensor packet dropouts, multi-person households, pet interference, dementia-related wandering, and acute medical emergencies that require formal observational clinical studies before production deployment.

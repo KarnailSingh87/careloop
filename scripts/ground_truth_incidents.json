@@ -3,10 +3,180 @@
     "incident_id": "INC-ELEANOR-001",
     "person_id": "eleanor",
     "day_number": 14,
-    "date": "2026-10-20",
+    "date": "2026-09-04",
     "incident_type": "missed_pill",
-    "scheduled_time": "2026-10-20T08:15:00+00:00",
+    "scheduled_time": "2026-09-04T08:15:00+00:00",
     "description": "Forgot morning Lisinopril blood pressure pill",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-ELEANOR-002",
+    "person_id": "eleanor",
+    "day_number": 22,
+    "date": "2026-09-12",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-09-12T13:15:00+00:00",
+    "description": "Fall in hallway; zero movement from 11:30 to 17:00",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-ELEANOR-003",
+    "person_id": "eleanor",
+    "day_number": 34,
+    "date": "2026-09-24",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-09-24T12:45:00+00:00",
+    "description": "Skipped lunch entirely; no food or kitchen activity",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-ELEANOR-004",
+    "person_id": "eleanor",
+    "day_number": 42,
+    "date": "2026-10-02",
+    "incident_type": "missed_pill",
+    "scheduled_time": "2026-10-02T08:15:00+00:00",
+    "description": "Medication box unopened past grace window",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-ELEANOR-005",
+    "person_id": "eleanor",
+    "day_number": 50,
+    "date": "2026-10-10",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-10-10T13:15:00+00:00",
+    "description": "Severe fatigue / bedridden with no daytime movement",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-ELEANOR-006",
+    "person_id": "eleanor",
+    "day_number": 57,
+    "date": "2026-10-17",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-10-17T12:45:00+00:00",
+    "description": "Missed lunch routine past grace window",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-DAD-007",
+    "person_id": "dad",
+    "day_number": 16,
+    "date": "2026-09-06",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-09-06T12:30:00+00:00",
+    "description": "Dad skips lunch; long uncharacteristic afternoon nap",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-DAD-008",
+    "person_id": "dad",
+    "day_number": 24,
+    "date": "2026-09-14",
+    "incident_type": "missed_pill",
+    "scheduled_time": "2026-09-14T08:00:00+00:00",
+    "description": "Forgot morning Metoprolol heart medication",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-DAD-009",
+    "person_id": "dad",
+    "day_number": 31,
+    "date": "2026-09-21",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-09-21T13:00:00+00:00",
+    "description": "Prolonged inactivity; unresponsive sleep 11:00 to 16:30",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-DAD-010",
+    "person_id": "dad",
+    "day_number": 39,
+    "date": "2026-09-29",
+    "incident_type": "missed_pill",
+    "scheduled_time": "2026-09-29T08:00:00+00:00",
+    "description": "Smart pill dispenser unopened past grace window",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-DAD-011",
+    "person_id": "dad",
+    "day_number": 46,
+    "date": "2026-10-06",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-10-06T12:30:00+00:00",
+    "description": "Skipped lunch and afternoon nutrition",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-DAD-012",
+    "person_id": "dad",
+    "day_number": 55,
+    "date": "2026-10-15",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-10-15T13:00:00+00:00",
+    "description": "Weakness after yard check; immobile 11:15 to 17:00",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-MARTHA-013",
+    "person_id": "martha",
+    "day_number": 18,
+    "date": "2026-09-08",
+    "incident_type": "missed_pill",
+    "scheduled_time": "2026-09-08T09:15:00+00:00",
+    "description": "Forgot morning Celebrex arthritis medication",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-MARTHA-014",
+    "person_id": "martha",
+    "day_number": 27,
+    "date": "2026-09-17",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-09-17T13:15:00+00:00",
+    "description": "Missed lunch; no kitchen activity or meal recorded",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-MARTHA-015",
+    "person_id": "martha",
+    "day_number": 36,
+    "date": "2026-09-26",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-09-26T13:45:00+00:00",
+    "description": "Dizziness in bedroom; no movement from 09:15 to 15:30",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-MARTHA-016",
+    "person_id": "martha",
+    "day_number": 44,
+    "date": "2026-10-04",
+    "incident_type": "missed_pill",
+    "scheduled_time": "2026-10-04T09:15:00+00:00",
+    "description": "Morning medication missed past grace window",
+    "severity": "high"
+  },
+  {
+    "incident_id": "INC-MARTHA-017",
+    "person_id": "martha",
+    "day_number": 52,
+    "date": "2026-10-12",
+    "incident_type": "missed_lunch",
+    "scheduled_time": "2026-10-12T13:15:00+00:00",
+    "description": "Skipped midday lunch routine entirely",
+    "severity": "medium"
+  },
+  {
+    "incident_id": "INC-MARTHA-018",
+    "person_id": "martha",
+    "day_number": 58,
+    "date": "2026-10-18",
+    "incident_type": "no_movement",
+    "scheduled_time": "2026-10-18T13:45:00+00:00",
+    "description": "Inactivity episode; no movement 12:00 to 17:30",
     "severity": "high"
   }
 ]
