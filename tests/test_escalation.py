@@ -61,6 +61,8 @@ class MockFailingNotifier(NotifierBase):
         message: str,
         reasons=None,
         contacts=None,
+        dedup_key=None,
+        **kwargs,
     ) -> bool:
         self.call_count += 1
         if self.fail:

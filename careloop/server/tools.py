@@ -29,7 +29,7 @@ from careloop.engine.risk import RiskEngine
 from careloop.engine.escalation import EscalationEngine
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import Event, EventType, EscalationStage, Alert, AlertLevel
-from careloop.notifier import NotifierBase, get_default_notifier
+from careloop.notifier import NotifierBase, get_default_notifier, NotificationDeliveryStatus, ALLOWED_SEVERITIES
 from careloop.server.models import Reminder, ReminderStatus, RoutineEventType
 from careloop.storage.base import StorageBase
 
@@ -265,10 +265,33 @@ def register_tools(
             text: Spoken reminder message (e.g. "Drink water and take blood pressure pill")
             time: Target scheduled time (ISO 8601 string or HH:MM time, e.g. "15:00")
         """
+        if not person or not person.strip():
+            raise ToolError("Person identifier cannot be empty.")
+        if not text or not text.strip():
+            raise ToolError("Reminder text cannot be empty.")
+        t = time.strip()
+        if not t:
+            raise ToolError("Reminder scheduled time cannot be empty.")
+
+        import re
+        hh_mm_match = re.match(r"^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$", t)
+        if hh_mm_match:
+            h, m = int(hh_mm_match.group(1)), int(hh_mm_match.group(2))
+            normalized_time = f"{h:02d}:{m:02d}"
+        else:
+            try:
+                parsed_time = date_parser.parse(t)
+                normalized_time = parsed_time.isoformat()
+            except Exception as e:
+                raise ToolError(
+                    f"Invalid reminder time '{time}'. Must be HH:MM 24-hour format (e.g. '15:00') "
+                    f"or a valid ISO 8601 timestamp string (e.g. '2026-10-20T15:00:00Z')."
+                )
+
         reminder = Reminder(
             person_id=person.strip().lower(),
             text=text.strip(),
-            scheduled_time=time.strip(),
+            scheduled_time=normalized_time,
             status=ReminderStatus.PENDING,
             created_at=clock.now(),
         )
@@ -309,14 +332,49 @@ def register_tools(
             severity: Alert severity level: 'low', 'medium', 'high', or 'critical'
             message: Plain-English explanation of why family is being alerted
         """
+        if not person or not person.strip():
+            raise ToolError("Person identifier cannot be empty.")
+        sev = severity.strip().lower()
+        if sev not in ALLOWED_SEVERITIES:
+            valid_sevs = ", ".join(sorted(ALLOWED_SEVERITIES))
+            raise ToolError(
+                f"Unsupported severity '{severity}'. Allowed severities are: {valid_sevs}"
+            )
+        if not message or not message.strip():
+            raise ToolError("Alert message cannot be empty.")
+
         person_id = person.strip().lower()
         now = clock.now()
+
+        # Stable deduplication key
+        msg_hash = abs(hash(message.strip())) % 1000000
+        dedup_key = f"notify_family:{person_id}:{now.strftime('%Y-%m-%d-%H')}:{sev}:{msg_hash}"
+
+        # Deduplication check: suppress identical active alert within 15 minutes
+        existing_alert = storage.get_alert_by_dedup_key(person_id, dedup_key)
+        if existing_alert and existing_alert.status == "ACTIVE":
+            time_diff = (now - existing_alert.created_at).total_seconds()
+            if time_diff < 900:  # 15 minutes window
+                logger.info(f"Deduplicated notify_family alert for {person_id}: {dedup_key}")
+                return {
+                    "status": "deduplicated",
+                    "delivery_status": NotificationDeliveryStatus.SKIPPED_DEDUPLICATED.value,
+                    "prior_delivery_status": existing_alert.notification_status,
+                    "alert_id": existing_alert.alert_id,
+                    "person": person_id,
+                    "severity": sev,
+                    "message": message.strip(),
+                    "dedup_key": dedup_key,
+                    "notification_status": existing_alert.notification_status,
+                    "note": "Duplicate alert suppressed within 15-minute deduplication window.",
+                    "voice_response": f"An alert has already been sent to {person_id.capitalize()}'s family caregivers.",
+                }
 
         profile = storage.get_profile(person_id)
         contacts = profile.emergency_contacts if profile else []
 
         esc_state = escalation_engine.get_or_create_state(person_id, now)
-        reasons = esc_state.reasons.copy() if esc_state.reasons else [f"Alert dispatched: {message}"]
+        reasons = esc_state.reasons.copy() if esc_state.reasons else [f"Alert dispatched: {message.strip()}"]
 
         level_map = {
             "low": AlertLevel.INFO,
@@ -324,51 +382,79 @@ def register_tools(
             "high": AlertLevel.CRITICAL_ESCALATION,
             "critical": AlertLevel.CRITICAL_ESCALATION,
         }
-        alert_level = level_map.get(severity.lower(), AlertLevel.ANOMALY_WARNING)
+        alert_level = level_map.get(sev, AlertLevel.ANOMALY_WARNING)
 
         decision_id = str(uuid.uuid4())
         alert = Alert(
             person_id=person_id,
             level=alert_level,
+            severity=sev,
             created_at=now,
-            title=f"CareLoop Family Alert: {message}",
+            title=f"CareLoop Family Alert: {message.strip()}",
             reasons=reasons,
             recommended_action="Contact elder parent directly or check the home monitoring dashboard.",
             status="ACTIVE",
             notification_status="pending",
             event_ids=esc_state.event_references.copy() if esc_state else [],
-            metadata={"severity": severity, "source": "notify_family_tool", "decision_id": decision_id},
+            dedup_key=dedup_key,
+            metadata={"severity": sev, "source": "notify_family_tool", "decision_id": decision_id},
         )
         storage.save_alert(alert)
 
-        delivery_success = notifier.send_notification(
+        delivery_res = notifier.send_notification(
             person_id=person_id,
-            severity=severity,
-            message=message,
+            severity=sev,
+            message=message.strip(),
             reasons=reasons,
             contacts=contacts,
+            dedup_key=dedup_key,
         )
 
-        if delivery_success:
+        delivery_status = "failed"
+        if hasattr(delivery_res, "status"):
+            if delivery_res.status == NotificationDeliveryStatus.DELIVERED:
+                alert.notification_status = "delivered"
+                alert.delivered_at = now
+                alert.message_id = delivery_res.message_id
+                alert.delivery_error = None
+                delivery_status = "delivered"
+            elif delivery_res.status == NotificationDeliveryStatus.ACCEPTED:
+                alert.notification_status = "accepted"
+                alert.accepted_at = now
+                alert.message_id = delivery_res.message_id
+                alert.delivery_error = None
+                delivery_status = "accepted"
+            else:
+                alert.notification_status = "failed"
+                alert.delivery_error = delivery_res.error
+                alert.retry_count += 1
+                delivery_status = "failed"
+        elif delivery_res:
             alert.notification_status = "delivered"
             alert.delivered_at = now
             alert.delivery_error = None
+            delivery_status = "delivered"
         else:
             alert.notification_status = "failed"
             alert.delivery_error = "Notification dispatch returned false"
             alert.retry_count += 1
+            delivery_status = "failed"
+
         storage.save_alert(alert)
 
         recipient_names = ", ".join(c.name for c in contacts) if contacts else "family caregivers"
         voice_msg = f"I've sent an alert to {person_id.capitalize()}'s {recipient_names}."
 
         return {
-            "status": "notified" if delivery_success else "dispatch_failed",
+            "status": "notified" if delivery_status in ("delivered", "accepted") else "dispatch_failed",
+            "delivery_status": delivery_status,
             "alert_id": alert.alert_id,
             "person": person_id,
-            "severity": severity,
-            "message": message,
+            "severity": sev,
+            "message": message.strip(),
             "notifier": notifier.__class__.__name__,
+            "message_id": alert.message_id,
+            "dedup_key": dedup_key,
             "reasons": reasons,
             "delivered_to": [c.name for c in contacts] if contacts else ["Default Caregiver"],
             "voice_response": voice_msg,

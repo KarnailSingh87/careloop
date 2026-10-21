@@ -186,27 +186,54 @@ class EscalationEngine:
         """
         Attempt delivery of a previously decided alert to designated family contacts.
         Updates alert and state delivery status, recording failures for retry.
-        Idempotent: if already delivered, returns True immediately without resending.
+        Idempotent: if already delivered or accepted, returns True immediately without resending.
         """
-        if alert.notification_status == "delivered" and state.notification_state == "delivered":
-            logger.info(f"Alert {alert.alert_id} already delivered. Skipping duplicate delivery.")
+        if alert.notification_status in ("delivered", "accepted") and state.notification_state in ("delivered", "accepted"):
+            logger.info(f"Alert {alert.alert_id} already {alert.notification_status}. Skipping duplicate delivery.")
             return True
 
         delivered = False
+        accepted = False
         err_msg = None
+        message_id = None
 
         if self.notifier:
             try:
                 profile = self.storage.get_profile(state.person_id)
                 contacts = profile.emergency_contacts if profile else None
-                success = self.notifier.send_notification(
-                    person_id=state.person_id,
-                    severity="high",
-                    message=alert.title,
-                    reasons=alert.reasons,
-                    contacts=contacts,
-                )
-                if success:
+                try:
+                    result = self.notifier.send_notification(
+                        person_id=state.person_id,
+                        severity=alert.severity if hasattr(alert, "severity") and alert.severity else "critical",
+                        message=alert.title,
+                        reasons=alert.reasons,
+                        contacts=contacts,
+                        dedup_key=alert.dedup_key if hasattr(alert, "dedup_key") else None,
+                    )
+                except TypeError as te:
+                    if "dedup_key" in str(te):
+                        result = self.notifier.send_notification(
+                            person_id=state.person_id,
+                            severity=alert.severity if hasattr(alert, "severity") and alert.severity else "critical",
+                            message=alert.title,
+                            reasons=alert.reasons,
+                            contacts=contacts,
+                        )
+                    else:
+                        raise
+                if hasattr(result, "status"):
+                    if result.status == NotificationDeliveryStatus.DELIVERED:
+                        delivered = True
+                        message_id = result.message_id
+                    elif result.status == NotificationDeliveryStatus.ACCEPTED:
+                        accepted = True
+                        message_id = result.message_id
+                    elif result.status == NotificationDeliveryStatus.SKIPPED_DEDUPLICATED:
+                        accepted = True
+                        logger.info(f"Notification skipped due to deduplication: {alert.dedup_key}")
+                    else:
+                        err_msg = result.error or "Notifier returned failure status"
+                elif result:
                     delivered = True
                 else:
                     err_msg = "Notifier returned failure status (False)"
@@ -220,6 +247,7 @@ class EscalationEngine:
         if delivered:
             alert.notification_status = "delivered"
             alert.delivered_at = now
+            alert.message_id = message_id or alert.message_id
             alert.delivery_error = None
             self.storage.save_alert(alert)
 
@@ -227,6 +255,18 @@ class EscalationEngine:
             state.last_updated = now
             self.storage.save_escalation_state(state, check_version=True)
             logger.info(f"Delivered alert {alert.alert_id} to family for {state.person_id}")
+            return True
+        elif accepted:
+            alert.notification_status = "accepted"
+            alert.accepted_at = now
+            alert.message_id = message_id or alert.message_id
+            alert.delivery_error = None
+            self.storage.save_alert(alert)
+
+            state.notification_state = "accepted"
+            state.last_updated = now
+            self.storage.save_escalation_state(state, check_version=True)
+            logger.info(f"Alert {alert.alert_id} accepted by provider for {state.person_id} (MessageId={message_id})")
             return True
         else:
             alert.notification_status = "failed"
@@ -356,10 +396,12 @@ class EscalationEngine:
                     f"after {elapsed:.1f}s timeout. Dispatched family alert!"
                 )
                 decision_id = str(uuid.uuid4())
+                dedup_key = f"escalation:{person_id}:{now.strftime('%Y-%m-%d')}:unresponsive:critical"
                 alert = Alert(
                     alert_id=str(uuid.uuid4()),
                     person_id=person_id,
                     level=AlertLevel.CRITICAL_ESCALATION,
+                    severity="critical",
                     created_at=now,
                     title=f"Elder Care Alert: {person_id.capitalize()} Unresponsive to Routine Check-Ins",
                     reasons=risk.reasons + [
@@ -370,6 +412,7 @@ class EscalationEngine:
                     status="ACTIVE",
                     notification_status="pending",
                     event_ids=state.event_references.copy(),
+                    dedup_key=dedup_key,
                     metadata={
                         "decision_id": decision_id,
                         "risk_score": risk.score,
@@ -395,8 +438,8 @@ class EscalationEngine:
         elif state.stage == EscalationStage.NOTIFY_FAMILY:
             state.last_updated = now
             # Idempotency check:
-            if state.notification_state == "delivered":
-                # Already delivered. Idempotent tick: do not create new alert or duplicate notifications.
+            if state.notification_state in ("delivered", "accepted"):
+                # Already delivered or accepted by provider. Idempotent tick: do not create new alert or duplicate notifications.
                 self.storage.save_escalation_state(state, check_version=True)
                 return state
             elif state.notification_state in ("failed", "pending") and state.notification_id:

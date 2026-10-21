@@ -83,6 +83,12 @@ class NotificationResult(BaseModel):
         """Allow backward-compatible boolean checking: if result: ..."""
         return self.success
 
+    def __eq__(self, other: Any) -> bool:
+        """Allow equality checks with booleans: assert result == True"""
+        if isinstance(other, bool):
+            return self.success is other
+        return super().__eq__(other)
+
 
 class NotifierBase(ABC):
     """Abstract interface for family/caregiver notification delivery."""
