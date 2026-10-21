@@ -137,11 +137,11 @@ Every day, millions of aging parents live independently while their adult childr
 
 ### Documentation & Architecture Quality
 - Comprehensive [README.md](file:///Users/harsh/Desktop/Alexa+/README.md) featuring clear Mermaid architecture diagrams, a 4-step quickstart, complete MCP tool reference table, and clinical benchmark results.
-- Transparent [FRICTION_LOG.md](file:///Users/harsh/Desktop/Alexa+/FRICTION_LOG.md) detailing 8 real-world engineering obstacles and workarounds for the benefit of the open-source community.
+- Transparent [FRICTION_LOG.md](file:///Users/harsh/Desktop/Alexa+/FRICTION_LOG.md) detailing 10 real-world engineering obstacles and workarounds for the benefit of the open-source community.
 - Full infrastructure-as-code: turnkey **AWS CDK** in [deploy/cdk/](file:///Users/harsh/Desktop/Alexa+/deploy/cdk/) and **AWS SAM** in [template.yaml](file:///Users/harsh/Desktop/Alexa+/template.yaml).
 
 ### Test Coverage & Clinical Reliability Metrics
-- **79 passing pytest tests** covering circular statistics, multi-factor risk, escalation state transitions, Bedrock short-circuiting, DynamoDB storage, Alexa+ authentication, and Streamable HTTP protocol compliance.
+- **178 passing pytest tests** (2 skipped opt-in AWS tests) covering circular statistics, multi-factor risk, escalation state transitions, Bedrock short-circuiting, DynamoDB storage, Alexa+ authentication, and Streamable HTTP protocol compliance.
 - **180 Elder-Days Benchmark:** Evaluated against 60 simulated days across 3 distinct personas with realistic Gaussian jitter, yielding 1,422 events and 18 ground-truth incidents:
   - **Detection Rate (Sensitivity / Recall):** **100.0%** (18/18 ground-truth incidents detected).
   - **False-Alarm Rate (FAR):** **0.00%** (0 false alarms across 459 nominal evaluations).
