@@ -40,6 +40,7 @@ from careloop.models import (
     EscalationState,
     Event,
 )
+from careloop.notifier import NotificationDeliveryStatus
 from careloop.storage.base import StorageBase, StaleStateError
 
 logger = logging.getLogger(__name__)

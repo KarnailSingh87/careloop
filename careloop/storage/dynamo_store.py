@@ -336,6 +336,9 @@ class DynamoDBStorage(StorageBase):
                 "scheduled_time": reminder.scheduled_time,
                 "status": reminder.status.value if hasattr(reminder.status, "value") else str(reminder.status),
                 "created_at": reminder.created_at.isoformat(),
+                "completed_at": reminder.completed_at.isoformat() if reminder.completed_at else None,
+                "error": reminder.error,
+                "metadata": json.dumps(reminder.metadata),
                 "item_type": "REMINDER",
             }
             self._table.put_item(Item=item)
@@ -369,6 +372,17 @@ class DynamoDBStorage(StorageBase):
                     created = datetime.fromisoformat(item["created_at"])
                     if created.tzinfo is None:
                         created = created.replace(tzinfo=timezone.utc)
+                    completed = None
+                    if item.get("completed_at"):
+                        completed = datetime.fromisoformat(item["completed_at"])
+                        if completed.tzinfo is None:
+                            completed = completed.replace(tzinfo=timezone.utc)
+                    meta = {}
+                    if item.get("metadata"):
+                        try:
+                            meta = json.loads(item["metadata"])
+                        except Exception:
+                            meta = {}
                     reminders.append(
                         Reminder(
                             reminder_id=item["reminder_id"],
@@ -377,6 +391,9 @@ class DynamoDBStorage(StorageBase):
                             scheduled_time=item["scheduled_time"],
                             status=ReminderStatus(item["status"]),
                             created_at=created,
+                            completed_at=completed,
+                            error=item.get("error"),
+                            metadata=meta,
                         )
                     )
                 if "LastEvaluatedKey" not in response:
@@ -486,6 +503,10 @@ class DynamoDBStorage(StorageBase):
                 "routine_type": alert.routine_type.value if alert.routine_type else None,
                 "status": alert.status,
                 "notification_status": alert.notification_status,
+                "severity": alert.severity,
+                "dedup_key": alert.dedup_key,
+                "message_id": alert.message_id,
+                "accepted_at": alert.accepted_at.isoformat() if alert.accepted_at else None,
                 "delivered_at": alert.delivered_at.isoformat() if alert.delivered_at else None,
                 "delivery_error": alert.delivery_error,
                 "retry_count": alert.retry_count,
@@ -529,6 +550,11 @@ class DynamoDBStorage(StorageBase):
                         delivered = datetime.fromisoformat(item["delivered_at"])
                         if delivered.tzinfo is None:
                             delivered = delivered.replace(tzinfo=timezone.utc)
+                    accepted = None
+                    if item.get("accepted_at"):
+                        accepted = datetime.fromisoformat(item["accepted_at"])
+                        if accepted.tzinfo is None:
+                            accepted = accepted.replace(tzinfo=timezone.utc)
                     alerts.append(
                         Alert(
                             alert_id=item["alert_id"],
@@ -541,6 +567,10 @@ class DynamoDBStorage(StorageBase):
                             routine_type=RoutineType(item["routine_type"]) if item.get("routine_type") else None,
                             status=item["status"],
                             notification_status=item.get("notification_status", "pending"),
+                            severity=item.get("severity", "high"),
+                            dedup_key=item.get("dedup_key", ""),
+                            message_id=item.get("message_id"),
+                            accepted_at=accepted,
                             delivered_at=delivered,
                             delivery_error=item.get("delivery_error"),
                             retry_count=int(item.get("retry_count", 0)),
@@ -556,6 +586,17 @@ class DynamoDBStorage(StorageBase):
         except ClientError as e:
             logger.error(f"Failed to query alerts from DynamoDB: {e}")
             raise StorageError(f"DynamoDB get_alerts failed: {e}") from e
+
+    def get_alert_by_dedup_key(
+        self,
+        person_id: str,
+        dedup_key: str,
+    ) -> Optional[Alert]:
+        alerts = self.get_alerts(person_id, active_only=False)
+        for a in alerts:
+            if a.dedup_key == dedup_key:
+                return a
+        return None
 
     # --- Escalation State ---
     def save_escalation_state(

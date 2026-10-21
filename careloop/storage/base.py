@@ -125,6 +125,15 @@ class StorageBase(ABC):
         """Fetch alerts for a person."""
         raise NotImplementedError
 
+    @abstractmethod
+    def get_alert_by_dedup_key(
+        self,
+        person_id: str,
+        dedup_key: str,
+    ) -> Optional[Alert]:
+        """Fetch an active or existing alert matching the deduplication key."""
+        raise NotImplementedError
+
     # --- Escalation State Machine ---
     @abstractmethod
     def save_escalation_state(

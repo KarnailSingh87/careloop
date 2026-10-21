@@ -96,7 +96,10 @@ class SQLiteStorage(StorageBase):
                         text TEXT NOT NULL,
                         scheduled_time TEXT NOT NULL,
                         status TEXT NOT NULL,
-                        created_at TEXT NOT NULL
+                        created_at TEXT NOT NULL,
+                        completed_at TEXT,
+                        error TEXT,
+                        metadata TEXT NOT NULL DEFAULT '{}'
                     );
                     CREATE INDEX IF NOT EXISTS idx_reminders_person 
                         ON reminders (person_id, status, scheduled_time ASC);
@@ -120,6 +123,10 @@ class SQLiteStorage(StorageBase):
                         routine_type TEXT,
                         status TEXT NOT NULL,
                         notification_status TEXT NOT NULL DEFAULT 'pending',
+                        severity TEXT NOT NULL DEFAULT 'high',
+                        dedup_key TEXT NOT NULL DEFAULT '',
+                        message_id TEXT,
+                        accepted_at TEXT,
                         delivered_at TEXT,
                         delivery_error TEXT,
                         retry_count INTEGER NOT NULL DEFAULT 0,
@@ -128,6 +135,8 @@ class SQLiteStorage(StorageBase):
                     );
                     CREATE INDEX IF NOT EXISTS idx_alerts_person 
                         ON alerts (person_id, status, created_at DESC);
+                    CREATE INDEX IF NOT EXISTS idx_alerts_dedup
+                        ON alerts (person_id, dedup_key, status);
 
                     CREATE TABLE IF NOT EXISTS escalation_states (
                         person_id TEXT PRIMARY KEY,
@@ -180,6 +189,14 @@ class SQLiteStorage(StorageBase):
                 alert_cols = [r["name"] for r in cursor.fetchall()]
                 if "notification_status" not in alert_cols:
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN notification_status TEXT NOT NULL DEFAULT 'pending'")
+                if "severity" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN severity TEXT NOT NULL DEFAULT 'high'")
+                if "dedup_key" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN dedup_key TEXT NOT NULL DEFAULT ''")
+                if "message_id" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN message_id TEXT")
+                if "accepted_at" not in alert_cols:
+                    self._conn.execute("ALTER TABLE alerts ADD COLUMN accepted_at TEXT")
                 if "delivered_at" not in alert_cols:
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN delivered_at TEXT")
                 if "delivery_error" not in alert_cols:
@@ -188,6 +205,16 @@ class SQLiteStorage(StorageBase):
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0")
                 if "event_ids" not in alert_cols:
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN event_ids TEXT NOT NULL DEFAULT '[]'")
+
+                # Migration for legacy reminders columns
+                cursor = self._conn.execute("PRAGMA table_info(reminders)")
+                rem_cols = [r["name"] for r in cursor.fetchall()]
+                if "completed_at" not in rem_cols:
+                    self._conn.execute("ALTER TABLE reminders ADD COLUMN completed_at TEXT")
+                if "error" not in rem_cols:
+                    self._conn.execute("ALTER TABLE reminders ADD COLUMN error TEXT")
+                if "metadata" not in rem_cols:
+                    self._conn.execute("ALTER TABLE reminders ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'")
 
                 if current_ver < self.SCHEMA_VERSION:
                     self._conn.execute(f"PRAGMA user_version = {self.SCHEMA_VERSION};")
@@ -384,8 +411,8 @@ class SQLiteStorage(StorageBase):
                 self._conn.execute(
                     """
                     INSERT OR REPLACE INTO reminders (
-                        reminder_id, person_id, text, scheduled_time, status, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
+                        reminder_id, person_id, text, scheduled_time, status, created_at, completed_at, error, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         reminder.reminder_id,
@@ -394,6 +421,9 @@ class SQLiteStorage(StorageBase):
                         reminder.scheduled_time,
                         reminder.status.value if hasattr(reminder.status, "value") else str(reminder.status),
                         reminder.created_at.isoformat(),
+                        reminder.completed_at.isoformat() if reminder.completed_at else None,
+                        reminder.error,
+                        json.dumps(reminder.metadata),
                     ),
                 )
 
@@ -421,6 +451,17 @@ class SQLiteStorage(StorageBase):
             created = datetime.fromisoformat(r["created_at"])
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
+            completed = None
+            if "completed_at" in r.keys() and r["completed_at"]:
+                completed = datetime.fromisoformat(r["completed_at"])
+                if completed.tzinfo is None:
+                    completed = completed.replace(tzinfo=timezone.utc)
+            meta = {}
+            if "metadata" in r.keys() and r["metadata"]:
+                try:
+                    meta = json.loads(r["metadata"])
+                except Exception:
+                    meta = {}
             reminders.append(
                 Reminder(
                     reminder_id=r["reminder_id"],
@@ -429,6 +470,9 @@ class SQLiteStorage(StorageBase):
                     scheduled_time=r["scheduled_time"],
                     status=ReminderStatus(r["status"]),
                     created_at=created,
+                    completed_at=completed,
+                    error=r["error"] if "error" in r.keys() else None,
+                    metadata=meta,
                 )
             )
         return reminders
@@ -513,8 +557,9 @@ class SQLiteStorage(StorageBase):
                     INSERT OR REPLACE INTO alerts (
                         alert_id, person_id, level, created_at, title, reasons,
                         recommended_action, routine_type, status, notification_status,
+                        severity, dedup_key, message_id, accepted_at,
                         delivered_at, delivery_error, retry_count, event_ids, metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         alert.alert_id,
@@ -527,6 +572,10 @@ class SQLiteStorage(StorageBase):
                         alert.routine_type.value if alert.routine_type else None,
                         alert.status,
                         alert.notification_status,
+                        alert.severity,
+                        alert.dedup_key,
+                        alert.message_id,
+                        alert.accepted_at.isoformat() if alert.accepted_at else None,
                         alert.delivered_at.isoformat() if alert.delivered_at else None,
                         alert.delivery_error,
                         alert.retry_count,
@@ -534,6 +583,45 @@ class SQLiteStorage(StorageBase):
                         json.dumps(alert.metadata),
                     ),
                 )
+
+    def _row_to_alert(self, r: Any) -> Alert:
+        created = datetime.fromisoformat(r["created_at"])
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+
+        delivered = None
+        if "delivered_at" in r.keys() and r["delivered_at"]:
+            delivered = datetime.fromisoformat(r["delivered_at"])
+            if delivered.tzinfo is None:
+                delivered = delivered.replace(tzinfo=timezone.utc)
+
+        accepted = None
+        if "accepted_at" in r.keys() and r["accepted_at"]:
+            accepted = datetime.fromisoformat(r["accepted_at"])
+            if accepted.tzinfo is None:
+                accepted = accepted.replace(tzinfo=timezone.utc)
+
+        return Alert(
+            alert_id=r["alert_id"],
+            person_id=r["person_id"],
+            level=AlertLevel(r["level"]),
+            created_at=created,
+            title=r["title"],
+            reasons=json.loads(r["reasons"]),
+            recommended_action=r["recommended_action"],
+            routine_type=RoutineType(r["routine_type"]) if r["routine_type"] else None,
+            status=r["status"],
+            notification_status=r["notification_status"] if "notification_status" in r.keys() else "pending",
+            severity=r["severity"] if ("severity" in r.keys() and r["severity"]) else "high",
+            dedup_key=r["dedup_key"] if ("dedup_key" in r.keys() and r["dedup_key"]) else "",
+            message_id=r["message_id"] if "message_id" in r.keys() else None,
+            accepted_at=accepted,
+            delivered_at=delivered,
+            delivery_error=r["delivery_error"] if "delivery_error" in r.keys() else None,
+            retry_count=int(r["retry_count"]) if "retry_count" in r.keys() else 0,
+            event_ids=json.loads(r["event_ids"]) if ("event_ids" in r.keys() and r["event_ids"]) else [],
+            metadata=json.loads(r["metadata"]),
+        )
 
     def get_alerts(
         self,
@@ -554,38 +642,23 @@ class SQLiteStorage(StorageBase):
                 )
             rows = cursor.fetchall()
 
-        alerts: List[Alert] = []
-        for r in rows:
-            created = datetime.fromisoformat(r["created_at"])
-            if created.tzinfo is None:
-                created = created.replace(tzinfo=timezone.utc)
+        return [self._row_to_alert(r) for r in rows]
 
-            delivered = None
-            if "delivered_at" in r.keys() and r["delivered_at"]:
-                delivered = datetime.fromisoformat(r["delivered_at"])
-                if delivered.tzinfo is None:
-                    delivered = delivered.replace(tzinfo=timezone.utc)
-
-            alerts.append(
-                Alert(
-                    alert_id=r["alert_id"],
-                    person_id=r["person_id"],
-                    level=AlertLevel(r["level"]),
-                    created_at=created,
-                    title=r["title"],
-                    reasons=json.loads(r["reasons"]),
-                    recommended_action=r["recommended_action"],
-                    routine_type=RoutineType(r["routine_type"]) if r["routine_type"] else None,
-                    status=r["status"],
-                    notification_status=r["notification_status"] if "notification_status" in r.keys() else "pending",
-                    delivered_at=delivered,
-                    delivery_error=r["delivery_error"] if "delivery_error" in r.keys() else None,
-                    retry_count=int(r["retry_count"]) if "retry_count" in r.keys() else 0,
-                    event_ids=json.loads(r["event_ids"]) if ("event_ids" in r.keys() and r["event_ids"]) else [],
-                    metadata=json.loads(r["metadata"]),
-                )
+    def get_alert_by_dedup_key(
+        self,
+        person_id: str,
+        dedup_key: str,
+    ) -> Optional[Alert]:
+        with self._lock:
+            self._check_closed()
+            cursor = self._conn.execute(
+                "SELECT * FROM alerts WHERE person_id = ? AND dedup_key = ? ORDER BY created_at DESC LIMIT 1",
+                (person_id, dedup_key),
             )
-        return alerts
+            r = cursor.fetchone()
+        if not r:
+            return None
+        return self._row_to_alert(r)
 
     # --- Escalation State ---
     def save_escalation_state(

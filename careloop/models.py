@@ -180,18 +180,32 @@ class Alert(BaseModel):
     recommended_action: str
     routine_type: Optional[RoutineType] = None
     status: str = "ACTIVE"  # ACTIVE, ACKNOWLEDGED, RESOLVED
-    notification_status: str = "pending"  # "pending", "delivered", "failed"
-    delivered_at: Optional[datetime] = None
+    notification_status: str = "pending"  # "pending", "accepted", "delivered", "failed", "retrying"
+    severity: str = "high"  # "low", "medium", "high", "critical"
+    dedup_key: str = ""     # Stable deduplication key
+    message_id: Optional[str] = None  # Provider message identifier (e.g. SNS MessageId)
+    accepted_at: Optional[datetime] = None  # When provider accepted dispatch
+    delivered_at: Optional[datetime] = None # When delivery was confirmed
     delivery_error: Optional[str] = None
     retry_count: int = 0
     event_ids: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def populate_dedup_and_severity(self) -> "Alert":
+        if not self.dedup_key:
+            sev = self.severity or (self.level.value if hasattr(self.level, "value") else str(self.level))
+            r_type = self.routine_type.value if hasattr(self.routine_type, "value") else (str(self.routine_type) if self.routine_type else "incident")
+            date_part = self.created_at.strftime("%Y-%m-%d") if self.created_at else "date"
+            self.dedup_key = f"alert:{self.person_id.lower()}:{date_part}:{r_type.lower()}:{sev.lower()}"
+        return self
 
 
 class ReminderStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     DISMISSED = "dismissed"
+    FAILED = "failed"
 
 
 class Reminder(BaseModel):
@@ -202,3 +216,6 @@ class Reminder(BaseModel):
     scheduled_time: str = Field(description="ISO 8601 string or HH:MM target time")
     status: ReminderStatus = ReminderStatus.PENDING
     created_at: datetime = Field(default_factory=lambda: datetime.now())
+    completed_at: Optional[datetime] = None
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
