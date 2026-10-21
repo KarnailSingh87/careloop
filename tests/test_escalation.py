@@ -20,26 +20,19 @@ Verifies the complete state machine contract:
 16. Timezone-awareness requirement (naive timestamps rejected)
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import os
 import tempfile
-import uuid
 import pytest
 
 from careloop.clock import SimulatedClock
-from careloop.engine.baseline import BaselineEngine
 from careloop.engine.escalation import EscalationEngine
-from careloop.engine.risk import RiskAssessment, RiskEngine
+from careloop.engine.risk import RiskAssessment
 from careloop.models import (
-    Alert,
     AlertLevel,
     EscalationStage,
     Event,
     EventType,
-    PersonProfile,
-    EmergencyContact,
-    RoutineRule,
-    RoutineType,
 )
 from careloop.notifier import NotifierBase
 from careloop.storage.base import StaleStateError

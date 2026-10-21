@@ -12,7 +12,6 @@ from careloop.models import (
     EmergencyContact,
     PersonProfile,
     Event,
-    RoutineRule,
     LearnedBaseline,
     CheckinPrompt,
     CheckinStatus,
@@ -60,7 +59,7 @@ def test_person_profile_with_contacts():
 
 def test_alert_requires_reasons():
     now = datetime(2026, 10, 20, 10, 0, 0, tzinfo=timezone.utc)
-    
+
     # Must fail if reasons are missing
     with pytest.raises(ValidationError):
         Alert(

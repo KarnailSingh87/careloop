@@ -43,6 +43,7 @@ from careloop.storage.sqlite_store import SQLiteStorage
 # Metric Calculation
 # ---------------------------------------------------------------------------
 
+
 def compute_evaluation_metrics(
     tp: int,
     fp: int,
@@ -88,6 +89,7 @@ def compute_evaluation_metrics(
 # Simple Baseline Policy (Traditional Static Threshold Telecare)
 # ---------------------------------------------------------------------------
 
+
 class StaticThresholdBaseline:
     """
     Traditional non-adaptive telecare baseline policy.
@@ -132,7 +134,8 @@ class StaticThresholdBaseline:
     def evaluate_inactivity(self, events_so_far: List[Any], current_time: datetime) -> bool:
         """Returns True if static rule flags daytime inactivity (3h+)."""
         movements = [
-            e.timestamp for e in events_so_far
+            e.timestamp
+            for e in events_so_far
             if (e.event_type.value if hasattr(e.event_type, "value") else str(e.event_type)) == "movement"
         ]
         if not movements:
@@ -149,23 +152,23 @@ PERSONA_EVAL_CONFIG = {
     "eleanor": {
         "name": "Eleanor Davis (Age 78)",
         "archetype": "Independent Elder · Morning Routine",
-        "med_check": (9, 0),     # 09:00 UTC (sched 08:15 + 45m grace window)
+        "med_check": (9, 0),  # 09:00 UTC (sched 08:15 + 45m grace window)
         "lunch_check": (13, 45),  # 13:45 UTC (sched 12:45 + 60m grace window)
-        "mov_check": (16, 30),    # 16:30 UTC (3.5 hrs after lunch movement)
+        "mov_check": (16, 30),  # 16:30 UTC (3.5 hrs after lunch movement)
     },
     "dad": {
         "name": "Arthur Davis / Dad (Age 81)",
         "archetype": "Retired Veteran · Early Riser",
-        "med_check": (9, 0),     # 09:00 UTC (sched 08:00 + 60m grace window)
+        "med_check": (9, 0),  # 09:00 UTC (sched 08:00 + 60m grace window)
         "lunch_check": (13, 30),  # 13:30 UTC (sched 12:30 + 60m grace window)
-        "mov_check": (16, 15),    # 16:15 UTC (3.5 hrs after lunch movement)
+        "mov_check": (16, 15),  # 16:15 UTC (3.5 hrs after lunch movement)
     },
     "martha": {
         "name": "Martha Jenkins (Age 84)",
         "archetype": "Arthritis Schedule · Late Riser",
-        "med_check": (10, 15),   # 10:15 UTC (sched 09:15 + 60m grace window)
+        "med_check": (10, 15),  # 10:15 UTC (sched 09:15 + 60m grace window)
         "lunch_check": (14, 30),  # 14:30 UTC (sched 13:15 + 75m grace window)
-        "mov_check": (17, 15),    # 17:15 UTC (3.5 hrs after lunch movement)
+        "mov_check": (17, 15),  # 17:15 UTC (3.5 hrs after lunch movement)
     },
 }
 
@@ -173,6 +176,7 @@ PERSONA_EVAL_CONFIG = {
 # ---------------------------------------------------------------------------
 # Benchmark Replay Engine
 # ---------------------------------------------------------------------------
+
 
 def run_benchmark(
     db_path: str = "careloop_local.db",
@@ -270,7 +274,9 @@ def run_benchmark(
             med_alert = eval_med.is_missed or risk_med.anomalies.get("medication_missed", False)
 
             # Static baseline: evaluated at rigid global 09:00 UTC threshold
-            t_med_static = day_date.replace(hour=static_policy.med_cutoff[0], minute=static_policy.med_cutoff[1], second=0)
+            t_med_static = day_date.replace(
+                hour=static_policy.med_cutoff[0], minute=static_policy.med_cutoff[1], second=0
+            )
             evs_static_med = [e for e in day_events if e.timestamp <= t_med_static]
             st_med_alert = static_policy.evaluate_medication(evs_static_med, t_med_static)
 
@@ -285,28 +291,32 @@ def run_benchmark(
                     tp += 1
                     delays_from_sched.append(delay_sched)
                     delays_past_grace.append(delay_grace)
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Missed Medication",
-                        "status": "DETECTED (TP)",
-                        "delay_min": round(delay_sched, 1),
-                        "delay_grace_min": round(delay_grace, 1),
-                        "reasons": eval_med.reasons[0] if eval_med.reasons else "Medication missed",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Missed Medication",
+                            "status": "DETECTED (TP)",
+                            "delay_min": round(delay_sched, 1),
+                            "delay_grace_min": round(delay_grace, 1),
+                            "reasons": eval_med.reasons[0] if eval_med.reasons else "Medication missed",
+                        }
+                    )
                 else:
                     fn += 1
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Missed Medication",
-                        "status": "MISSED (FN)",
-                        "delay_min": None,
-                        "delay_grace_min": None,
-                        "reasons": "False negative",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Missed Medication",
+                            "status": "MISSED (FN)",
+                            "delay_min": None,
+                            "delay_grace_min": None,
+                            "reasons": "False negative",
+                        }
+                    )
 
                 if st_med_alert:
                     st_tp += 1
@@ -338,7 +348,9 @@ def run_benchmark(
             lunch_alert = eval_lunch.is_missed or risk_lunch.anomalies.get("meal_missed", False)
 
             # Static baseline: evaluated at rigid global 13:15 UTC threshold
-            t_lunch_static = day_date.replace(hour=static_policy.lunch_cutoff[0], minute=static_policy.lunch_cutoff[1], second=0)
+            t_lunch_static = day_date.replace(
+                hour=static_policy.lunch_cutoff[0], minute=static_policy.lunch_cutoff[1], second=0
+            )
             evs_static_lunch = [e for e in day_events if e.timestamp <= t_lunch_static]
             st_lunch_alert = static_policy.evaluate_lunch(evs_static_lunch, t_lunch_static)
 
@@ -353,28 +365,32 @@ def run_benchmark(
                     tp += 1
                     delays_from_sched.append(delay_sched)
                     delays_past_grace.append(delay_grace)
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Missed Lunch",
-                        "status": "DETECTED (TP)",
-                        "delay_min": round(delay_sched, 1),
-                        "delay_grace_min": round(delay_grace, 1),
-                        "reasons": eval_lunch.reasons[0] if eval_lunch.reasons else "Lunch missed",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Missed Lunch",
+                            "status": "DETECTED (TP)",
+                            "delay_min": round(delay_sched, 1),
+                            "delay_grace_min": round(delay_grace, 1),
+                            "reasons": eval_lunch.reasons[0] if eval_lunch.reasons else "Lunch missed",
+                        }
+                    )
                 else:
                     fn += 1
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Missed Lunch",
-                        "status": "MISSED (FN)",
-                        "delay_min": None,
-                        "delay_grace_min": None,
-                        "reasons": "False negative",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Missed Lunch",
+                            "status": "MISSED (FN)",
+                            "delay_min": None,
+                            "delay_grace_min": None,
+                            "reasons": "False negative",
+                        }
+                    )
 
                 if st_lunch_alert:
                     st_tp += 1
@@ -420,28 +436,32 @@ def run_benchmark(
                     tp += 1
                     delays_from_sched.append(delay_sched)
                     delays_past_grace.append(delay_grace)
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Daytime Inactivity (Fall)",
-                        "status": "DETECTED (TP)",
-                        "delay_min": round(delay_sched, 1),
-                        "delay_grace_min": round(delay_grace, 1),
-                        "reasons": "Prolonged daytime inactivity / zero movement detected",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Daytime Inactivity (Fall)",
+                            "status": "DETECTED (TP)",
+                            "delay_min": round(delay_sched, 1),
+                            "delay_grace_min": round(delay_grace, 1),
+                            "reasons": "Prolonged daytime inactivity / zero movement detected",
+                        }
+                    )
                 else:
                     fn += 1
-                    incident_audit_records.append({
-                        "incident_id": incident["incident_id"],
-                        "person": pconfig["name"].split(" ")[0],
-                        "day": day_num,
-                        "type": "Daytime Inactivity (Fall)",
-                        "status": "MISSED (FN)",
-                        "delay_min": None,
-                        "delay_grace_min": None,
-                        "reasons": "False negative",
-                    })
+                    incident_audit_records.append(
+                        {
+                            "incident_id": incident["incident_id"],
+                            "person": pconfig["name"].split(" ")[0],
+                            "day": day_num,
+                            "type": "Daytime Inactivity (Fall)",
+                            "status": "MISSED (FN)",
+                            "delay_min": None,
+                            "delay_grace_min": None,
+                            "reasons": "False negative",
+                        }
+                    )
 
                 if st_mov_alert:
                     st_tp += 1
@@ -474,12 +494,14 @@ def run_benchmark(
             delays_sched=delays_from_sched,
             delays_grace=delays_past_grace,
         )
-        p_metrics.update({
-            "name": pconfig["name"],
-            "archetype": pconfig["archetype"],
-            "total_events": len(all_events),
-            "active_days": active_days_per_person,
-        })
+        p_metrics.update(
+            {
+                "name": pconfig["name"],
+                "archetype": pconfig["archetype"],
+                "total_events": len(all_events),
+                "active_days": active_days_per_person,
+            }
+        )
         results_by_persona[pid] = p_metrics
 
         # Static baseline persona metrics
@@ -492,12 +514,14 @@ def run_benchmark(
             delays_sched=st_delays_from_sched,
             delays_grace=[],
         )
-        st_p_metrics.update({
-            "name": pconfig["name"],
-            "archetype": pconfig["archetype"],
-            "total_events": len(all_events),
-            "active_days": active_days_per_person,
-        })
+        st_p_metrics.update(
+            {
+                "name": pconfig["name"],
+                "archetype": pconfig["archetype"],
+                "total_events": len(all_events),
+                "active_days": active_days_per_person,
+            }
+        )
         static_results_by_persona[pid] = st_p_metrics
 
         print(
@@ -592,7 +616,7 @@ def run_benchmark(
     md_content = f"""# CareLoop: 60-Day Routine Safety Benchmark & Reproducible Evaluation Report
 
 > **Evaluation Overview**: Evaluated across **60 simulated days** ({comb_active_days} active elder-days evaluated; 7-day cold-start calibration period excluded) across 3 distinct personas with realistic Gaussian jitter, benign negative controls (late lunch within grace, delayed pills, weekend shifts), and 18 injected ground-truth safety incidents.
-> 
+>
 > **Evaluation Engine**: Reproducible evaluation replay via `careloop.clock.SimulatedClock` (Fixed seed: `{seed}`).
 
 ---
@@ -601,14 +625,14 @@ def run_benchmark(
 
 | Evaluation Metric | Traditional Static Telecare<br><sub>(Rigid Fixed Thresholds)</sub> | CareLoop Adaptive EWMA<br><sub>(Circular Learning + Grace)</sub> | Clinical Impact / Improvement |
 | :--- | :---: | :---: | :--- |
-| **Detection Rate (Sensitivity / Recall)** | **{st_comb_metrics['recall']:.1f}%** ({st_comb_metrics['tp']}/{st_comb_metrics['tp'] + st_comb_metrics['fn']}) | **{comb_metrics['recall']:.1f}%** ({comb_metrics['tp']}/{comb_metrics['tp'] + comb_metrics['fn']}) | Identical 100% safety capture of all critical incidents. |
-| **Precision (PPV)** | **{st_comb_metrics['precision']:.1f}%** | **{comb_metrics['precision']:.1f}%** | **+{comb_metrics['precision'] - st_comb_metrics['precision']:.1f}% improvement** in alert trustworthiness. |
-| **False Positives (False Alarms)** | **{st_comb_metrics['fp']}** | **{comb_metrics['fp']}** | **-{st_comb_metrics['fp']} false alarms eliminated** over 60 days. |
-| **False-Alarm Rate (FAR)** | **{st_comb_metrics['false_alarm_rate']:.2f}%** | **{comb_metrics['false_alarm_rate']:.2f}%** | Negligible false alarm probability on nominal days. |
-| **False Alerts per Person-Day** | **{st_comb_metrics['false_alerts_per_person_day']:.4f}** | **{comb_metrics['false_alerts_per_person_day']:.4f}** | Eliminates 1 false alert every ~{round(1.0 / st_comb_metrics['false_alerts_per_person_day'], 1) if st_comb_metrics['false_alerts_per_person_day'] > 0 else 'N/A'} days. |
-| **False Alarms per Month (30 Days)** | **{st_comb_metrics['false_alerts_per_month']:.1f}** | **{comb_metrics['false_alerts_per_month']:.1f}** | Completely eliminates alarm fatigue for adult children. |
-| **Avg Detection Delay (from schedule)** | **N/A (Rigid)** | **{comb_metrics['avg_delay_sched_min']:.1f} mins** | Consistent detection within clinically safe window. |
-| **Avg Detection Delay (past grace window)** | **N/A** | **{comb_metrics['avg_delay_grace_min']:.1f} mins** | Alerts dispatch promptly upon grace window expiration. |
+| **Detection Rate (Sensitivity / Recall)** | **{st_comb_metrics["recall"]:.1f}%** ({st_comb_metrics["tp"]}/{st_comb_metrics["tp"] + st_comb_metrics["fn"]}) | **{comb_metrics["recall"]:.1f}%** ({comb_metrics["tp"]}/{comb_metrics["tp"] + comb_metrics["fn"]}) | Identical 100% safety capture of all critical incidents. |
+| **Precision (PPV)** | **{st_comb_metrics["precision"]:.1f}%** | **{comb_metrics["precision"]:.1f}%** | **+{comb_metrics["precision"] - st_comb_metrics["precision"]:.1f}% improvement** in alert trustworthiness. |
+| **False Positives (False Alarms)** | **{st_comb_metrics["fp"]}** | **{comb_metrics["fp"]}** | **-{st_comb_metrics["fp"]} false alarms eliminated** over 60 days. |
+| **False-Alarm Rate (FAR)** | **{st_comb_metrics["false_alarm_rate"]:.2f}%** | **{comb_metrics["false_alarm_rate"]:.2f}%** | Negligible false alarm probability on nominal days. |
+| **False Alerts per Person-Day** | **{st_comb_metrics["false_alerts_per_person_day"]:.4f}** | **{comb_metrics["false_alerts_per_person_day"]:.4f}** | Eliminates 1 false alert every ~{round(1.0 / st_comb_metrics["false_alerts_per_person_day"], 1) if st_comb_metrics["false_alerts_per_person_day"] > 0 else "N/A"} days. |
+| **False Alarms per Month (30 Days)** | **{st_comb_metrics["false_alerts_per_month"]:.1f}** | **{comb_metrics["false_alerts_per_month"]:.1f}** | Completely eliminates alarm fatigue for adult children. |
+| **Avg Detection Delay (from schedule)** | **N/A (Rigid)** | **{comb_metrics["avg_delay_sched_min"]:.1f} mins** | Consistent detection within clinically safe window. |
+| **Avg Detection Delay (past grace window)** | **N/A** | **{comb_metrics["avg_delay_grace_min"]:.1f} mins** | Alerts dispatch promptly upon grace window expiration. |
 
 ---
 
@@ -618,21 +642,21 @@ def run_benchmark(
 | :--- | :---: | :---: | :---: | :---: |
 | **Simulated Days Evaluated** | {total_days} Days | {total_days} Days | {total_days} Days | **{total_days * 3} Days** |
 | **Active Evaluated Days (Post Cold-Start)** | {active_days_per_person} Days | {active_days_per_person} Days | {active_days_per_person} Days | **{comb_active_days} Elder-Days** |
-| **Total Sensor Events Processed** | {results_by_persona['eleanor']['total_events']} | {results_by_persona['dad']['total_events']} | {results_by_persona['martha']['total_events']} | **{comb_events} Events** |
+| **Total Sensor Events Processed** | {results_by_persona["eleanor"]["total_events"]} | {results_by_persona["dad"]["total_events"]} | {results_by_persona["martha"]["total_events"]} | **{comb_events} Events** |
 | **Injected Ground-Truth Incidents** | 6 | 6 | 6 | **18 Incidents** |
 | - *Missed Prescription Medication* | 2 | 2 | 2 | **6** |
 | - *Daytime Inactivity / Falls (3h+)* | 2 | 2 | 2 | **6** |
 | - *Missed Lunch Nutrition* | 2 | 2 | 2 | **6** |
 | **Benign Noise Controls (Within Grace)** | 14 | 14 | 14 | **42 Variations** |
-| **True Positives (Detected)** | **{results_by_persona['eleanor']['tp']} / 6** | **{results_by_persona['dad']['tp']} / 6** | **{results_by_persona['martha']['tp']} / 6** | **{comb_tp} / 18** |
+| **True Positives (Detected)** | **{results_by_persona["eleanor"]["tp"]} / 6** | **{results_by_persona["dad"]["tp"]} / 6** | **{results_by_persona["martha"]["tp"]} / 6** | **{comb_tp} / 18** |
 | **False Negatives (Missed Alerts)** | **0** | **0** | **0** | **0** |
 | **False Positives (False Alarms)** | **0** | **0** | **0** | **0** |
-| **Detection Rate (Sensitivity / Recall)** | **{results_by_persona['eleanor']['recall']:.1f}%** | **{results_by_persona['dad']['recall']:.1f}%** | **{results_by_persona['martha']['recall']:.1f}%** | **{comb_metrics['recall']:.1f}%** |
-| **Precision (PPV)** | **{results_by_persona['eleanor']['precision']:.1f}%** | **{results_by_persona['dad']['precision']:.1f}%** | **{results_by_persona['martha']['precision']:.1f}%** | **{comb_metrics['precision']:.1f}%** |
-| **False-Alarm Rate (FAR)** | **{results_by_persona['eleanor']['false_alarm_rate']:.2f}%** | **{results_by_persona['dad']['false_alarm_rate']:.2f}%** | **{results_by_persona['martha']['false_alarm_rate']:.2f}%** | **{comb_metrics['false_alarm_rate']:.2f}%** |
+| **Detection Rate (Sensitivity / Recall)** | **{results_by_persona["eleanor"]["recall"]:.1f}%** | **{results_by_persona["dad"]["recall"]:.1f}%** | **{results_by_persona["martha"]["recall"]:.1f}%** | **{comb_metrics["recall"]:.1f}%** |
+| **Precision (PPV)** | **{results_by_persona["eleanor"]["precision"]:.1f}%** | **{results_by_persona["dad"]["precision"]:.1f}%** | **{results_by_persona["martha"]["precision"]:.1f}%** | **{comb_metrics["precision"]:.1f}%** |
+| **False-Alarm Rate (FAR)** | **{results_by_persona["eleanor"]["false_alarm_rate"]:.2f}%** | **{results_by_persona["dad"]["false_alarm_rate"]:.2f}%** | **{results_by_persona["martha"]["false_alarm_rate"]:.2f}%** | **{comb_metrics["false_alarm_rate"]:.2f}%** |
 | **False Alerts per Person-Day** | **0.0000** | **0.0000** | **0.0000** | **0.0000** |
-| **Avg Detection Delay (from schedule)** | **{results_by_persona['eleanor']['avg_delay_sched_min']:.1f} mins** | **{results_by_persona['dad']['avg_delay_sched_min']:.1f} mins** | **{results_by_persona['martha']['avg_delay_sched_min']:.1f} mins** | **{comb_metrics['avg_delay_sched_min']:.1f} mins** |
-| **Avg Detection Delay (past grace window)** | **{results_by_persona['eleanor']['avg_delay_grace_min']:.1f} mins** | **{results_by_persona['dad']['avg_delay_grace_min']:.1f} mins** | **{results_by_persona['martha']['avg_delay_grace_min']:.1f} mins** | **{comb_metrics['avg_delay_grace_min']:.1f} mins** |
+| **Avg Detection Delay (from schedule)** | **{results_by_persona["eleanor"]["avg_delay_sched_min"]:.1f} mins** | **{results_by_persona["dad"]["avg_delay_sched_min"]:.1f} mins** | **{results_by_persona["martha"]["avg_delay_sched_min"]:.1f} mins** | **{comb_metrics["avg_delay_sched_min"]:.1f} mins** |
+| **Avg Detection Delay (past grace window)** | **{results_by_persona["eleanor"]["avg_delay_grace_min"]:.1f} mins** | **{results_by_persona["dad"]["avg_delay_grace_min"]:.1f} mins** | **{results_by_persona["martha"]["avg_delay_grace_min"]:.1f} mins** | **{comb_metrics["avg_delay_grace_min"]:.1f} mins** |
 
 ---
 
@@ -677,7 +701,7 @@ def run_benchmark(
 > **Synthetic Benchmark Disclaimer**: These reproducible benchmark metrics are computed on a synthetic dataset of 60 simulated days across 3 distinct elder personas generated with Gaussian jitter (sigma = 5-15 mins), weekend schedule shifts, and explicit benign controls under random seed `{seed}`.
 >
 > While these results mathematically validate CareLoop's circular statistics and grace window algorithm against rigid static telecare thresholds, **synthetic simulation performance must not be conflated with clinical safety trials, real-world human telemetry, or FDA-cleared medical device efficacy**.
-> 
+>
 > Real-world home environments introduce sensor packet dropouts, multi-person households, pet interference, dementia-related wandering, and acute medical emergencies that require formal observational clinical studies before production deployment.
 """
 
@@ -711,7 +735,9 @@ def run_benchmark(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run CareLoop 60-day safety benchmark evaluation")
     parser.add_argument("--db", default="careloop_local.db", help="Path to SQLite database")
-    parser.add_argument("--incidents-file", default="scripts/ground_truth_incidents.json", help="Path to ground truth incidents JSON")
+    parser.add_argument(
+        "--incidents-file", default="scripts/ground_truth_incidents.json", help="Path to ground truth incidents JSON"
+    )
     parser.add_argument("--days", type=int, default=60, help="Total days evaluated")
     parser.add_argument("--cold-start-days", type=int, default=7, help="Number of cold-start warmup days")
     parser.add_argument("--output-md", default="BENCHMARK_RESULTS.md", help="Path to output markdown file")

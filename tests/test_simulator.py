@@ -69,7 +69,7 @@ async def test_api_clock_advance(sim_client):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost:8000") as client:
         r = await client.post("/api/clock/advance", json={"minutes": 60, "person": "eleanor"})
         assert r.status_code == 200
-        data = r.json()
+        r.json()
         assert clock.now().hour == 9
         assert clock.now().minute == 15
 
@@ -95,10 +95,10 @@ async def test_api_mcp_call_tool(sim_client):
     app, storage, clock = sim_client
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost:8000") as client:
         # 1. Call log_routine_event
-        r = await client.post("/api/mcp/call", json={
-            "tool": "log_routine_event",
-            "arguments": {"person": "eleanor", "type": "medication"}
-        })
+        r = await client.post(
+            "/api/mcp/call",
+            json={"tool": "log_routine_event", "arguments": {"person": "eleanor", "type": "medication"}},
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["tool"] == "log_routine_event"
@@ -106,10 +106,7 @@ async def test_api_mcp_call_tool(sim_client):
         assert data["protocol_version"] == "2025-11-25"
 
         # 2. Call confirm_ok
-        r_ok = await client.post("/api/mcp/call", json={
-            "tool": "confirm_ok",
-            "arguments": {"person": "eleanor"}
-        })
+        r_ok = await client.post("/api/mcp/call", json={"tool": "confirm_ok", "arguments": {"person": "eleanor"}})
         assert r_ok.status_code == 200
         data_ok = r_ok.json()
         assert data_ok["tool"] == "confirm_ok"

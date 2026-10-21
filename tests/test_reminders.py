@@ -2,7 +2,7 @@
 Unit tests for CareLoop Reminder Scheduler and Lifecycle Manager (careloop/reminders.py).
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import os
 import tempfile
 import pytest

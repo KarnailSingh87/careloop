@@ -3,18 +3,15 @@ Unit tests for CareLoop pluggable notifiers (careloop/notifier.py).
 """
 
 from unittest.mock import MagicMock
-import pytest
 from botocore.exceptions import ClientError
 
 from careloop.models import EmergencyContact
 from careloop.notifier import (
-    ALLOWED_SEVERITIES,
     ConsoleNotifier,
     InMemoryNotifier,
     NotificationDeliveryStatus,
     NotificationResult,
     SNSNotifier,
-    get_default_notifier,
     mask_phone_number,
 )
 
@@ -28,15 +25,15 @@ def test_mask_phone_number():
 def test_notification_result_boolean_protocol():
     delivered = NotificationResult(success=True, status=NotificationDeliveryStatus.DELIVERED)
     assert bool(delivered) is True
-    assert delivered == True
+    assert delivered
 
     accepted = NotificationResult(success=True, status=NotificationDeliveryStatus.ACCEPTED)
     assert bool(accepted) is True
-    assert accepted == True
+    assert accepted
 
     failed = NotificationResult(success=False, status=NotificationDeliveryStatus.FAILED, error="Timeout")
     assert bool(failed) is False
-    assert failed == False
+    assert not failed
 
 
 def test_console_notifier():

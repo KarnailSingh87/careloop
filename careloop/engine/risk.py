@@ -20,8 +20,9 @@ Zero LLM in the loop: alerts and risk levels are 100% deterministic code.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Union
+from zoneinfo import ZoneInfo
 
 from careloop.engine.baseline import BaselineEngine
 from careloop.models import Event, EventType
@@ -30,8 +31,9 @@ from careloop.models import Event, EventType
 @dataclass
 class RiskAssessment:
     """Result of deterministic risk score calculation."""
+
     score: float
-    level: str                       # 'low', 'medium', 'high'
+    level: str  # 'low', 'medium', 'high'
     reasons: List[str] = field(default_factory=list)
     anomalies: Dict[str, bool] = field(default_factory=dict)
 
@@ -121,7 +123,7 @@ class RiskEngine:
         events = events_today or []
 
         # Resolve person local timezone
-        person_tz = timezone.utc
+        person_tz: Union[ZoneInfo, timezone] = timezone.utc
         if baseline_engine:
             person_tz = baseline_engine.get_person_timezone(person_id)
         local_now = now.astimezone(person_tz)
@@ -129,13 +131,14 @@ class RiskEngine:
         med_missed = False
         meal_missed = False
         if baseline_engine:
-            med_missed = (baseline_engine.check_missed(person_id, "medication", now, events) == "missed")
-            meal_missed = (baseline_engine.check_missed(person_id, "meal", now, events) == "missed")
+            med_missed = baseline_engine.check_missed(person_id, "medication", now, events) == "missed"
+            meal_missed = baseline_engine.check_missed(person_id, "meal", now, events) == "missed"
 
         # Check daytime movement
         # If past morning waking hours in person's local time (09:00) and no movement in last 3 hours
         movement_events = [
-            e for e in events
+            e
+            for e in events
             if (e.event_type == EventType.MOVEMENT or getattr(e.event_type, "value", None) == "movement")
         ]
         no_movement = False
@@ -150,7 +153,10 @@ class RiskEngine:
         # Check odd hour activity in local night-time sleep window (01:00 - 05:00 local)
         odd_hour = False
         for e in events:
-            if e.event_type in (EventType.MOVEMENT, EventType.DOOR) or getattr(e.event_type, "value", None) in ("movement", "door"):
+            if e.event_type in (EventType.MOVEMENT, EventType.DOOR) or getattr(e.event_type, "value", None) in (
+                "movement",
+                "door",
+            ):
                 e_ts = e.timestamp if e.timestamp.tzinfo is not None else e.timestamp.replace(tzinfo=timezone.utc)
                 e_local = e_ts.astimezone(person_tz)
                 if 1 <= e_local.hour < 5:

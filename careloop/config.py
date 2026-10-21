@@ -33,6 +33,7 @@ INSECURE_DEFAULT_TOKENS: Set[str] = {
 
 class SecurityConfigurationError(Exception):
     """Raised when an insecure configuration is detected in production mode."""
+
     pass
 
 
@@ -63,9 +64,7 @@ class AppConfig:
         self.auth_token = auth_token.strip() if auth_token else None
         self.scoped_tokens = scoped_tokens or {}
         self.jwt_secret = jwt_secret.strip() if jwt_secret else None
-        self.allowed_origins = allowed_origins or (
-            ["*"] if self.env != "production" else []
-        )
+        self.allowed_origins = allowed_origins or (["*"] if self.env != "production" else [])
         self.max_request_body_size_bytes = max(1024, max_request_body_size_bytes)
         self.rate_limit_rpm = max(1, rate_limit_rpm)
         self.notification_rate_limit_per_hour = max(1, notification_rate_limit_per_hour)
@@ -74,31 +73,15 @@ class AppConfig:
 
         # Environment-dependent feature toggles (safe defaults)
         if self.env == "production":
-            self.enable_clock_endpoints = (
-                enable_clock_endpoints if enable_clock_endpoints is not None else False
-            )
-            self.enable_demo_endpoints = (
-                enable_demo_endpoints if enable_demo_endpoints is not None else False
-            )
-            self.enable_simulator = (
-                enable_simulator if enable_simulator is not None else False
-            )
-            self.allow_query_param_auth = (
-                allow_query_param_auth if allow_query_param_auth is not None else False
-            )
+            self.enable_clock_endpoints = enable_clock_endpoints if enable_clock_endpoints is not None else False
+            self.enable_demo_endpoints = enable_demo_endpoints if enable_demo_endpoints is not None else False
+            self.enable_simulator = enable_simulator if enable_simulator is not None else False
+            self.allow_query_param_auth = allow_query_param_auth if allow_query_param_auth is not None else False
         else:
-            self.enable_clock_endpoints = (
-                enable_clock_endpoints if enable_clock_endpoints is not None else True
-            )
-            self.enable_demo_endpoints = (
-                enable_demo_endpoints if enable_demo_endpoints is not None else True
-            )
-            self.enable_simulator = (
-                enable_simulator if enable_simulator is not None else True
-            )
-            self.allow_query_param_auth = (
-                allow_query_param_auth if allow_query_param_auth is not None else True
-            )
+            self.enable_clock_endpoints = enable_clock_endpoints if enable_clock_endpoints is not None else True
+            self.enable_demo_endpoints = enable_demo_endpoints if enable_demo_endpoints is not None else True
+            self.enable_simulator = enable_simulator if enable_simulator is not None else True
+            self.allow_query_param_auth = allow_query_param_auth if allow_query_param_auth is not None else True
 
         self._validate_for_production()
 
@@ -155,9 +138,7 @@ class AppConfig:
 
         # 5. Forbid demo reset in production
         if self.enable_demo_endpoints:
-            raise SecurityConfigurationError(
-                "Demo endpoints (/api/demo/*) must be disabled in production."
-            )
+            raise SecurityConfigurationError("Demo endpoints (/api/demo/*) must be disabled in production.")
 
 
 def load_secrets_from_aws(secret_id: str, region_name: str = "us-east-1") -> Dict[str, str]:
@@ -167,7 +148,7 @@ def load_secrets_from_aws(secret_id: str, region_name: str = "us-east-1") -> Dic
     """
     try:
         import boto3
-        from botocore.exceptions import ClientError
+
         client = boto3.client("secretsmanager", region_name=region_name)
         response = client.get_secret_value(SecretId=secret_id)
         if "SecretString" in response:
@@ -194,14 +175,10 @@ def load_config(env_dict: Optional[Dict[str, str]] = None) -> AppConfig:
         secrets = load_secrets_from_aws(aws_secret_id, aws_region)
 
     # Resolve auth token
-    auth_token = source.get(
-        "ALEXA_AUTH_TOKEN", secrets.get("ALEXA_AUTH_TOKEN", "")
-    ).strip() or None
+    auth_token = source.get("ALEXA_AUTH_TOKEN", secrets.get("ALEXA_AUTH_TOKEN", "")).strip() or None
 
     # Resolve scoped tokens
-    scoped_tokens_raw = source.get(
-        "CARELOOP_SCOPED_TOKENS", secrets.get("CARELOOP_SCOPED_TOKENS", "")
-    ).strip()
+    scoped_tokens_raw = source.get("CARELOOP_SCOPED_TOKENS", secrets.get("CARELOOP_SCOPED_TOKENS", "")).strip()
     scoped_tokens: Dict[str, Dict[str, Any]] = {}
     if scoped_tokens_raw:
         try:
@@ -210,9 +187,7 @@ def load_config(env_dict: Optional[Dict[str, str]] = None) -> AppConfig:
             logger.error(f"Failed to parse CARELOOP_SCOPED_TOKENS JSON: {e}")
 
     # Resolve JWT secret
-    jwt_secret = source.get(
-        "CARELOOP_JWT_SECRET", secrets.get("CARELOOP_JWT_SECRET", "")
-    ).strip() or None
+    jwt_secret = source.get("CARELOOP_JWT_SECRET", secrets.get("CARELOOP_JWT_SECRET", "")).strip() or None
 
     # Resolve allowed origins
     origins_str = source.get("ALLOWED_ORIGINS", "").strip()

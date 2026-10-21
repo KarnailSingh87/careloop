@@ -3,7 +3,6 @@ Pytest configuration and global fixtures.
 Enforces test isolation, hermetic environment, and prevents accidental external AWS side effects.
 """
 
-import os
 import pytest
 
 

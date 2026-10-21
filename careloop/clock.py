@@ -33,7 +33,7 @@ class SystemClock(Clock):
 class SimulatedClock(Clock):
     """
     Controllable clock for unit tests and interactive hackathon demos.
-    
+
     Can be advanced by seconds, minutes, hours, or jumped to any point in time.
     """
 

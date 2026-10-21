@@ -11,27 +11,18 @@ Verifies:
 6. Input validation on MCP tools (invalid timestamps, unsupported severities, empty messages).
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import os
 import tempfile
 import pytest
 
 from careloop.clock import SimulatedClock
-from careloop.engine.baseline import BaselineEngine
 from careloop.engine.escalation import EscalationEngine
-from careloop.engine.risk import RiskAssessment, RiskEngine
+from careloop.engine.risk import RiskAssessment
 from careloop.models import (
-    Alert,
-    AlertLevel,
     EmergencyContact,
     EscalationStage,
-    Event,
-    EventType,
     PersonProfile,
-    Reminder,
-    ReminderStatus,
-    RoutineRule,
-    RoutineType,
 )
 from careloop.notifier import InMemoryNotifier
 from careloop.server.main import create_server
@@ -252,6 +243,7 @@ async def test_mcp_tool_validations_and_deduplication(local_env):
     )
     assert not r4.is_error
     import json
+
     data1 = json.loads(r4.content[0].text)
     assert data1["status"] == "notified"
     assert data1["delivery_status"] in ("delivered", "accepted")

@@ -21,11 +21,22 @@ dist/
 venv/
 ENV/
 
-# Testing & Coverage
+# Testing, Typing & Linting Caches
 .coverage
 .coverage.*
 htmlcov/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Cloud Build & Infrastructure Artifacts
+.aws-sam/
+cdk.out/
+cdk-outputs.json
+
+# Local Environment & Secrets
+.env
+*.local
 
 # SQLite & local demo storage
 *.db
@@ -33,9 +44,11 @@ htmlcov/
 *.db-wal
 *.sqlite3
 careloop_local.db
+careloop_demo.db
 
 # IDE & OS
 .DS_Store
 .vscode/
 .idea/
 *.swp
+

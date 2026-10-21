@@ -17,11 +17,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime, time, timezone
 import logging
 import re
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 from dateutil import parser as date_parser
 
 from careloop.clock import Clock
-from careloop.models import PersonProfile, Reminder, ReminderStatus
+from careloop.models import Reminder, ReminderStatus
 from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ class ConsoleReminderDeliveryBridge(ReminderDeliveryBridge):
         self.delivered_reminders: List[Reminder] = []
 
     def deliver_reminder(self, reminder: Reminder) -> bool:
-        msg = f"🔔 [ALEXA+ SPOKEN REMINDER for {reminder.person_id.upper()}]: \"{reminder.text}\""
+        msg = f'🔔 [ALEXA+ SPOKEN REMINDER for {reminder.person_id.upper()}]: "{reminder.text}"'
         self.output_fn(msg)
         self.delivered_reminders.append(reminder)
         logger.info(f"Delivered reminder {reminder.reminder_id} via ConsoleReminderDeliveryBridge: {reminder.text}")
@@ -94,11 +94,11 @@ class AlexaSkillRemindersBridge(ReminderDeliveryBridge):
 def is_reminder_due(reminder: Reminder, now: datetime, person_tz_str: str = "UTC") -> bool:
     """
     Determine if a pending reminder is due at or before the given timestamp `now`.
-    
+
     Supports:
     1. 'HH:MM' 24-hour time-of-day format: Evaluated against `now` in the person's timezone.
     2. ISO 8601 full datetime format: Evaluated directly against `now`.
-    
+
     Parameters:
         reminder: The Reminder to check.
         now: Current timezone-aware timestamp (from injectable Clock).
@@ -121,6 +121,7 @@ def is_reminder_due(reminder: Reminder, now: datetime, person_tz_str: str = "UTC
         # Convert `now` to person's local time if possible
         try:
             from zoneinfo import ZoneInfo
+
             person_tz = ZoneInfo(person_tz_str)
             local_now = now.astimezone(person_tz)
         except Exception:
@@ -128,7 +129,7 @@ def is_reminder_due(reminder: Reminder, now: datetime, person_tz_str: str = "UTC
 
         now_time = local_now.time()
         target_time = time(target_h, target_m)
-        
+
         # Due if current time is at or past target_time on the same or later date
         # (Compare date and time)
         created_local = reminder.created_at
@@ -161,7 +162,7 @@ def is_reminder_due(reminder: Reminder, now: datetime, person_tz_str: str = "UTC
 class ReminderScheduler:
     """
     Safe reminder scheduler that persists reminders and processes due reminders.
-    
+
     Adheres to the CareLoop architecture:
     - Never silently fails or drops reminders.
     - Uses the injected Clock for deterministic, reproducible testing.
@@ -187,7 +188,7 @@ class ReminderScheduler:
         """
         Scan active reminders for a person, evaluate due ones against the clock,
         dispatch through the delivery bridge, and persist state transitions.
-        
+
         Returns the list of processed reminders.
         """
         current_time = now or self.clock.now()

@@ -31,7 +31,6 @@ from careloop.models import (
 )
 from careloop.storage.base import (
     StorageBase,
-    StorageError,
     StaleStateError,
     StorageClosedError,
     PrivacyViolationError,
@@ -40,8 +39,15 @@ from careloop.storage.base import (
 logger = logging.getLogger(__name__)
 
 FORBIDDEN_AUDIO_KEYS = {
-    "audio", "raw_audio", "recording", "voice_recording",
-    "audio_bytes", "wav", "mp3", "pcm", "ambient_audio",
+    "audio",
+    "raw_audio",
+    "recording",
+    "voice_recording",
+    "audio_bytes",
+    "wav",
+    "mp3",
+    "pcm",
+    "ambient_audio",
 }
 
 
@@ -166,9 +172,13 @@ class SQLiteStorage(StorageBase):
                 if "version" not in esc_cols:
                     self._conn.execute("ALTER TABLE escalation_states ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
                 if "event_references" not in esc_cols:
-                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN event_references TEXT NOT NULL DEFAULT '[]'")
+                    self._conn.execute(
+                        "ALTER TABLE escalation_states ADD COLUMN event_references TEXT NOT NULL DEFAULT '[]'"
+                    )
                 if "notification_state" not in esc_cols:
-                    self._conn.execute("ALTER TABLE escalation_states ADD COLUMN notification_state TEXT NOT NULL DEFAULT 'none'")
+                    self._conn.execute(
+                        "ALTER TABLE escalation_states ADD COLUMN notification_state TEXT NOT NULL DEFAULT 'none'"
+                    )
                 if "notification_id" not in esc_cols:
                     self._conn.execute("ALTER TABLE escalation_states ADD COLUMN notification_id TEXT")
 
@@ -176,7 +186,9 @@ class SQLiteStorage(StorageBase):
                 cursor = self._conn.execute("PRAGMA table_info(alerts)")
                 alert_cols = [r["name"] for r in cursor.fetchall()]
                 if "notification_status" not in alert_cols:
-                    self._conn.execute("ALTER TABLE alerts ADD COLUMN notification_status TEXT NOT NULL DEFAULT 'pending'")
+                    self._conn.execute(
+                        "ALTER TABLE alerts ADD COLUMN notification_status TEXT NOT NULL DEFAULT 'pending'"
+                    )
                 if "severity" not in alert_cols:
                     self._conn.execute("ALTER TABLE alerts ADD COLUMN severity TEXT NOT NULL DEFAULT 'high'")
                 if "dedup_key" not in alert_cols:
@@ -206,17 +218,17 @@ class SQLiteStorage(StorageBase):
 
                 # 3. Create Indexes (guaranteed safe after column migrations)
                 self._conn.executescript("""
-                    CREATE INDEX IF NOT EXISTS idx_events_person_time 
+                    CREATE INDEX IF NOT EXISTS idx_events_person_time
                         ON events (person_id, timestamp DESC);
-                    CREATE INDEX IF NOT EXISTS idx_events_type 
+                    CREATE INDEX IF NOT EXISTS idx_events_type
                         ON events (person_id, event_type, timestamp DESC);
-                    CREATE INDEX IF NOT EXISTS idx_reminders_person 
+                    CREATE INDEX IF NOT EXISTS idx_reminders_person
                         ON reminders (person_id, status, scheduled_time ASC);
-                    CREATE INDEX IF NOT EXISTS idx_alerts_person 
+                    CREATE INDEX IF NOT EXISTS idx_alerts_person
                         ON alerts (person_id, status, created_at DESC);
                     CREATE INDEX IF NOT EXISTS idx_alerts_dedup
                         ON alerts (person_id, dedup_key, status);
-                    CREATE INDEX IF NOT EXISTS idx_baselines_person 
+                    CREATE INDEX IF NOT EXISTS idx_baselines_person
                         ON baselines (person_id);
                 """)
 
@@ -262,12 +274,7 @@ class SQLiteStorage(StorageBase):
                     ),
                 )
 
-    def get_events(
-        self,
-        person_id: str,
-        limit: int = 100,
-        event_type: Optional[str] = None
-    ) -> List[Event]:
+    def get_events(self, person_id: str, limit: int = 100, event_type: Optional[str] = None) -> List[Event]:
         with self._lock:
             self._check_closed()
             query = "SELECT * FROM events WHERE person_id = ?"
@@ -312,9 +319,7 @@ class SQLiteStorage(StorageBase):
         with self._lock:
             self._check_closed()
             routine_type_str = (
-                baseline.routine_type.value
-                if hasattr(baseline.routine_type, "value")
-                else str(baseline.routine_type)
+                baseline.routine_type.value if hasattr(baseline.routine_type, "value") else str(baseline.routine_type)
             )
             with self._conn:
                 self._conn.execute(
@@ -431,11 +436,7 @@ class SQLiteStorage(StorageBase):
                     ),
                 )
 
-    def get_reminders(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Reminder]:
+    def get_reminders(self, person_id: str, active_only: bool = True) -> List[Reminder]:
         with self._lock:
             self._check_closed()
             if active_only:
@@ -627,11 +628,7 @@ class SQLiteStorage(StorageBase):
             metadata=json.loads(r["metadata"]),
         )
 
-    def get_alerts(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Alert]:
+    def get_alerts(self, person_id: str, active_only: bool = True) -> List[Alert]:
         with self._lock:
             self._check_closed()
             if active_only:
@@ -763,7 +760,9 @@ class SQLiteStorage(StorageBase):
         if updated.tzinfo is None:
             updated = updated.replace(tzinfo=timezone.utc)
 
-        ev_refs = json.loads(r["event_references"]) if ("event_references" in r.keys() and r["event_references"]) else []
+        ev_refs = (
+            json.loads(r["event_references"]) if ("event_references" in r.keys() and r["event_references"]) else []
+        )
         notif_state = r["notification_state"] if "notification_state" in r.keys() else "none"
         notif_id = r["notification_id"] if "notification_id" in r.keys() else None
         version = int(r["version"]) if "version" in r.keys() else 1
@@ -844,12 +843,8 @@ class SQLiteStorage(StorageBase):
             self._check_closed()
             results = {}
             with self._conn:
-                results["events"] = self._conn.execute(
-                    "DELETE FROM events WHERE person_id = ?", (person_id,)
-                ).rowcount
-                results["alerts"] = self._conn.execute(
-                    "DELETE FROM alerts WHERE person_id = ?", (person_id,)
-                ).rowcount
+                results["events"] = self._conn.execute("DELETE FROM events WHERE person_id = ?", (person_id,)).rowcount
+                results["alerts"] = self._conn.execute("DELETE FROM alerts WHERE person_id = ?", (person_id,)).rowcount
                 results["reminders"] = self._conn.execute(
                     "DELETE FROM reminders WHERE person_id = ?", (person_id,)
                 ).rowcount

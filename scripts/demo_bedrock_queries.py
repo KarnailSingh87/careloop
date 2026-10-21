@@ -5,7 +5,7 @@ Demonstration script showcasing CareLoop's Bedrock generative assistant:
 3. No-Record Query (answering 'no record' without calling Bedrock).
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from careloop.clock import SimulatedClock
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import Event, EventType, PersonProfile
@@ -13,11 +13,12 @@ from careloop.storage.sqlite_store import SQLiteStorage
 import tempfile
 import os
 
+
 def main():
     fd, db_path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
     storage = SQLiteStorage(db_path=db_path)
-    
+
     # 1. Register Person Profile with timezone
     storage.save_profile(
         PersonProfile(
@@ -32,26 +33,32 @@ def main():
 
     # 2. Seed realistic routine events for Eleanor
     # Morning movement at 08:00 UTC (04:00 EDT)
-    storage.save_event(Event(
-        person_id="eleanor",
-        event_type=EventType.MOVEMENT,
-        timestamp=datetime(2026, 10, 20, 12, 15, 0, tzinfo=timezone.utc), # 08:15 EDT
-        metadata={"room": "bedroom", "activity": "morning_awakening"},
-    ))
+    storage.save_event(
+        Event(
+            person_id="eleanor",
+            event_type=EventType.MOVEMENT,
+            timestamp=datetime(2026, 10, 20, 12, 15, 0, tzinfo=timezone.utc),  # 08:15 EDT
+            metadata={"room": "bedroom", "activity": "morning_awakening"},
+        )
+    )
     # Morning medication at 08:35 EDT
-    storage.save_event(Event(
-        person_id="eleanor",
-        event_type=EventType.PILL,
-        timestamp=datetime(2026, 10, 20, 12, 35, 0, tzinfo=timezone.utc), # 08:35 EDT
-        metadata={"medication": "lisinopril", "dose": "10mg", "method": "smart_pillbox"},
-    ))
+    storage.save_event(
+        Event(
+            person_id="eleanor",
+            event_type=EventType.PILL,
+            timestamp=datetime(2026, 10, 20, 12, 35, 0, tzinfo=timezone.utc),  # 08:35 EDT
+            metadata={"medication": "lisinopril", "dose": "10mg", "method": "smart_pillbox"},
+        )
+    )
     # Lunch at 12:45 EDT
-    storage.save_event(Event(
-        person_id="eleanor",
-        event_type=EventType.MEAL,
-        timestamp=datetime(2026, 10, 20, 16, 45, 0, tzinfo=timezone.utc), # 12:45 EDT
-        metadata={"meal_type": "lunch", "notes": "soup and crackers"},
-    ))
+    storage.save_event(
+        Event(
+            person_id="eleanor",
+            event_type=EventType.MEAL,
+            timestamp=datetime(2026, 10, 20, 16, 45, 0, tzinfo=timezone.utc),  # 12:45 EDT
+            metadata={"meal_type": "lunch", "notes": "soup and crackers"},
+        )
+    )
 
     assistant = BedrockAssistant()
 
@@ -71,9 +78,9 @@ def main():
         display_name="Eleanor",
         person_tz="America/New_York",
     )
-    print(f"Target Person: Eleanor Vance (Timezone: America/New_York)")
-    print(f"Target Date:   2026-10-20")
-    print(f"Generated 3-Sentence Summary:\n\"{summary}\"\n")
+    print("Target Person: Eleanor Vance (Timezone: America/New_York)")
+    print("Target Date:   2026-10-20")
+    print(f'Generated 3-Sentence Summary:\n"{summary}"\n')
 
     # -------------------------------------------------------------
     # DEMONSTRATION 2: Successful Memory Query
@@ -88,8 +95,8 @@ def main():
         display_name="Eleanor",
         person_tz="America/New_York",
     )
-    print(f"Caregiver Question: \"{question_1}\"")
-    print(f"CareLoop Answer:    \"{answer_1}\"\n")
+    print(f'Caregiver Question: "{question_1}"')
+    print(f'CareLoop Answer:    "{answer_1}"\n')
 
     # -------------------------------------------------------------
     # DEMONSTRATION 3: No-Record Query (Zero Matching Events)
@@ -104,14 +111,15 @@ def main():
         display_name="Eleanor",
         person_tz="America/New_York",
     )
-    print(f"Caregiver Question: \"{question_2}\"")
-    print(f"CareLoop Answer:    \"{answer_2}\"")
+    print(f'Caregiver Question: "{question_2}"')
+    print(f'CareLoop Answer:    "{answer_2}"')
     print("(Note: Converse API was NOT called for Demonstration 3 because matching events == 0)")
     print("=" * 70)
 
     storage.close()
     if os.path.exists(db_path):
         os.remove(db_path)
+
 
 if __name__ == "__main__":
     main()

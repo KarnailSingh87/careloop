@@ -22,6 +22,7 @@ from deploy.tick_lambda.tick_handler import handler
 # 1. Tick Handler Lambda Tests
 # =============================================================================
 
+
 def test_tick_handler_missing_url(monkeypatch):
     """Tick handler should fail fast if MCP_SERVER_URL is not set."""
     monkeypatch.delenv("MCP_SERVER_URL", raising=False)
@@ -73,7 +74,9 @@ def test_tick_handler_with_secrets_manager_token(monkeypatch):
     monkeypatch.setenv("MCP_SERVER_URL", "http://careloop-alb.us-east-1.elb.amazonaws.com")
     monkeypatch.delenv("ALEXA_AUTH_TOKEN", raising=False)
     monkeypatch.delenv("MCP_AUTH_TOKEN", raising=False)
-    monkeypatch.setenv("ALEXA_AUTH_TOKEN_SECRET_ARN", "arn:aws:secretsmanager:us-east-1:123456789012:secret:careloop-token")
+    monkeypatch.setenv(
+        "ALEXA_AUTH_TOKEN_SECRET_ARN", "arn:aws:secretsmanager:us-east-1:123456789012:secret:careloop-token"
+    )
 
     mock_sm = MagicMock()
     mock_sm.get_secret_value.return_value = {"SecretString": "sec_token_from_sm_123"}
@@ -113,6 +116,7 @@ def test_tick_handler_http_error(monkeypatch):
 # =============================================================================
 # 2. AWS CDK Stack Synthesis and Infrastructure Tests
 # =============================================================================
+
 
 @pytest.fixture(scope="module")
 def synthesized_cdk_template():
@@ -270,6 +274,7 @@ def test_cdk_outputs_defined(synthesized_cdk_template):
 # 3. AWS SAM Template Specification & Validation Tests
 # =============================================================================
 
+
 class _CFTag:
     def __init__(self, tag, val):
         self.tag = tag
@@ -333,8 +338,10 @@ def test_sam_tick_function_and_dlq(parsed_sam_template):
 
     events = func_props.get("Events", {})
     minute_sched = events.get("MinuteSchedule", {}).get("Properties", {})
-    assert minute_sched.get("Schedule") == "rate(1 minute)"
-    assert minute_sched.get("DeadLetterConfig", {}).get("Type") == "SQS"
+    sched_expr = minute_sched.get("ScheduleExpression") or minute_sched.get("Schedule")
+    assert sched_expr == "rate(1 minute)"
+    dlq_config = minute_sched.get("DeadLetterConfig", {})
+    assert dlq_config.get("Arn") is not None or dlq_config.get("Type") == "SQS"
     assert minute_sched.get("RetryPolicy", {}).get("MaximumRetryAttempts") == 2
     assert minute_sched.get("RetryPolicy", {}).get("MaximumEventAgeInSeconds") == 300
 

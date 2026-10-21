@@ -17,17 +17,23 @@ from __future__ import annotations
 import collections
 from contextvars import ContextVar
 import hmac
-import json
 import logging
 import re
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Optional, Set
 
 from starlette.datastructures import Headers
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 
 from careloop.config import AppConfig, load_config
+
+try:
+    from mcp.server.mcpserver.exceptions import ToolError
+except ImportError:
+
+    class ToolError(Exception):  # type: ignore[no-redef]
+        pass
+
 
 logger = logging.getLogger("careloop.security")
 
@@ -72,6 +78,7 @@ class PrivacyLogFilter(logging.Filter):
             msg = TOKEN_PARAM_PATTERN.sub(r"\1[REDACTED_TOKEN]", msg)
             # 3. Mask API key headers
             msg = API_KEY_PATTERN.sub(r"\1[REDACTED_KEY]", msg)
+
             # 4. Mask raw phone numbers
             def _mask_phone(match):
                 g = match.groups()
@@ -132,9 +139,7 @@ class SecurityContext:
 
 
 # Thread-local / task-local storage for current request's SecurityContext
-_current_security_context: ContextVar[Optional[SecurityContext]] = ContextVar(
-    "_current_security_context", default=None
-)
+_current_security_context: ContextVar[Optional[SecurityContext]] = ContextVar("_current_security_context", default=None)
 
 
 def get_current_security_context() -> Optional[SecurityContext]:
@@ -152,12 +157,6 @@ def check_tool_authorization(tool_name: str, person: Optional[str] = None) -> No
     Enforce authorization checks against the current security context.
     Raises ToolError if caller is not authorized for the requested person or operation.
     """
-    try:
-        from mcp.server.mcpserver.exceptions import ToolError
-    except ImportError:
-        class ToolError(Exception):
-            pass
-
     ctx = get_current_security_context()
 
     # If no security context is set (e.g., in unit tests without HTTP middleware):
@@ -244,6 +243,7 @@ class TokenManager:
         if self.config.jwt_secret:
             try:
                 import jwt
+
                 payload = jwt.decode(
                     token_candidate,
                     self.config.jwt_secret,
@@ -252,9 +252,9 @@ class TokenManager:
                 )
                 role = payload.get("role", "elder").lower()
                 allowed_persons = set(payload.get("allowed_persons", ["*"]))
-                allowed_tools = set(payload.get("allowed_tools", (
-                    ELDER_ALLOWED_TOOLS if role == "elder" else CAREGIVER_ALLOWED_TOOLS
-                )))
+                allowed_tools = set(
+                    payload.get("allowed_tools", (ELDER_ALLOWED_TOOLS if role == "elder" else CAREGIVER_ALLOWED_TOOLS))
+                )
                 return SecurityContext(
                     caller_id=payload.get("sub", "jwt_user"),
                     role=role,
@@ -455,9 +455,7 @@ class SecurityHeadersMiddleware:
                     )
                 )
                 if self.is_production:
-                    headers.append(
-                        (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
-                    )
+                    headers.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
                 message["headers"] = headers
             await send(message)
 
@@ -467,7 +465,7 @@ class SecurityHeadersMiddleware:
 class AlexaAuthMiddleware:
     """
     ASGI authentication and authorization middleware for CareLoop.
-    
+
     Verifies caller tokens, establishes SecurityContext, and enforces
     fail-closed security in production.
     """
@@ -562,23 +560,19 @@ class AlexaAuthMiddleware:
                 return
 
             import urllib.parse
+
             parsed_qs = urllib.parse.parse_qs(query_string)
             query_auth_val = parsed_qs.get("auth_token", [""])[0].strip() or None
 
         candidate_token: Optional[str] = None
-        auth_method = "none"
         if auth_header.lower().startswith("bearer "):
             candidate_token = auth_header[7:].strip()
-            auth_method = "bearer"
         elif alexa_header:
             candidate_token = alexa_header
-            auth_method = "alexa_header"
         elif api_key_header:
             candidate_token = api_key_header
-            auth_method = "api_key"
         elif query_auth_val:
             candidate_token = query_auth_val
-            auth_method = "query_param"
 
         # 5. Production Mode: Must fail closed if no token is provided
         if not candidate_token:

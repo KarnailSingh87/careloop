@@ -25,8 +25,8 @@ Key Architectural Guarantees:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, List, Optional
 import uuid
 
 from careloop.engine.baseline import BaselineEngine
@@ -34,14 +34,12 @@ from careloop.engine.risk import RiskEngine, RiskAssessment
 from careloop.models import (
     Alert,
     AlertLevel,
-    CheckinPrompt,
-    CheckinStatus,
     EscalationStage,
     EscalationState,
     Event,
 )
 from careloop.notifier import NotificationDeliveryStatus
-from careloop.storage.base import StorageBase, StaleStateError
+from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +53,8 @@ class EscalationEngine:
         risk_engine: Optional[RiskEngine] = None,
         baseline_engine: Optional[BaselineEngine] = None,
         notifier: Optional[Any] = None,
-        gentle_timeout_seconds: float = 60.0,   # Default demo timeout: 60s
-        repeat_timeout_seconds: float = 60.0,   # Default demo timeout: 60s
+        gentle_timeout_seconds: float = 60.0,  # Default demo timeout: 60s
+        repeat_timeout_seconds: float = 60.0,  # Default demo timeout: 60s
     ) -> None:
         self.storage = storage
         self.risk_engine = risk_engine or RiskEngine()
@@ -158,8 +156,18 @@ class EscalationEngine:
             raise ValueError(f"Voice response timestamp {now} must be timezone-aware.")
         cleaned = response_text.strip().lower()
         reset_phrases = [
-            "i'm fine", "im fine", "fine", "yes", "i did", "i took it",
-            "all good", "okay", "ok", "i am okay", "i'm okay", "alright"
+            "i'm fine",
+            "im fine",
+            "fine",
+            "yes",
+            "i did",
+            "i took it",
+            "all good",
+            "okay",
+            "ok",
+            "i am okay",
+            "i'm okay",
+            "alright",
         ]
         is_fine = any(phrase in cleaned for phrase in reset_phrases)
 
@@ -188,7 +196,10 @@ class EscalationEngine:
         Updates alert and state delivery status, recording failures for retry.
         Idempotent: if already delivered or accepted, returns True immediately without resending.
         """
-        if alert.notification_status in ("delivered", "accepted") and state.notification_state in ("delivered", "accepted"):
+        if alert.notification_status in ("delivered", "accepted") and state.notification_state in (
+            "delivered",
+            "accepted",
+        ):
             logger.info(f"Alert {alert.alert_id} already {alert.notification_status}. Skipping duplicate delivery.")
             return True
 
@@ -292,10 +303,7 @@ class EscalationEngine:
             raise ValueError(f"Retry timestamp {now} must be timezone-aware.")
 
         alerts = self.storage.get_alerts(person_id, active_only=False)
-        failed_alerts = [
-            a for a in alerts
-            if a.notification_status in ("failed", "pending") and a.status == "ACTIVE"
-        ]
+        failed_alerts = [a for a in alerts if a.notification_status in ("failed", "pending") and a.status == "ACTIVE"]
 
         delivered_count = 0
         state = self.storage.get_escalation_state(person_id) or self.get_or_create_state(person_id, now)
@@ -376,8 +384,7 @@ class EscalationEngine:
                 state.last_updated = now
                 state.notification_state = "none"
                 logger.info(
-                    f"Escalation: GENTLE_CHECK_IN -> REPEAT_CHECK_IN for {person_id} "
-                    f"after {elapsed:.1f}s timeout."
+                    f"Escalation: GENTLE_CHECK_IN -> REPEAT_CHECK_IN for {person_id} after {elapsed:.1f}s timeout."
                 )
             else:
                 state.last_updated = now
@@ -404,7 +411,8 @@ class EscalationEngine:
                     severity="critical",
                     created_at=now,
                     title=f"Elder Care Alert: {person_id.capitalize()} Unresponsive to Routine Check-Ins",
-                    reasons=risk.reasons + [
+                    reasons=risk.reasons
+                    + [
                         f"Gentle voice check-in timed out ({self.gentle_timeout_seconds:.0f}s).",
                         f"Repeat voice check-in timed out ({self.repeat_timeout_seconds:.0f}s) with no response.",
                     ],

@@ -108,3 +108,26 @@ Each entry details:
 - **Severity**: Medium (benchmark metric ambiguity).
 - **Workaround**: Decoupled incident test cases in `scripts/seed_data.py`. On fall incident days, morning lunch was completed normally, and inactivity onset was scheduled starting at 1:00 PM (13:00 to 18:00), cleanly isolating fall detection from meal anomalies while preserving clinical realism.
 - **Suggestion**: When designing clinical synthetic benchmarks, structure negative controls and incident scenarios with orthogonal physiological windows to enable clean ablation studies.
+
+---
+
+### 9. SAM `Schedule` vs. `ScheduleV2` Schema Validation in `cfn-lint`
+
+- **Task Attempted**: Validate AWS SAM infrastructure template (`template.yaml`) for automated minute-by-minute autonomous escalation ticks using dead-letter queues (DLQ) and retry policies.
+- **Steps Taken**: Declared `MinuteSchedule` under `CareLoopTickFunction.Events` with `Type: Schedule`, `DeadLetterConfig: { Type: SQS, QueueArn: ... }`, and `RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 300 }`.
+- **Expected vs. Actual**: Expected schema validation to succeed; instead, `cfn-lint` returned errors `E3002 Additional properties are not allowed ('QueueArn' was unexpected)` and `E3002 ('RetryPolicy' was unexpected)` because classic SAM `Schedule` (CloudWatch Events) lacks native retry policy properties.
+- **Severity**: Medium (broke automated CloudFormation verification in CI).
+- **Workaround**: Upgraded the event type to `ScheduleV2` (Amazon EventBridge Scheduler) using `ScheduleExpression: "rate(1 minute)"`, `DeadLetterConfig: { Arn: !GetAtt CareLoopTickDLQ.Arn }`, and native `RetryPolicy`. Updated `tests/test_deployment.py` to assert both `ScheduleExpression` and `Schedule`.
+- **Suggestion**: SAM and `cfn-lint` error diagnostics should explicitly recommend migrating from `Schedule` to `ScheduleV2` when `RetryPolicy` or modern DLQ properties are declared.
+
+---
+
+### 10. Linear Timestamp Averaging Corrupts Baselines Across Midnight Boundary
+
+- **Task Attempted**: Calculate time-of-day routine mean $\mu$ and standard deviation $\sigma$ for nocturnal routines (e.g., bedtime routines spanning late night and early morning).
+- **Steps Taken**: Applied scalar arithmetic mean on minute-of-day integers ($0 \dots 1439$).
+- **Expected vs. Actual**: Bedtime recorded at 23:50 (minute 1430) and 00:10 (minute 10) averaged to $(1430 + 10) / 2 = 720$ (12:00 PM noon), causing immediate false-positive bedtime anomaly alerts at midday.
+- **Severity**: High (severe false alarm generation for nocturnal and shift routines).
+- **Workaround**: Implemented circular directional statistics in `careloop/engine/baseline.py`. Routine timestamps are projected onto the 24-hour unit circle ($\theta = 2\pi \cdot t / 1440$), updating circular EWMA vectors $(\bar{S}, \bar{C}) = (\alpha \sin \theta + (1-\alpha) \bar{S}, \alpha \cos \theta + (1-\alpha) \bar{C})$ and converting back via $\text{atan2}$, correctly resolving 23:50 and 00:10 to 00:00 (midnight).
+- **Suggestion**: Ambient IoT platforms evaluating human circadian rhythms must provide circular statistical primitives as standard library components.
+

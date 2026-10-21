@@ -29,28 +29,23 @@ Verifies:
 
 from datetime import datetime, timezone, timedelta
 import logging
-import os
-import tempfile
 import pytest
 from starlette.testclient import TestClient
 
 from careloop.clock import SimulatedClock
-from careloop.config import AppConfig, SecurityConfigurationError, load_config
-from careloop.models import Event, EventType, Alert, AlertLevel, EscalationStage, EscalationState, PersonProfile
+from careloop.config import AppConfig, SecurityConfigurationError
+from careloop.models import Event, EventType
 from careloop.server.main import create_app
 from careloop.server.security import (
-    SecurityContext,
-    set_current_security_context,
-    get_current_security_context,
-    check_tool_authorization,
     PrivacyLogFilter,
 )
-from careloop.server.tools import validate_person_identifier, check_notification_rate_limit
+from careloop.server.tools import check_notification_rate_limit
 from careloop.storage.sqlite_store import SQLiteStorage
 
 try:
     from mcp.server.mcpserver.exceptions import ToolError
 except ImportError:
+
     class ToolError(Exception):
         pass
 
@@ -118,6 +113,7 @@ def hardened_env(tmp_path):
 # 1. Threat Model: Unauthenticated Attacker Protection
 # =============================================================================
 
+
 def test_unauthenticated_attacker_cannot_read_event_history(hardened_env):
     client = hardened_env["client"]
     # Threat: Attacker attempts to read elder's status / events without token
@@ -178,6 +174,7 @@ def test_invalid_and_tampered_tokens_rejected(hardened_env):
 # =============================================================================
 # 2. Authorization: Person-Based & Role-Based Access Control
 # =============================================================================
+
 
 def test_cross_person_access_denial(hardened_env):
     client = hardened_env["client"]
@@ -251,6 +248,7 @@ def test_caregiver_permitted_to_call_daily_summary(hardened_env):
 # 3. Request Size Limits & Input Validation
 # =============================================================================
 
+
 def test_oversized_payload_rejected_413(hardened_env):
     client = hardened_env["client"]
     admin_token = hardened_env["admin_token"]
@@ -287,6 +285,7 @@ def test_malformed_person_identifier_rejected(hardened_env):
 # 4. Security Headers & CORS
 # =============================================================================
 
+
 def test_security_headers_present(hardened_env):
     client = hardened_env["client"]
     res = client.get("/health")
@@ -302,10 +301,11 @@ def test_security_headers_present(hardened_env):
 # 5. Rate Limiting & Notification Abuse Prevention
 # =============================================================================
 
+
 def test_notification_rate_limit_helper():
     person = "test_rate_elder"
     # Quota: 10 per hour
-    for i in range(10):
+    for _i in range(10):
         assert check_notification_rate_limit(person, max_per_hour=10) is True
     # 11th should be denied
     assert check_notification_rate_limit(person, max_per_hour=10) is False
@@ -314,6 +314,7 @@ def test_notification_rate_limit_helper():
 # =============================================================================
 # 6. Privacy-Conscious Logging
 # =============================================================================
+
 
 def test_privacy_log_filter_scrubs_secrets():
     p_filter = PrivacyLogFilter()
@@ -336,6 +337,7 @@ def test_privacy_log_filter_scrubs_secrets():
 # =============================================================================
 # 7. Data Retention & Deletion Policies
 # =============================================================================
+
 
 def test_data_retention_and_deletion(tmp_path):
     db_file = str(tmp_path / "retention_test.db")
@@ -374,6 +376,7 @@ def test_data_retention_and_deletion(tmp_path):
 # =============================================================================
 # 8. Production Isolation & Fail-Closed Checks
 # =============================================================================
+
 
 def test_production_mode_rejects_missing_or_weak_tokens():
     # In production, missing token must fail closed with SecurityConfigurationError

@@ -435,13 +435,12 @@ Resources:
           - !Ref "AWS::NoValue"
       Events:
         MinuteSchedule:
-          Type: Schedule
+          Type: ScheduleV2
           Properties:
-            Schedule: "rate(1 minute)"
+            ScheduleExpression: "rate(1 minute)"
             Description: "Autonomous routine health tick every minute"
             DeadLetterConfig:
-              Type: SQS
-              QueueArn: !GetAtt CareLoopTickDLQ.Arn
+              Arn: !GetAtt CareLoopTickDLQ.Arn
             RetryPolicy:
               MaximumRetryAttempts: 2
               MaximumEventAgeInSeconds: 300

@@ -10,8 +10,6 @@ Covers:
 5. Simulator fallback labeling and disclaimer verification.
 """
 
-from unittest.mock import patch, MagicMock
-import json
 import pytest
 from starlette.testclient import TestClient
 
@@ -47,6 +45,7 @@ def client(test_app):
 # 1. MCP Protocol & Transport Compatibility
 # =============================================================================
 
+
 def test_mcp_routes_exist_for_mcp_and_v1_mcp(test_app):
     """Verify both /mcp and /v1/mcp route aliases are registered for Alexa+ client compatibility."""
     routes = [getattr(r, "path", None) for r in test_app.routes]
@@ -72,6 +71,7 @@ def test_cors_headers_expose_mcp_session_and_www_authenticate(client):
 # =============================================================================
 # 2. Metadata Discovery for Alexa+ Account Linking (RFC 9728 & RFC 8414)
 # =============================================================================
+
 
 def test_rfc9728_oauth_protected_resource_metadata(client):
     """Verify /.well-known/oauth-protected-resource returns RFC 9728 compliant discovery document."""
@@ -105,6 +105,7 @@ def test_rfc8414_oauth_authorization_server_metadata(client):
 # 3. Authentication & Account Linking Trigger Pattern
 # =============================================================================
 
+
 def test_unauthenticated_request_triggers_401_with_www_authenticate(client):
     """
     Alexa+ integration requirement: Unauthenticated tool access must respond with
@@ -137,6 +138,7 @@ def test_authenticated_request_succeeds(client):
 # =============================================================================
 # 4. Tool Schema Design Conventions ("Declare Only What You Honor")
 # =============================================================================
+
 
 def test_all_tools_have_valid_schemas_and_descriptions(client):
     """
@@ -189,6 +191,7 @@ def test_tools_return_voice_response_attribute(client):
 # =============================================================================
 # 5. Simulator Fallback & Simulation Disclaimers
 # =============================================================================
+
 
 def test_simulator_contains_explicit_simulation_labels(client):
     """

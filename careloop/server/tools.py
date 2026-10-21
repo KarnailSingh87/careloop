@@ -9,7 +9,7 @@ Provides tools accessible to Alexa+:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import timezone, timedelta
 import json
 import logging
 from typing import Any, Dict, Optional
@@ -24,17 +24,17 @@ import time
 try:
     from mcp.server.mcpserver.exceptions import ToolError
 except ImportError:
-    class ToolError(Exception):
+
+    class ToolError(Exception):  # type: ignore[no-redef]
         pass
 
-from careloop.clock import Clock, SystemClock
+
+from careloop.clock import Clock
 from careloop.engine.baseline import BaselineEngine
-from careloop.engine.risk import RiskEngine
 from careloop.engine.escalation import EscalationEngine
 from careloop.llm.bedrock import BedrockAssistant
-from careloop.models import Event, EventType, EscalationStage, Alert, AlertLevel
+from careloop.models import Event, EventType, Alert, AlertLevel, Reminder, ReminderStatus
 from careloop.notifier import NotifierBase, get_default_notifier, NotificationDeliveryStatus, ALLOWED_SEVERITIES
-from careloop.server.models import Reminder, ReminderStatus, RoutineEventType
 from careloop.server.security import check_tool_authorization
 from careloop.storage.base import StorageBase
 
@@ -152,9 +152,7 @@ def register_tools(
         normalized_type = type.strip().lower()
         if normalized_type not in VALID_EVENT_TYPES:
             valid_options = ", ".join(sorted(VALID_EVENT_TYPES.keys()))
-            raise ToolError(
-                f"Invalid event type '{type}'. Allowed types are: {valid_options}"
-            )
+            raise ToolError(f"Invalid event type '{type}'. Allowed types are: {valid_options}")
 
         event_type = VALID_EVENT_TYPES[normalized_type]
 
@@ -340,7 +338,7 @@ def register_tools(
             try:
                 parsed_time = date_parser.parse(t)
                 normalized_time = parsed_time.isoformat()
-            except Exception as e:
+            except Exception:
                 raise ToolError(
                     f"Invalid reminder time '{time}'. Must be HH:MM 24-hour format (e.g. '15:00') "
                     f"or a valid ISO 8601 timestamp string (e.g. '2026-10-20T15:00:00Z')."
@@ -397,9 +395,7 @@ def register_tools(
         sev = severity.strip().lower()
         if sev not in ALLOWED_SEVERITIES:
             valid_sevs = ", ".join(sorted(ALLOWED_SEVERITIES))
-            raise ToolError(
-                f"Unsupported severity '{severity}'. Allowed severities are: {valid_sevs}"
-            )
+            raise ToolError(f"Unsupported severity '{severity}'. Allowed severities are: {valid_sevs}")
         if not message or not message.strip():
             raise ToolError("Alert message cannot be empty.")
         if len(message) > 1000:
@@ -590,9 +586,11 @@ def register_tools(
         person_tz_str = profile.timezone if profile and profile.timezone else "UTC"
         try:
             from zoneinfo import ZoneInfo
+
             tz = ZoneInfo(person_tz_str)
         except Exception:
             from zoneinfo import ZoneInfo
+
             tz = ZoneInfo("UTC")
 
         local_now = now.astimezone(tz) if now.tzinfo else now
@@ -613,7 +611,8 @@ def register_tools(
 
         all_events = storage.get_events(person_id, limit=200)
         events_on_date = [
-            e for e in all_events
+            e
+            for e in all_events
             if (e.timestamp.astimezone(tz) if e.timestamp.tzinfo else e.timestamp).date() == target_date
         ]
 

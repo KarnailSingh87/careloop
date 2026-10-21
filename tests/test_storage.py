@@ -21,7 +21,6 @@ Verifies:
 """
 
 from datetime import datetime, timezone, timedelta
-import json
 import os
 import tempfile
 from unittest.mock import MagicMock
@@ -43,7 +42,6 @@ from careloop.models import (
     LearnedBaseline,
 )
 from careloop.storage.base import (
-    StorageBase,
     StorageError,
     StaleStateError,
     StorageClosedError,
@@ -124,7 +122,7 @@ class MockDynamoDBTable:
             start_sk = ExclusiveStartKey["SK"]
             idx = next((i for i, x in enumerate(matched) if x["SK"] == start_sk), -1)
             if idx != -1:
-                matched = matched[idx + 1:]
+                matched = matched[idx + 1 :]
 
         response = {}
         # If Limit specified, paginate results
@@ -145,7 +143,7 @@ class MockDynamoDBTable:
     ) -> dict:
         matched = []
         sk_filter = ExpressionAttributeValues.get(":sk") if ExpressionAttributeValues else None
-        for (k_pk, k_sk), item in self.items.items():
+        for (_k_pk, _k_sk), item in self.items.items():
             if sk_filter and item.get("SK") != sk_filter:
                 continue
             matched.append(item.copy())
@@ -155,7 +153,7 @@ class MockDynamoDBTable:
             start_key = (ExclusiveStartKey["PK"], ExclusiveStartKey["SK"])
             idx = next((i for i, x in enumerate(matched) if (x["PK"], x["SK"]) == start_key), -1)
             if idx != -1:
-                matched = matched[idx + 1:]
+                matched = matched[idx + 1 :]
 
         response = {"Items": matched}
         return response
@@ -185,11 +183,22 @@ def storage_instance(request):
 # BEHAVIORAL CONTRACT TESTS (Run against SQLite and DynamoDB identically)
 # ============================================================================
 
+
 def test_contract_save_and_get_events_ordering_and_limit(storage_instance):
     t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
     e1 = Event(person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"pill": "lisinopril"})
-    e2 = Event(person_id="eleanor", event_type=EventType.MEAL, timestamp=t0 + timedelta(minutes=30), metadata={"meal": "breakfast"})
-    e3 = Event(person_id="eleanor", event_type=EventType.MOVEMENT, timestamp=t0 + timedelta(hours=1), metadata={"room": "living_room"})
+    e2 = Event(
+        person_id="eleanor",
+        event_type=EventType.MEAL,
+        timestamp=t0 + timedelta(minutes=30),
+        metadata={"meal": "breakfast"},
+    )
+    e3 = Event(
+        person_id="eleanor",
+        event_type=EventType.MOVEMENT,
+        timestamp=t0 + timedelta(hours=1),
+        metadata={"room": "living_room"},
+    )
 
     storage_instance.save_event(e1)
     storage_instance.save_event(e2)
@@ -205,7 +214,9 @@ def test_contract_save_and_get_events_ordering_and_limit(storage_instance):
 def test_contract_event_filtering_by_type(storage_instance):
     t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
     e1 = Event(person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"dose": "10mg"})
-    e2 = Event(person_id="eleanor", event_type=EventType.MEAL, timestamp=t0 + timedelta(minutes=15), metadata={"meal": "toast"})
+    e2 = Event(
+        person_id="eleanor", event_type=EventType.MEAL, timestamp=t0 + timedelta(minutes=15), metadata={"meal": "toast"}
+    )
 
     storage_instance.save_event(e1)
     storage_instance.save_event(e2)
@@ -230,8 +241,12 @@ def test_contract_event_timezone_preservation(storage_instance):
 def test_contract_duplicate_event_handling_idempotent(storage_instance):
     t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
     stable_id = "stable-event-12345"
-    e1 = Event(event_id=stable_id, person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"attempt": 1})
-    e2 = Event(event_id=stable_id, person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"attempt": 2})
+    e1 = Event(
+        event_id=stable_id, person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"attempt": 1}
+    )
+    e2 = Event(
+        event_id=stable_id, person_id="eleanor", event_type=EventType.PILL, timestamp=t0, metadata={"attempt": 2}
+    )
 
     storage_instance.save_event(e1)
     # Second submission with the exact same ID must be safely ignored
@@ -305,8 +320,12 @@ def test_contract_baselines_crud(storage_instance):
 
 def test_contract_reminders_crud_and_filtering(storage_instance):
     t0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
-    r1 = Reminder(person_id="eleanor", text="Drink water", scheduled_time="10:00", status=ReminderStatus.PENDING, created_at=t0)
-    r2 = Reminder(person_id="eleanor", text="Take walk", scheduled_time="15:00", status=ReminderStatus.COMPLETED, created_at=t0)
+    r1 = Reminder(
+        person_id="eleanor", text="Drink water", scheduled_time="10:00", status=ReminderStatus.PENDING, created_at=t0
+    )
+    r2 = Reminder(
+        person_id="eleanor", text="Take walk", scheduled_time="15:00", status=ReminderStatus.COMPLETED, created_at=t0
+    )
 
     storage_instance.save_reminder(r1)
     storage_instance.save_reminder(r2)
@@ -483,9 +502,11 @@ def test_dynamodb_pagination_with_last_evaluated_key():
 
     # Set mock Table page limit to 5 to force pagination
     original_query = mock_table.query
+
     def paged_query(**kwargs):
         kwargs["Limit"] = 5
         return original_query(**kwargs)
+
     mock_table.query = paged_query
 
     # Fetch 12 events across 3 simulated pages

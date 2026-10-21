@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from typing import Optional
@@ -49,14 +48,18 @@ async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> 
                 async with ClientSession(read_stream, write_stream) as session:
                     # 1. Initialize session with server
                     init_result = await session.initialize()
-                    print(f"\n[1] Connected to MCP Server: {init_result.server_info.name} (v{init_result.server_info.version})")
+                    print(
+                        f"\n[1] Connected to MCP Server: {init_result.server_info.name} (v{init_result.server_info.version})"
+                    )
                     print(f"    Protocol version: {init_result.protocol_version}")
 
                     # 2. List available tools
                     tools_response = await session.list_tools()
                     print(f"\n[2] Discovered {len(tools_response.tools)} MCP Tools:")
                     for tool in tools_response.tools:
-                        print(f"    - {tool.name}: {tool.description.strip().splitlines()[0] if tool.description else ''}")
+                        print(
+                            f"    - {tool.name}: {tool.description.strip().splitlines()[0] if tool.description else ''}"
+                        )
 
                     # 3. Call tool: log_routine_event (medication)
                     print("\n[3] Calling log_routine_event(person='eleanor', type='medication')...")
@@ -67,7 +70,9 @@ async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> 
                     print("    Response:", res_med.content[0].text if res_med.content else res_med)
 
                     # 4. Call tool: log_routine_event (meal with custom timestamp)
-                    print("\n[4] Calling log_routine_event(person='eleanor', type='meal', timestamp='2026-10-20T12:30:00Z')...")
+                    print(
+                        "\n[4] Calling log_routine_event(person='eleanor', type='meal', timestamp='2026-10-20T12:30:00Z')..."
+                    )
                     res_meal = await session.call_tool(
                         "log_routine_event",
                         arguments={
@@ -111,7 +116,9 @@ async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> 
                     print("    Response:", res_summary.content[0].text if res_summary.content else res_summary)
 
                     # 9. Call tool: ask_memory
-                    print("\n[9] Calling ask_memory(person='eleanor', question='Did Eleanor take her morning medicine?')...")
+                    print(
+                        "\n[9] Calling ask_memory(person='eleanor', question='Did Eleanor take her morning medicine?')..."
+                    )
                     res_mem = await session.call_tool(
                         "ask_memory",
                         arguments={
@@ -122,7 +129,9 @@ async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> 
                     print("    Response:", res_mem.content[0].text if res_mem.content else res_mem)
 
                     # 10. Call tool: notify_family
-                    print("\n[10] Calling notify_family(person='eleanor', severity='high', message='Routine check-in test alert')...")
+                    print(
+                        "\n[10] Calling notify_family(person='eleanor', severity='high', message='Routine check-in test alert')..."
+                    )
                     res_notify = await session.call_tool(
                         "notify_family",
                         arguments={
@@ -134,7 +143,9 @@ async def run_client_test(server_url: str, auth_token: Optional[str] = None) -> 
                     print("    Response:", res_notify.content[0].text if res_notify.content else res_notify)
 
                     # 11. Call tool: schedule_reminder
-                    print("\n[11] Calling schedule_reminder(person='eleanor', text='Hydrate and take afternoon walk', time='15:00')...")
+                    print(
+                        "\n[11] Calling schedule_reminder(person='eleanor', text='Hydrate and take afternoon walk', time='15:00')..."
+                    )
                     res_rem = await session.call_tool(
                         "schedule_reminder",
                         arguments={

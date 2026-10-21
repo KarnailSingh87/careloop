@@ -26,7 +26,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 import logging
 import os
-import re
 from typing import Any, Dict, List, Optional
 import uuid
 import boto3
@@ -51,7 +50,7 @@ def mask_phone_number(phone: str) -> str:
 class NotificationDeliveryStatus(str, Enum):
     """
     Explicit delivery lifecycle status for family caregiver notifications.
-    
+
     CRITICAL DISTINCTION:
     - DELIVERED: Message was definitively delivered to recipient (e.g. console stdout or verified delivery).
     - ACCEPTED: Accepted by carrier dispatch gateway (e.g. AWS SNS returned HTTP 200 with MessageId).
@@ -59,6 +58,7 @@ class NotificationDeliveryStatus(str, Enum):
     - FAILED: Transmission failed or was rejected (e.g. AWS ClientError, invalid phone number, quota exceeded).
     - SKIPPED_DEDUPLICATED: Suppressed because an identical alert was already delivered/accepted within deduplication window.
     """
+
     DELIVERED = "delivered"
     ACCEPTED = "accepted"
     FAILED = "failed"
@@ -68,10 +68,11 @@ class NotificationDeliveryStatus(str, Enum):
 class NotificationResult(BaseModel):
     """
     Structured outcome of a notification dispatch attempt.
-    
+
     Evaluates to truthy in boolean expressions if dispatch was accepted or delivered:
         if result: ...
     """
+
     success: bool = Field(description="True if delivery was completed or accepted by provider.")
     status: NotificationDeliveryStatus = Field(description="Explicit delivery tier status.")
     message_id: Optional[str] = Field(default=None, description="Provider message ID (e.g. SNS MessageId).")
@@ -105,7 +106,7 @@ class NotifierBase(ABC):
     ) -> NotificationResult:
         """
         Send an alert notification to designated family contacts.
-        
+
         Parameters:
             person_id: Identifier of elder parent
             severity: 'low', 'medium', 'high', 'critical'
@@ -113,7 +114,7 @@ class NotifierBase(ABC):
             reasons: Supporting deterministic audit reasons
             contacts: Optional list of emergency contacts
             dedup_key: Optional stable deduplication identifier
-            
+
         Returns:
             NotificationResult: Structured delivery result with explicit status.
         """
@@ -136,15 +137,16 @@ class ConsoleNotifier(NotifierBase):
         dedup_key: Optional[str] = None,
     ) -> NotificationResult:
         reasons_list = reasons or []
-        contact_names = ", ".join(f"{c.name} ({mask_phone_number(c.phone)})" for c in contacts) if contacts else "Default Caregiver"
+        contact_names = (
+            ", ".join(f"{c.name} ({mask_phone_number(c.phone)})" for c in contacts) if contacts else "Default Caregiver"
+        )
 
         banner = (
             f"\n{'=' * 65}\n"
             f"🚨 [CARELOOP FAMILY ALERT] Person: {person_id.upper()} | Severity: {severity.upper()}\n"
             f"Recipient(s): {contact_names}\n"
             f"Message: {message}\n"
-            f"Deterministic Reasons:\n"
-            + "\n".join(f"  • {r}" for r in reasons_list) + "\n"
+            f"Deterministic Reasons:\n" + "\n".join(f"  • {r}" for r in reasons_list) + "\n"
             f"Deduplication Key: {dedup_key or 'none'}\n"
             f"{'=' * 65}\n"
         )
@@ -243,7 +245,7 @@ class SNSNotifier(NotifierBase):
     IMPORTANT ARCHITECTURAL REALITY & CARRIER HOPS:
     When boto3 client.publish() returns HTTP 200, AWS SNS has ACCEPTED the message
     and assigned an internal MessageId. The status returned is ACCEPTED, NOT DELIVERED.
-    
+
     Downstream Carrier Factors Affecting Real Delivery:
     1. AWS SMS Sandbox: In standard new AWS accounts, messages can ONLY be delivered to
        destination phone numbers pre-verified in the AWS SNS console. Unverified numbers

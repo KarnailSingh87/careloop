@@ -25,13 +25,13 @@ Implements:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 import logging
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
-from careloop.models import Event, EventType, LearnedBaseline
+from careloop.models import Event, LearnedBaseline
 from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
@@ -46,14 +46,12 @@ def validate_and_localize(
     Raises ValueError if dt is naive to prevent silent mixing of local time and UTC.
     """
     if dt.tzinfo is None:
-        raise ValueError(
-            f"Timestamp {dt} is naive. All timestamps in CareLoop must be timezone-aware."
-        )
+        raise ValueError(f"Timestamp {dt} is naive. All timestamps in CareLoop must be timezone-aware.")
     if isinstance(target_tz, str):
         try:
             tz = ZoneInfo(target_tz)
         except Exception:
-            tz = timezone.utc
+            tz = ZoneInfo("UTC")
     else:
         tz = target_tz
     return dt.astimezone(tz)
@@ -72,12 +70,13 @@ def circular_minute_difference(a: float, b: float) -> float:
 @dataclass
 class BaselineState:
     """Tracks circular EWMA statistics for a specific (person, event_type) pair."""
+
     person_id: str
     event_type: str
     count: int = 0
-    mu_minutes: float = 0.0          # Range: [0.0, 1440.0) in person's local time
-    variance: float = 0.0            # Variance in minutes^2
-    alpha: float = 0.2               # Smoothing factor
+    mu_minutes: float = 0.0  # Range: [0.0, 1440.0) in person's local time
+    variance: float = 0.0  # Variance in minutes^2
+    alpha: float = 0.2  # Smoothing factor
     last_event_time: Optional[datetime] = None
     last_event_id: Optional[str] = None
     timezone_name: str = "UTC"
@@ -100,9 +99,10 @@ class BaselineState:
 @dataclass
 class RoutineEvaluation:
     """Comprehensive evaluation result for routine status."""
+
     person_id: str
     event_type: str
-    status: str                      # 'completed', 'pending', 'missed', 'cold_start'
+    status: str  # 'completed', 'pending', 'missed', 'cold_start'
     is_missed: bool
     is_anomaly: bool = False
     z_score: float = 0.0
@@ -114,7 +114,7 @@ class RoutineEvaluation:
 class BaselineEngine:
     """
     Deterministic schedule baseline engine.
-    
+
     Maintains circular EWMA of routine time and variance, and detects
     missed events or anomalous timings without any LLM in the loop.
     """
@@ -133,9 +133,7 @@ class BaselineEngine:
         self.min_grace_minutes = min_grace_minutes
         self.min_observations = min_observations
         self.default_timezone = default_timezone
-        self.person_timezones: Dict[str, str] = {
-            k.strip().lower(): v for k, v in (person_timezones or {}).items()
-        }
+        self.person_timezones: Dict[str, str] = {k.strip().lower(): v for k, v in (person_timezones or {}).items()}
         self.baselines: Dict[Tuple[str, str], BaselineState] = {}
 
     def set_person_timezone(self, person: str, tz_name: str) -> None:
@@ -257,7 +255,7 @@ class BaselineEngine:
             effective_diff = diff
 
         state.mu_minutes = (state.mu_minutes + self.alpha * effective_diff) % 1440.0
-        state.variance = (1.0 - self.alpha) * state.variance + self.alpha * (effective_diff ** 2)
+        state.variance = (1.0 - self.alpha) * state.variance + self.alpha * (effective_diff**2)
         state.count += 1
         state.last_event_time = timestamp
         state.last_event_id = event_id
@@ -442,4 +440,3 @@ class BaselineEngine:
             storage.save_baseline(baseline)
             count += 1
         return count
-

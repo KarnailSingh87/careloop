@@ -15,7 +15,6 @@ Verifies:
 """
 
 from datetime import datetime, timedelta, timezone
-import json
 import os
 import tempfile
 import pytest
@@ -23,8 +22,6 @@ import httpx
 
 from careloop.clock import SimulatedClock
 from careloop.models import (
-    Alert,
-    AlertLevel,
     EmergencyContact,
     Event,
     EventType,
@@ -52,7 +49,9 @@ def e2e_environment():
         display_name="Arthur Davis",
         timezone="UTC",
         emergency_contacts=[
-            EmergencyContact(name="Linda Davis", relationship="Daughter", phone="+1-555-0199", email="linda@example.com")
+            EmergencyContact(
+                name="Linda Davis", relationship="Daughter", phone="+1-555-0199", email="linda@example.com"
+            )
         ],
     )
     storage.save_profile(dad_profile)
@@ -62,9 +61,7 @@ def e2e_environment():
         person_id="eleanor",
         display_name="Eleanor Vance",
         timezone="UTC",
-        emergency_contacts=[
-            EmergencyContact(name="Mark Vance", relationship="Son", phone="+1-555-0142")
-        ],
+        emergency_contacts=[EmergencyContact(name="Mark Vance", relationship="Son", phone="+1-555-0142")],
     )
     storage.save_profile(eleanor_profile)
     prod_event = Event(
@@ -79,33 +76,41 @@ def e2e_environment():
     for day_offset in range(1, 8):
         day_date = datetime(2026, 10, 20, tzinfo=timezone.utc) - timedelta(days=day_offset)
         # Morning movement (07:30)
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.MOVEMENT,
-            timestamp=day_date.replace(hour=7, minute=30),
-            metadata={"source": "baseline_history"},
-        ))
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.MOVEMENT,
+                timestamp=day_date.replace(hour=7, minute=30),
+                metadata={"source": "baseline_history"},
+            )
+        )
         # Morning medication (08:00)
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.PILL,
-            timestamp=day_date.replace(hour=8, minute=0),
-            metadata={"source": "baseline_history", "medication": "blood_pressure_lisinopril"},
-        ))
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.PILL,
+                timestamp=day_date.replace(hour=8, minute=0),
+                metadata={"source": "baseline_history", "medication": "blood_pressure_lisinopril"},
+            )
+        )
         # Lunch (12:44)
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.MEAL,
-            timestamp=day_date.replace(hour=12, minute=44),
-            metadata={"source": "baseline_history"},
-        ))
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.MEAL,
+                timestamp=day_date.replace(hour=12, minute=44),
+                metadata={"source": "baseline_history"},
+            )
+        )
         # Dinner (18:30)
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.MEAL,
-            timestamp=day_date.replace(hour=18, minute=30),
-            metadata={"source": "baseline_history"},
-        ))
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.MEAL,
+                timestamp=day_date.replace(hour=18, minute=30),
+                metadata={"source": "baseline_history"},
+            )
+        )
 
     app = create_app(
         storage=storage,
@@ -175,14 +180,17 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         assert clock.now().minute == 30
 
         # 1c. Log medication event via real MCP call
-        mcp_med_res = await client.post("/api/mcp/call", json={
-            "tool": "log_routine_event",
-            "arguments": {
-                "person": "dad",
-                "type": "medication",
-                "metadata": {"source": "simulator_demo", "medication": "blood_pressure_lisinopril"},
+        mcp_med_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "log_routine_event",
+                "arguments": {
+                    "person": "dad",
+                    "type": "medication",
+                    "metadata": {"source": "simulator_demo", "medication": "blood_pressure_lisinopril"},
+                },
             },
-        })
+        )
         assert mcp_med_res.status_code == 200
         med_data = mcp_med_res.json()
         assert not med_data["is_error"]
@@ -190,14 +198,17 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         # 1d. Set clock to 10:00 and log movement event via real MCP call
         set_10am_res = await client.post("/api/clock/set", json={"time": "10:00", "person": "dad"})
         assert set_10am_res.status_code == 200
-        mcp_move_res = await client.post("/api/mcp/call", json={
-            "tool": "log_routine_event",
-            "arguments": {
-                "person": "dad",
-                "type": "movement",
-                "metadata": {"source": "simulator_demo", "room": "living_room"},
+        mcp_move_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "log_routine_event",
+                "arguments": {
+                    "person": "dad",
+                    "type": "movement",
+                    "metadata": {"source": "simulator_demo", "room": "living_room"},
+                },
             },
-        })
+        )
         assert mcp_move_res.status_code == 200
         move_data = mcp_move_res.json()
         assert move_data["tool"] == "log_routine_event"
@@ -205,10 +216,13 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         assert move_data["result"]["status"] == "logged"
 
         # 1e. Check routine health nominal
-        health_res = await client.post("/api/mcp/call", json={
-            "tool": "check_routine_health",
-            "arguments": {"person": "dad"},
-        })
+        health_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "check_routine_health",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert health_res.status_code == 200
         health_data = health_res.json()["result"]
         assert health_data["risk_level"] == "low"
@@ -220,10 +234,13 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         set_lunch_res = await client.post("/api/clock/set", json={"time": "12:45", "person": "dad"})
         assert set_lunch_res.status_code == 200
 
-        health_res2 = await client.post("/api/mcp/call", json={
-            "tool": "check_routine_health",
-            "arguments": {"person": "dad"},
-        })
+        health_res2 = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "check_routine_health",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert health_res2.status_code == 200
         health_data2 = health_res2.json()["result"]
         # In grace window (lunch expected 12:44, 30m grace ends 13:14), no false alarm
@@ -236,17 +253,22 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         set_afternoon_res = await client.post("/api/clock/set", json={"time": "14:00", "person": "dad"})
         assert set_afternoon_res.status_code == 200
 
-        tick1_res = await client.post("/api/mcp/call", json={
-            "tool": "tick_escalation",
-            "arguments": {"person": "dad"},
-        })
+        tick1_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "tick_escalation",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert tick1_res.status_code == 200
         tick1_data = tick1_res.json()["result"]
         assert tick1_data["stage"] == "gentle_check_in"
         assert tick1_data["risk_score"] >= 0.3  # elevated risk
         # Verify reasons note missed routine or inactivity
         reasons_text = " ".join(tick1_data["reasons"])
-        assert "meal" in reasons_text.lower() or "inactivity" in reasons_text.lower() or "movement" in reasons_text.lower()
+        assert (
+            "meal" in reasons_text.lower() or "inactivity" in reasons_text.lower() or "movement" in reasons_text.lower()
+        )
 
         # Database state after Step 3
         state_after_step3 = storage.get_escalation_state("dad")
@@ -258,10 +280,13 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         adv1_res = await client.post("/api/clock/advance", json={"minutes": 2, "person": "dad"})
         assert adv1_res.status_code == 200
 
-        tick2_res = await client.post("/api/mcp/call", json={
-            "tool": "tick_escalation",
-            "arguments": {"person": "dad"},
-        })
+        tick2_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "tick_escalation",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert tick2_res.status_code == 200
         tick2_data = tick2_res.json()["result"]
         assert tick2_data["stage"] == "repeat_check_in"
@@ -275,10 +300,13 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         adv2_res = await client.post("/api/clock/advance", json={"minutes": 2, "person": "dad"})
         assert adv2_res.status_code == 200
 
-        tick3_res = await client.post("/api/mcp/call", json={
-            "tool": "tick_escalation",
-            "arguments": {"person": "dad"},
-        })
+        tick3_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "tick_escalation",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert tick3_res.status_code == 200
         tick3_data = tick3_res.json()["result"]
         assert tick3_data["stage"] == "notify_family"
@@ -300,10 +328,13 @@ async def test_dad_skips_lunch_e2e_scenario(e2e_environment):
         # -------------------------------------------------------------
         # STEP 6: Dad Confirms OK -> Escalation Resets to NORMAL, Alerts Resolved
         # -------------------------------------------------------------
-        ok_res = await client.post("/api/mcp/call", json={
-            "tool": "confirm_ok",
-            "arguments": {"person": "dad"},
-        })
+        ok_res = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "confirm_ok",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert ok_res.status_code == 200
         ok_data = ok_res.json()["result"]
         assert ok_data["status"] == "confirmed_ok"
@@ -332,22 +363,26 @@ async def test_demo_reset_data_isolation(e2e_environment):
 
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost:8000") as client:
         # Seed a demo event and a manual production event for dad
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.MOVEMENT,
-            timestamp=datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc),
-            metadata={"source": "simulator_demo"},
-        ))
-        storage.save_event(Event(
-            person_id="dad",
-            event_type=EventType.PILL,
-            timestamp=datetime(2026, 10, 20, 10, 5, tzinfo=timezone.utc),
-            metadata={"source": "real_sensor_production"},
-        ))
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.MOVEMENT,
+                timestamp=datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc),
+                metadata={"source": "simulator_demo"},
+            )
+        )
+        storage.save_event(
+            Event(
+                person_id="dad",
+                event_type=EventType.PILL,
+                timestamp=datetime(2026, 10, 20, 10, 5, tzinfo=timezone.utc),
+                metadata={"source": "real_sensor_production"},
+            )
+        )
 
         # Check total events for dad before reset
         events_before = storage.get_events("dad", limit=100)
-        prod_events_before = [e for e in events_before if e.metadata.get("source") != "simulator_demo"]
+        [e for e in events_before if e.metadata.get("source") != "simulator_demo"]
         demo_events_before = [e for e in events_before if e.metadata.get("source") == "simulator_demo"]
         assert len(demo_events_before) >= 1
 
@@ -384,20 +419,26 @@ async def test_real_mcp_error_reporting_not_simulated(e2e_environment):
 
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost:8000") as client:
         # 1. Invalid tool name
-        r_invalid_tool = await client.post("/api/mcp/call", json={
-            "tool": "non_existent_tool",
-            "arguments": {"person": "dad"},
-        })
+        r_invalid_tool = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "non_existent_tool",
+                "arguments": {"person": "dad"},
+            },
+        )
         assert r_invalid_tool.status_code == 500
         data = r_invalid_tool.json()
         assert data["is_error"] is True
         assert data["error"]["code"] == -32603
 
         # 2. Invalid event type argument
-        r_invalid_arg = await client.post("/api/mcp/call", json={
-            "tool": "log_routine_event",
-            "arguments": {"person": "dad", "type": "skydiving"},
-        })
+        r_invalid_arg = await client.post(
+            "/api/mcp/call",
+            json={
+                "tool": "log_routine_event",
+                "arguments": {"person": "dad", "type": "skydiving"},
+            },
+        )
         assert r_invalid_arg.status_code == 500
         data_arg = r_invalid_arg.json()
         assert data_arg["is_error"] is True

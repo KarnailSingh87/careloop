@@ -101,6 +101,7 @@ async def test_check_routine_health_persisted_assessment_and_reasons(service):
     assert not res.is_error
     data_str = res.content[0].text
     import json
+
     data = json.loads(data_str) if data_str.startswith("{") else None
     if data:
         assert data["person"] == "eleanor"
@@ -111,7 +112,6 @@ async def test_check_routine_health_persisted_assessment_and_reasons(service):
     else:
         assert "gentle_check_in" in data_str
         assert "Medication window expired" in data_str or "routine warning" in data_str
-
 
 
 @pytest.mark.asyncio

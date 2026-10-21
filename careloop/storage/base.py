@@ -9,7 +9,7 @@ Audio, ambient recordings, and sensitive credentials are strictly prohibited.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
 from careloop.models import (
     Event,
     PersonProfile,
@@ -22,21 +22,25 @@ from careloop.models import (
 
 class StorageError(Exception):
     """Base exception for all CareLoop storage failures."""
+
     pass
 
 
 class StaleStateError(StorageError):
     """Raised when an escalation state write is rejected due to an optimistic concurrency conflict."""
+
     pass
 
 
 class StorageClosedError(StorageError):
     """Raised when attempting an operation on a closed storage instance."""
+
     pass
 
 
 class PrivacyViolationError(StorageError):
     """Raised when forbidden audio data or sensitive credentials are submitted to storage."""
+
     pass
 
 
@@ -54,12 +58,7 @@ class StorageBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_events(
-        self,
-        person_id: str,
-        limit: int = 100,
-        event_type: Optional[str] = None
-    ) -> List[Event]:
+    def get_events(self, person_id: str, limit: int = 100, event_type: Optional[str] = None) -> List[Event]:
         """Fetch recent events for a person, sorted latest first."""
         raise NotImplementedError
 
@@ -86,11 +85,7 @@ class StorageBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_reminders(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Reminder]:
+    def get_reminders(self, person_id: str, active_only: bool = True) -> List[Reminder]:
         """Fetch reminders for a person."""
         raise NotImplementedError
 
@@ -117,11 +112,7 @@ class StorageBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_alerts(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Alert]:
+    def get_alerts(self, person_id: str, active_only: bool = True) -> List[Alert]:
         """Fetch alerts for a person."""
         raise NotImplementedError
 
@@ -185,12 +176,13 @@ class StorageBase(ABC):
         raise NotImplementedError
 
     # --- Demo Isolation ---
+    @abstractmethod
     def clear_demo_data(self, person_id: str = "dad") -> None:
         """
         Clear demo-generated events and alerts for an isolated simulation session.
         Strictly preserves baseline profiles and production records.
         """
-        pass
+        raise NotImplementedError
 
     # --- Lifecycle & Context Management ---
     @abstractmethod

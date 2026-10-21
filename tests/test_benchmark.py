@@ -4,7 +4,7 @@ Includes hand-verifiable metric calculation tests, baseline comparison tests,
 cold-start handling tests, and temporal leakage checks.
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import json
 import os
 import tempfile
@@ -22,6 +22,7 @@ from careloop.models import Event, EventType
 # ---------------------------------------------------------------------------
 # Hand-Verifiable Metric Calculation Tests
 # ---------------------------------------------------------------------------
+
 
 def test_compute_evaluation_metrics_hand_verifiable():
     """
@@ -117,6 +118,7 @@ def test_static_threshold_baseline_hand_verifiable():
 # ---------------------------------------------------------------------------
 # Full 60-Day Benchmark Integration Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def benchmark_data():

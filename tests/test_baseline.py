@@ -19,8 +19,8 @@ from careloop.models import Event, EventType
 
 def test_circular_minute_difference():
     # Regular daytime
-    assert circular_minute_difference(510, 480) == 30.0    # 08:30 is 30m after 08:00
-    assert circular_minute_difference(480, 510) == -30.0   # 08:00 is 30m before 08:30
+    assert circular_minute_difference(510, 480) == 30.0  # 08:30 is 30m after 08:00
+    assert circular_minute_difference(480, 510) == -30.0  # 08:00 is 30m before 08:30
 
     # Crossing midnight
     # 00:10 (10 min) vs 23:50 (1430 min): 00:10 is 20m after 23:50
@@ -78,7 +78,7 @@ def test_normal_days():
         day_time = datetime(2026, 10, 10 + i, 8, 30 + j, 0, tzinfo=timezone.utc)
         clock.set_time(day_time)
         z, is_anomaly = engine.record_event("eleanor", "medication", clock.now())
-        assert not is_anomaly, f"Normal day {i+1} flagged unexpected anomaly (z={z})"
+        assert not is_anomaly, f"Normal day {i + 1} flagged unexpected anomaly (z={z})"
 
     state = engine.get_or_create_state("eleanor", "medication")
     assert state.count == 7
@@ -285,7 +285,7 @@ def test_duplicate_and_out_of_order_events():
     1. Rapid successive events (<60s) or identical event IDs are deduplicated.
     2. Out-of-order events (timestamp earlier than last_event_time) do not corrupt EWMA state.
     """
-    clock = SimulatedClock(datetime(2026, 10, 10, 8, 30, 0, tzinfo=timezone.utc))
+    SimulatedClock(datetime(2026, 10, 10, 8, 30, 0, tzinfo=timezone.utc))
     engine = BaselineEngine(min_observations=5)
 
     # Day 1: Log initial observation with event_id
@@ -363,7 +363,6 @@ def test_outlier_winsorization_protects_baseline():
 
     state = engine.get_or_create_state("eleanor", "medication")
     initial_mu = state.mu_minutes
-    initial_sigma = state.sigma
     assert abs(initial_mu - 510.0) < 5.0
 
     # Extreme outlier: pill logged at 15:30 (7 hours / 420 minutes late!)

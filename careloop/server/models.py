@@ -6,32 +6,16 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
-import uuid
+from typing import List
 from pydantic import BaseModel, Field
 
 # Re-export core models for server convenience
-from careloop.models import (
-    EventType,
-    RoutineType,
-    AlertLevel,
-    EmergencyContact,
-    PersonProfile,
-    Event,
-    RoutineRule,
-    LearnedBaseline,
-    CheckinPrompt,
-    CheckinStatus,
-    Alert,
-    Reminder,
-    ReminderStatus,
-    EscalationStage,
-    EscalationState,
-)
+from careloop.models import Reminder, ReminderStatus  # noqa: F401
 
 
 class RoutineEventType(str, Enum):
     """Specific routine event types accepted by Alexa+ MCP tools."""
+
     MEDICATION = "medication"
     MEAL = "meal"
     MOVEMENT = "movement"
@@ -40,6 +24,7 @@ class RoutineEventType(str, Enum):
 
 class HealthStatus(BaseModel):
     """Routine health and anomaly assessment result."""
+
     person_id: str
     risk_level: str = "low"  # low, moderate, elevated, critical
     status: str = "nominal"

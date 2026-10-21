@@ -31,19 +31,17 @@ Key Capabilities:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta, date, time
-import json
+from datetime import datetime, timezone, timedelta, date
 import logging
 import os
-import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 from zoneinfo import ZoneInfo
 
 import boto3
 from botocore.exceptions import ClientError
 from dateutil import parser as date_parser
 
-from careloop.models import Event, EventType
+from careloop.models import Event
 from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
@@ -71,16 +69,8 @@ class BedrockAssistant:
         region_name: Optional[str] = None,
         bedrock_client: Optional[Any] = None,
     ) -> None:
-        self.model_id = (
-            model_id
-            or os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
-        )
-        self.region_name = (
-            region_name
-            or os.getenv("AWS_REGION")
-            or os.getenv("AWS_DEFAULT_REGION")
-            or "us-east-1"
-        )
+        self.model_id = model_id or os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+        self.region_name = region_name or os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
         self._client = bedrock_client
 
     def _get_client(self) -> Any:
@@ -104,7 +94,7 @@ class BedrockAssistant:
     ) -> str:
         """
         Generate a warm, concise three-sentence family summary grounded strictly in data.
-        
+
         Requirements:
         - Retrieves only the requested person's events for the requested local calendar date.
         - Grounded only in retrieved events; never invents adherence, activities, or wellbeing.
@@ -132,9 +122,7 @@ class BedrockAssistant:
         local_ref_now = ref_now.astimezone(tz)
 
         # Resolve requested local calendar date
-        if target_date is None or (
-            isinstance(target_date, str) and target_date.strip().lower() == "today"
-        ):
+        if target_date is None or (isinstance(target_date, str) and target_date.strip().lower() == "today"):
             eval_date = local_ref_now.date()
         elif isinstance(target_date, str):
             t_str = target_date.strip().lower()
@@ -177,7 +165,9 @@ class BedrockAssistant:
             e_dt = e.timestamp if e.timestamp.tzinfo is not None else e.timestamp.replace(tzinfo=timezone.utc)
             local_time_str = e_dt.astimezone(tz).strftime("%H:%M")
             meta_clean = {k: v for k, v in e.metadata.items() if k not in ("audio", "raw_payload")}
-            event_lines.append(f"- {local_time_str} ({tz.key}): {e.event_type.value} {meta_clean if meta_clean else ''}")
+            event_lines.append(
+                f"- {local_time_str} ({tz.key}): {e.event_type.value} {meta_clean if meta_clean else ''}"
+            )
 
         events_text = "\n".join(event_lines) if event_lines else "No routine events recorded for this calendar date."
 
@@ -249,11 +239,19 @@ class BedrockAssistant:
         tz = _get_local_timezone(tz_name)
         med_events = [e for e in events if e.event_type.value in ("pill", "medication")]
         meal_events = [e for e in events if e.event_type.value == "meal"]
-        mov_events = [e for e in events if e.event_type.value == "movement"]
-        door_events = [e for e in events if e.event_type.value == "door"]
+        [e for e in events if e.event_type.value == "movement"]
+        [e for e in events if e.event_type.value == "door"]
 
-        first_dt = events[0].timestamp if events[0].timestamp.tzinfo is not None else events[0].timestamp.replace(tzinfo=timezone.utc)
-        last_dt = events[-1].timestamp if events[-1].timestamp.tzinfo is not None else events[-1].timestamp.replace(tzinfo=timezone.utc)
+        first_dt = (
+            events[0].timestamp
+            if events[0].timestamp.tzinfo is not None
+            else events[0].timestamp.replace(tzinfo=timezone.utc)
+        )
+        last_dt = (
+            events[-1].timestamp
+            if events[-1].timestamp.tzinfo is not None
+            else events[-1].timestamp.replace(tzinfo=timezone.utc)
+        )
 
         first_time = first_dt.astimezone(tz).strftime("%H:%M")
         last_time = last_dt.astimezone(tz).strftime("%H:%M")
@@ -266,9 +264,7 @@ class BedrockAssistant:
             f"Logged records confirm {len(med_events)} medication check(s), {len(meal_events)} meal(s), "
             f"and activity continuing through {last_time} {tz_name}."
         )
-        s3 = (
-            f"Unobserved routine windows have no sensor records logged, and CareLoop continues passive monitoring."
-        )
+        s3 = "Unobserved routine windows have no sensor records logged, and CareLoop continues passive monitoring."
         return f"{s1} {s2} {s3}"
 
     # -------------------------------------------------------------------------
@@ -320,9 +316,7 @@ class BedrockAssistant:
         local_ref_now = ref_now.astimezone(tz)
 
         # Step 1: Deterministic rule-based filter extraction
-        parsed_type, start_dt, end_dt = self._extract_filters_rule_based(
-            clean_question, local_ref_now, tz
-        )
+        parsed_type, start_dt, end_dt = self._extract_filters_rule_based(clean_question, local_ref_now, tz)
 
         # Step 2: If rules cannot determine event category, try constrained LLM extraction
         if parsed_type is None:
@@ -339,9 +333,7 @@ class BedrockAssistant:
             candidate_events = []
 
         # Step 4: Filter events to minimum matching set
-        matching_events = self._filter_events(
-            candidate_events, parsed_type, start_dt, end_dt, tz
-        )
+        matching_events = self._filter_events(candidate_events, parsed_type, start_dt, end_dt, tz)
 
         # Step 5: Zero matching records -> return explicit "no record" WITHOUT invoking Bedrock!
         if not matching_events:
@@ -349,7 +341,9 @@ class BedrockAssistant:
                 f"ask_memory: 0 matching events found for {person_id} (type={parsed_type}). "
                 f"Returning 'no record' without Bedrock Converse call."
             )
-            return self._no_record_response(name, clean_question, parsed_type, start_dt, end_dt, tz.key, ref_now=local_ref_now)
+            return self._no_record_response(
+                name, clean_question, parsed_type, start_dt, end_dt, tz.key, ref_now=local_ref_now
+            )
 
         # Step 6: Format MINIMUM matching event metadata for Bedrock
         matching_lines: List[str] = []
@@ -421,18 +415,51 @@ class BedrockAssistant:
         Returns: (event_type, start_datetime, end_datetime)
         """
         q = question.lower()
-        active_tz = tz or (local_now.tzinfo if local_now.tzinfo is not None else ZoneInfo("UTC"))
+        tz or (local_now.tzinfo if local_now.tzinfo is not None else ZoneInfo("UTC"))
 
         # 1. Event Type Rules
         event_type: Optional[str] = None
 
-        if any(w in q for w in ["pill", "pills", "med", "meds", "medication", "medicine", "prescription", "dose", "blood pressure"]):
+        if any(
+            w in q
+            for w in [
+                "pill",
+                "pills",
+                "med",
+                "meds",
+                "medication",
+                "medicine",
+                "prescription",
+                "dose",
+                "blood pressure",
+            ]
+        ):
             event_type = "pill"
-        elif any(w in q for w in ["breakfast", "lunch", "dinner", "meal", "meals", "eat", "ate", "eating", "food", "snack"]):
+        elif any(
+            w in q for w in ["breakfast", "lunch", "dinner", "meal", "meals", "eat", "ate", "eating", "food", "snack"]
+        ):
             event_type = "meal"
-        elif any(w in q for w in ["movement", "motion", "walk", "walking", "active", "activity", "awake", "stirring", "bedroom", "kitchen", "living room", "hallway"]):
+        elif any(
+            w in q
+            for w in [
+                "movement",
+                "motion",
+                "walk",
+                "walking",
+                "active",
+                "activity",
+                "awake",
+                "stirring",
+                "bedroom",
+                "kitchen",
+                "living room",
+                "hallway",
+            ]
+        ):
             event_type = "movement"
-        elif any(w in q for w in ["door", "outside", "garden", "back door", "front door", "leave", "left", "exit", "entry"]):
+        elif any(
+            w in q for w in ["door", "outside", "garden", "back door", "front door", "leave", "left", "exit", "entry"]
+        ):
             event_type = "door"
 
         # 2. Date Range Rules (evaluated in local timezone)
@@ -472,7 +499,7 @@ class BedrockAssistant:
         prompt = (
             f"Classify the elder routine event category from this query into exactly one word: "
             f"'pill', 'meal', 'movement', or 'door'. If none apply, answer 'other'.\n"
-            f"Query: \"{question}\"\n"
+            f'Query: "{question}"\n'
             f"Answer with only the category word in lowercase."
         )
         try:
@@ -571,15 +598,14 @@ class BedrockAssistant:
         """Deterministic phrasing template used when Bedrock is offline."""
         tz = _get_local_timezone(tz_name)
         latest = sorted(events, key=lambda x: x.timestamp)[-1]
-        e_dt = latest.timestamp if latest.timestamp.tzinfo is not None else latest.timestamp.replace(tzinfo=timezone.utc)
+        e_dt = (
+            latest.timestamp if latest.timestamp.tzinfo is not None else latest.timestamp.replace(tzinfo=timezone.utc)
+        )
         local_time_str = e_dt.astimezone(tz).strftime("%H:%M")
         date_str = e_dt.astimezone(tz).strftime("%Y-%m-%d")
 
         item_details = (
-            latest.metadata.get("medication")
-            or latest.metadata.get("meal_type")
-            or latest.metadata.get("room")
-            or ""
+            latest.metadata.get("medication") or latest.metadata.get("meal_type") or latest.metadata.get("room") or ""
         )
         detail_suffix = f" ({item_details})" if item_details else ""
         return (

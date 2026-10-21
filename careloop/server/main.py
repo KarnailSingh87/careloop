@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from contextlib import asynccontextmanager
+import json
 import logging
 from datetime import datetime, timezone
 import os
@@ -23,6 +24,7 @@ except ImportError:
 
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.routing import Route
 import uvicorn
@@ -34,28 +36,26 @@ from careloop.engine.baseline import BaselineEngine
 from careloop.engine.escalation import EscalationEngine
 from careloop.engine.risk import RiskEngine
 from careloop.llm.bedrock import BedrockAssistant
-from careloop.models import Event, EventType, EscalationStage, PersonProfile
+from careloop.models import Event, EventType, PersonProfile
+from careloop.config import AppConfig, load_config
 from careloop.notifier import NotifierBase, get_default_notifier
+from careloop.server.security import (
+    AlexaAuthMiddleware,
+    RateLimitMiddleware,
+    RequestSizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+    install_privacy_log_filter,
+)
 from careloop.server.tools import register_tools
 from careloop.storage.base import StorageBase
-from careloop.storage.sqlite_store import SQLiteStorage
 from careloop.storage.dynamo_store import DynamoDBStorage
+from careloop.storage.sqlite_store import SQLiteStorage
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("careloop.server")
-
-
-from careloop.config import AppConfig, load_config
-from careloop.server.security import (
-    AlexaAuthMiddleware,
-    SecurityHeadersMiddleware,
-    RequestSizeLimitMiddleware,
-    RateLimitMiddleware,
-    install_privacy_log_filter,
-)
 
 install_privacy_log_filter()
 
@@ -87,9 +87,7 @@ def create_server(
                     f"FATAL: DynamoDB storage configured (table={table_name}, region={region}) "
                     f"but failed to verify: {e}. Production storage must not silently fall back to SQLite."
                 )
-                raise RuntimeError(
-                    f"DynamoDB storage configured but unavailable on table '{table_name}': {e}"
-                ) from e
+                raise RuntimeError(f"DynamoDB storage configured but unavailable on table '{table_name}': {e}") from e
         else:
             db_path = os.getenv("SQLITE_DB_PATH", "careloop_local.db")
             storage = SQLiteStorage(db_path=db_path)
@@ -182,9 +180,7 @@ def create_app(
         else:
             config = base_cfg
 
-    server, storage_inst, clock_inst, escalation_inst = create_server(
-        storage=storage, clock=clock, notifier=notifier
-    )
+    server, storage_inst, clock_inst, escalation_inst = create_server(storage=storage, clock=clock, notifier=notifier)
     app = server.streamable_http_app()
 
     # Autonomous escalation background task
@@ -301,9 +297,7 @@ def create_app(
                 }
                 for a in alerts
             ],
-            "available_profiles": [
-                {"id": p.person_id, "name": p.display_name} for p in profiles
-            ],
+            "available_profiles": [{"id": p.person_id, "name": p.display_name} for p in profiles],
             "system": {
                 "database": {
                     "type": "sqlite" if "SQLite" in storage_inst.__class__.__name__ else "dynamodb",
@@ -316,7 +310,9 @@ def create_app(
                     "clock_mode": "simulated" if isinstance(clock_inst, SimulatedClock) else "system",
                 },
                 "notifier": {
-                    "type": escalation_inst.notifier.__class__.__name__ if getattr(escalation_inst, "notifier", None) else "ConsoleNotifier",
+                    "type": escalation_inst.notifier.__class__.__name__
+                    if getattr(escalation_inst, "notifier", None)
+                    else "ConsoleNotifier",
                 },
                 "timeouts": {
                     "gentle_seconds": getattr(escalation_inst, "gentle_timeout_seconds", 60.0),
@@ -328,20 +324,20 @@ def create_app(
     # Health check endpoint for AWS ECS / ALB / local verification
     async def health_endpoint(request):
         state = storage_inst.get_escalation_state("dad") or storage_inst.get_escalation_state("eleanor")
-        return JSONResponse({
-            "status": "healthy",
-            "service": "careloop",
-            "version": "0.1.0",
-            "clock_utc": clock_inst.now().isoformat(),
-            "monitored_person": "dad",
-            "escalation_stage": state.stage.value if state else "normal",
-        })
+        return JSONResponse(
+            {
+                "status": "healthy",
+                "service": "careloop",
+                "version": "0.1.0",
+                "clock_utc": clock_inst.now().isoformat(),
+                "monitored_person": "dad",
+                "escalation_stage": state.stage.value if state else "normal",
+            }
+        )
 
     # Simulator dashboard endpoint
     async def simulator_endpoint(request):
-        sim_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "simulator", "index.html"
-        )
+        sim_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "simulator", "index.html")
         if os.path.exists(sim_path):
             with open(sim_path, "r", encoding="utf-8") as f:
                 return HTMLResponse(f.read())
@@ -445,26 +441,31 @@ def create_app(
             call_res = await server.call_tool(tool_name, arguments)
             duration_ms = round((time.time() - start_time) * 1000, 2)
 
+            first_content = call_res.content[0] if (hasattr(call_res, "content") and call_res.content) else None
+            first_text = getattr(first_content, "text", "") if first_content else ""
+
             res_data = None
             if hasattr(call_res, "structured_content") and call_res.structured_content:
                 res_data = call_res.structured_content.get("result", call_res.structured_content)
-            elif hasattr(call_res, "content") and call_res.content:
+            elif first_text:
                 try:
-                    res_data = json.loads(call_res.content[0].text)
+                    res_data = json.loads(first_text)
                 except Exception:
-                    res_data = call_res.content[0].text
+                    res_data = first_text
 
-            return JSONResponse({
-                "jsonrpc": "2.0",
-                "id": body.get("id", int(time.time() * 1000)),
-                "tool": tool_name,
-                "arguments": arguments,
-                "result": res_data,
-                "raw_text": call_res.content[0].text if hasattr(call_res, "content") and call_res.content else "",
-                "is_error": getattr(call_res, "is_error", False),
-                "duration_ms": duration_ms,
-                "protocol_version": "2025-11-25",
-            })
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id", int(time.time() * 1000)),
+                    "tool": tool_name,
+                    "arguments": arguments,
+                    "result": res_data,
+                    "raw_text": first_text,
+                    "is_error": getattr(call_res, "is_error", False),
+                    "duration_ms": duration_ms,
+                    "protocol_version": "2025-11-25",
+                }
+            )
         except Exception as e:
             duration_ms = round((time.time() - start_time) * 1000, 2)
             logger.error(f"Error executing MCP tool '{tool_name}': {e}")
@@ -475,32 +476,33 @@ def create_app(
             else:
                 safe_msg = str(e)
 
-            return JSONResponse({
-                "jsonrpc": "2.0",
-                "id": body.get("id", int(time.time() * 1000)),
-                "tool": tool_name,
-                "arguments": arguments,
-                "error": {"code": -32603, "message": safe_msg},
-                "is_error": True,
-                "duration_ms": duration_ms,
-                "protocol_version": "2025-11-25",
-            }, status_code=500)
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "id": body.get("id", int(time.time() * 1000)),
+                    "tool": tool_name,
+                    "arguments": arguments,
+                    "error": {"code": -32603, "message": safe_msg},
+                    "is_error": True,
+                    "duration_ms": duration_ms,
+                    "protocol_version": "2025-11-25",
+                },
+                status_code=500,
+            )
 
     async def api_mcp_tools(request):
         tool_objs = await server.list_tools()
         tools_list = []
         for t in tool_objs:
-            schema = (
-                getattr(t, "input_schema", None)
-                or getattr(t, "inputSchema", None)
-                or getattr(t, "parameters", {})
+            schema = getattr(t, "input_schema", None) or getattr(t, "inputSchema", None) or getattr(t, "parameters", {})
+            tools_list.append(
+                {
+                    "name": t.name,
+                    "description": t.description,
+                    "inputSchema": schema,
+                    "parameters": schema,
+                }
             )
-            tools_list.append({
-                "name": t.name,
-                "description": t.description,
-                "inputSchema": schema,
-                "parameters": schema,
-            })
         return JSONResponse({"tools": tools_list})
 
     async def api_demo_skips_lunch_setup(request):
@@ -611,13 +613,15 @@ def create_app(
         host = request.headers.get("host", "127.0.0.1:8000")
         proto = "https" if request.url.is_secure or "https" in request.headers.get("x-forwarded-proto", "") else "http"
         base_url = f"{proto}://{host}"
-        return JSONResponse({
-            "resource": base_url,
-            "authorization_servers": [f"{base_url}/oauth"],
-            "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
-            "bearer_methods_supported": ["header"],
-            "resource_documentation": "https://github.com/KarnailSingh87/careloop",
-        })
+        return JSONResponse(
+            {
+                "resource": base_url,
+                "authorization_servers": [f"{base_url}/oauth"],
+                "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
+                "bearer_methods_supported": ["header"],
+                "resource_documentation": "https://github.com/KarnailSingh87/careloop",
+            }
+        )
 
     async def oauth_authorization_server_metadata(request: Request) -> JSONResponse:
         """
@@ -627,22 +631,28 @@ def create_app(
         host = request.headers.get("host", "127.0.0.1:8000")
         proto = "https" if request.url.is_secure or "https" in request.headers.get("x-forwarded-proto", "") else "http"
         base_url = f"{proto}://{host}"
-        return JSONResponse({
-            "issuer": base_url,
-            "authorization_endpoint": f"{base_url}/oauth/authorize",
-            "token_endpoint": f"{base_url}/oauth/token",
-            "response_types_supported": ["code"],
-            "grant_types_supported": ["authorization_code", "client_credentials"],
-            "code_challenge_methods_supported": ["S256"],
-            "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
-            "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
-        })
+        return JSONResponse(
+            {
+                "issuer": base_url,
+                "authorization_endpoint": f"{base_url}/oauth/authorize",
+                "token_endpoint": f"{base_url}/oauth/token",
+                "response_types_supported": ["code"],
+                "grant_types_supported": ["authorization_code", "client_credentials"],
+                "code_challenge_methods_supported": ["S256"],
+                "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+                "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
+            }
+        )
 
     app.routes.append(Route("/", root_endpoint, methods=["GET"]))
     app.routes.append(Route("/health", health_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator", simulator_endpoint, methods=["GET"]))
-    app.routes.append(Route("/.well-known/oauth-protected-resource", oauth_protected_resource_metadata, methods=["GET"]))
-    app.routes.append(Route("/.well-known/oauth-authorization-server", oauth_authorization_server_metadata, methods=["GET"]))
+    app.routes.append(
+        Route("/.well-known/oauth-protected-resource", oauth_protected_resource_metadata, methods=["GET"])
+    )
+    app.routes.append(
+        Route("/.well-known/oauth-authorization-server", oauth_authorization_server_metadata, methods=["GET"])
+    )
     app.routes.append(Route("/api/state", api_state_endpoint, methods=["GET"]))
     app.routes.append(Route("/api/clock/advance", api_clock_advance, methods=["POST"]))
     app.routes.append(Route("/api/clock/set", api_clock_set, methods=["POST"]))
@@ -755,6 +765,7 @@ def main() -> None:
     config = load_config(env_dict=env_override)
 
     clock = SimulatedClock() if args.clock == "simulated" else SystemClock()
+    storage: StorageBase
     if args.storage == "dynamodb":
         region = os.getenv("AWS_REGION", "us-east-1")
         storage = DynamoDBStorage(table_name=args.dynamo_table, region_name=region)

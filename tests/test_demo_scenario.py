@@ -26,13 +26,11 @@ from careloop.engine.risk import RiskEngine
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import (
     AlertLevel,
-    EmergencyContact,
     EscalationStage,
     Event,
     EventType,
-    PersonProfile,
 )
-from careloop.notifier import ConsoleNotifier, InMemoryNotifier, NotificationDeliveryStatus
+from careloop.notifier import InMemoryNotifier
 from careloop.storage.sqlite_store import SQLiteStorage
 from scripts.seed_data import seed_database
 

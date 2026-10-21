@@ -145,4 +145,3 @@ def test_auth_invalid_tokens_rejected(auth_client):
         headers={"Authorization": "Bearer completely-wrong-token-abc"},
     )
     assert res_wrong.status_code == 401
-

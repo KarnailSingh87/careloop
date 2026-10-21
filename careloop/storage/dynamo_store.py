@@ -4,7 +4,7 @@ AWS DynamoDB implementation of the CareLoop typed storage interface.
 Supports single-table design for AWS Builder Challenge and cloud deployments.
 Schema:
   - Partition Key (PK): PERSON#{person_id}
-  - Sort Key (SK): 
+  - Sort Key (SK):
       * EVENT#{timestamp}#{event_id}
       * BASELINE#{routine_type}
       * PROFILE
@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -52,8 +51,15 @@ from careloop.storage.base import (
 logger = logging.getLogger(__name__)
 
 FORBIDDEN_AUDIO_KEYS = {
-    "audio", "raw_audio", "recording", "voice_recording",
-    "audio_bytes", "wav", "mp3", "pcm", "ambient_audio",
+    "audio",
+    "raw_audio",
+    "recording",
+    "voice_recording",
+    "audio_bytes",
+    "wav",
+    "mp3",
+    "pcm",
+    "ambient_audio",
 }
 
 
@@ -75,9 +81,7 @@ class DynamoDBStorage(StorageBase):
             self._dynamodb = dynamodb_resource
         else:
             # Configure adaptive client-level retry policy for transient AWS errors
-            retry_config = Config(
-                retries={"max_attempts": 5, "mode": "adaptive"}
-            )
+            retry_config = Config(retries={"max_attempts": 5, "mode": "adaptive"})
             self._dynamodb = boto3.resource(
                 "dynamodb",
                 region_name=self.region_name,
@@ -154,12 +158,7 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to save event to DynamoDB: {e}")
             raise StorageError(f"DynamoDB save_event failed: {e}") from e
 
-    def get_events(
-        self,
-        person_id: str,
-        limit: int = 100,
-        event_type: Optional[str] = None
-    ) -> List[Event]:
+    def get_events(self, person_id: str, limit: int = 100, event_type: Optional[str] = None) -> List[Event]:
         self._check_closed()
         try:
             events: List[Event] = []
@@ -215,9 +214,7 @@ class DynamoDBStorage(StorageBase):
     def save_baseline(self, baseline: LearnedBaseline) -> None:
         self._check_closed()
         routine_type_str = (
-            baseline.routine_type.value
-            if hasattr(baseline.routine_type, "value")
-            else str(baseline.routine_type)
+            baseline.routine_type.value if hasattr(baseline.routine_type, "value") else str(baseline.routine_type)
         )
         try:
             item = {
@@ -348,11 +345,7 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to save reminder to DynamoDB: {e}")
             raise StorageError(f"DynamoDB save_reminder failed: {e}") from e
 
-    def get_reminders(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Reminder]:
+    def get_reminders(self, person_id: str, active_only: bool = True) -> List[Reminder]:
         self._check_closed()
         try:
             reminders: List[Reminder] = []
@@ -522,11 +515,7 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to save alert to DynamoDB: {e}")
             raise StorageError(f"DynamoDB save_alert failed: {e}") from e
 
-    def get_alerts(
-        self,
-        person_id: str,
-        active_only: bool = True
-    ) -> List[Alert]:
+    def get_alerts(self, person_id: str, active_only: bool = True) -> List[Alert]:
         self._check_closed()
         try:
             alerts: List[Alert] = []
@@ -756,9 +745,7 @@ class DynamoDBStorage(StorageBase):
         self._check_closed()
         results = {"events": 0, "alerts": 0, "baselines": 0, "reminders": 0, "escalation_state": 0, "profiles": 0}
         try:
-            res = self._table.query(
-                KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}")
-            )
+            res = self._table.query(KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}"))
             items = res.get("Items", [])
             for item in items:
                 sk = item.get("SK", "")
@@ -794,7 +781,9 @@ class DynamoDBStorage(StorageBase):
             )
             for item in res.get("Items", []):
                 meta = json.loads(item.get("metadata", "{}"))
-                if meta.get("source") in ("simulator_demo", "simulator_manual") or item.get("event_id", "").startswith("demo_"):
+                if meta.get("source") in ("simulator_demo", "simulator_manual") or item.get("event_id", "").startswith(
+                    "demo_"
+                ):
                     self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
 
             # Query demo alerts

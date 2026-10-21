@@ -39,15 +39,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from scripts.seed_data import seed_database
+from scripts.seed_data import seed_database  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("careloop.demo")
@@ -59,6 +58,7 @@ DEFAULT_DB = "careloop_demo.db"
 # ---------------------------------------------------------------------------
 # HTTP Helpers for Real MCP Backend API
 # ---------------------------------------------------------------------------
+
 
 def http_get(url: str, timeout: float = 5.0) -> Tuple[int, Dict[str, Any]]:
     req = urllib.request.Request(url, headers={"User-Agent": "CareLoopDemoRunner/1.0"})
@@ -111,6 +111,7 @@ def call_mcp_tool(base_url: str, tool_name: str, arguments: Dict[str, Any]) -> D
 # Database Isolation & Seeding
 # ---------------------------------------------------------------------------
 
+
 def prepare_demo_database(db_path: str, force_reseed: bool = False, days: int = 30) -> None:
     """Prepare isolated demo database with multi-day realistic routine history."""
     db_abs = os.path.abspath(db_path)
@@ -137,6 +138,7 @@ def prepare_demo_database(db_path: str, force_reseed: bool = False, days: int = 
 # ---------------------------------------------------------------------------
 # Server Lifecycle Management
 # ---------------------------------------------------------------------------
+
 
 def is_server_running(base_url: str) -> bool:
     status, data = http_get(f"{base_url}/health", timeout=1.5)
@@ -200,6 +202,7 @@ def start_server_process(
 # AWS Mode Preflight Verification
 # ---------------------------------------------------------------------------
 
+
 def run_aws_preflight() -> bool:
     """
     Explicitly opt-in AWS mode preflight check.
@@ -260,7 +263,7 @@ def run_aws_preflight() -> bool:
     bedrock_model = os.environ.get("CARELOOP_BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
     try:
         bedrock = boto3.client("bedrock-runtime", region_name=region)
-        test_res = bedrock.converse(
+        bedrock.converse(
             modelId=bedrock_model,
             messages=[{"role": "user", "content": [{"text": "Hello"}]}],
             inferenceConfig={"maxTokens": 10},
@@ -276,6 +279,7 @@ def run_aws_preflight() -> bool:
 # ---------------------------------------------------------------------------
 # Core Scenario Execution (The 9-Step Verification)
 # ---------------------------------------------------------------------------
+
 
 def run_scenario_iteration(
     base_url: str,
@@ -307,7 +311,9 @@ def run_scenario_iteration(
     res_1 = health_1["result"]
     assert res_1["escalation_stage"] == "normal", f"Expected stage 'normal', got {res_1['escalation_stage']}"
     assert res_1["risk_score"] < 0.30, f"Expected nominal risk, got {res_1['risk_score']}"
-    logger.info(f"  ✓ Learned baseline verified. Stage={res_1['escalation_stage']}, Risk={res_1['risk_score']} ({res_1['risk_level']}).")
+    logger.info(
+        f"  ✓ Learned baseline verified. Stage={res_1['escalation_stage']}, Risk={res_1['risk_score']} ({res_1['risk_level']})."
+    )
 
     # Step 2: Injectable clock advances beyond configured grace window (09:30 AM UTC)
     logger.info("• Step 2: Advancing injectable clock to 09:30 UTC (+90m, past 09:00 grace window)...")
@@ -321,7 +327,9 @@ def run_scenario_iteration(
     risk_score = res_2["risk_score"]
     assert 0.35 <= risk_score <= 0.65, f"Expected elevated risk score for missed pill, got {risk_score}"
     reasons = res_2.get("reasons", [])
-    assert any("medication" in r.lower() or "pill" in r.lower() for r in reasons), f"Missing medication in reasons: {reasons}"
+    assert any("medication" in r.lower() or "pill" in r.lower() for r in reasons), (
+        f"Missing medication in reasons: {reasons}"
+    )
     logger.info(f"  ✓ Baseline engine identified missed event! Risk={risk_score} ({res_2['risk_level']})")
     logger.info(f"  ✓ Explainable reasons: {reasons[0]}")
 
@@ -353,7 +361,7 @@ def run_scenario_iteration(
 
     # Idempotency / Deduplication check: repeated tick must NOT create duplicate alerts!
     logger.info("• Deduplication verification: Ticking again at notify_family...")
-    tick_dup = call_mcp_tool(base_url, "tick_escalation", {"person": person_id})
+    call_mcp_tool(base_url, "tick_escalation", {"person": person_id})
     _, state_data_dup = http_get(f"{base_url}/api/state?person={person_id}")
     active_alerts_dup = [a for a in state_data_dup.get("alerts", []) if a.get("status") == "ACTIVE"]
     assert len(active_alerts_dup) == 1, f"DUPLICATE ALERT DETECTED! Expected 1, found {len(active_alerts_dup)}"
@@ -367,7 +375,7 @@ def run_scenario_iteration(
         {"person": person_id, "question": "Did Mom take her blood pressure medication this morning?"},
     )
     ans_1 = mem_1["result"]["answer"]
-    logger.info(f"  ✓ Memory Q&A (Medication): \"{ans_1}\"")
+    logger.info(f'  ✓ Memory Q&A (Medication): "{ans_1}"')
     assert "no record" in ans_1.lower() or "pill" in ans_1.lower() or "medication" in ans_1.lower(), (
         f"Grounded response violated: {ans_1}"
     )
@@ -378,10 +386,8 @@ def run_scenario_iteration(
         {"person": person_id, "question": "Was there any movement in Mom's room this morning?"},
     )
     ans_2 = mem_2["result"]["answer"]
-    logger.info(f"  ✓ Memory Q&A (Movement): \"{ans_2}\"")
-    assert "07:30" in ans_2 or "bedroom" in ans_2 or "movement" in ans_2.lower(), (
-        f"Grounded response violated: {ans_2}"
-    )
+    logger.info(f'  ✓ Memory Q&A (Movement): "{ans_2}"')
+    assert "07:30" in ans_2 or "bedroom" in ans_2 or "movement" in ans_2.lower(), f"Grounded response violated: {ans_2}"
 
     # Step 9: Resolve incident via confirm_ok
     logger.info("• Step 9: Caregiver confirms elder safety (confirm_ok)...")
@@ -410,6 +416,7 @@ def run_scenario_iteration(
 # Main CLI Entry Point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="CareLoop End-to-End Repeatable Demonstration Orchestrator",
@@ -418,7 +425,9 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Server port (default 8000)")
     parser.add_argument("--db", default=DEFAULT_DB, help=f"Path to isolated demo database (default '{DEFAULT_DB}')")
     parser.add_argument("--auto", action="store_true", help="Execute complete demonstration sequence automatically")
-    parser.add_argument("--repeat", type=int, default=1, help="Number of consecutive scenario runs from clean start (default 1)")
+    parser.add_argument(
+        "--repeat", type=int, default=1, help="Number of consecutive scenario runs from clean start (default 1)"
+    )
     parser.add_argument("--reseed", action="store_true", help="Force re-seeding the demo database")
     parser.add_argument("--aws", action="store_true", help="Opt-in AWS mode preflight check")
     parser.add_argument("--interactive", action="store_true", help="Open web browser simulator after readying demo")
@@ -450,7 +459,9 @@ def main() -> None:
         # 4. If --auto was requested, run multi-iteration repeatability check
         if args.auto or args.repeat > 1:
             iterations = max(args.repeat, 3 if args.auto else 1)
-            logger.info(f"\n🚀 Running full scenario from a clean start {iterations} times to verify zero duplicate alerts, consistent timestamps, and no stale state...")
+            logger.info(
+                f"\n🚀 Running full scenario from a clean start {iterations} times to verify zero duplicate alerts, consistent timestamps, and no stale state..."
+            )
 
             history: List[Dict[str, Any]] = []
             for i in range(1, iterations + 1):
@@ -465,7 +476,9 @@ def main() -> None:
             print(f"• Total Consecutive Runs Completed: {len(history)}/{iterations}")
             print("• State Machine Transitions Verified:")
             for h in history:
-                print(f"   - Run {h['iteration']}: Alert={h['alert_id'][:8]}... Risk={h['risk_score']} | Path: {h['stage_transition']}")
+                print(
+                    f"   - Run {h['iteration']}: Alert={h['alert_id'][:8]}... Risk={h['risk_score']} | Path: {h['stage_transition']}"
+                )
             print("• Idempotency & Deduplication: Zero duplicate alerts on repeated ticks.")
             print("• Persisted State Machine: Fully restored to NORMAL on clean starts.")
             print("• Grounded Memory Q&A: 100% grounded in recorded logs; zero hallucinations.")
@@ -477,6 +490,7 @@ def main() -> None:
             logger.info(f"\n🌐 Opening CareLoop Simulator UI at {sim_url}...")
             try:
                 import webbrowser
+
                 webbrowser.open(sim_url)
             except Exception as e:
                 logger.warning(f"Could not open browser automatically: {e}")
@@ -486,7 +500,7 @@ def main() -> None:
             print("=" * 65)
             print(f"• Simulator Dashboard: {sim_url}")
             print(f"• MCP Streamable HTTP: {base_url}/mcp")
-            print(f"• Monitored Elders:    Eleanor Davis, Arthur Davis (Dad), Martha Jenkins")
+            print("• Monitored Elders:    Eleanor Davis, Arthur Davis (Dad), Martha Jenkins")
             print(f"• Isolated Database:   {os.path.abspath(args.db)}")
             print("• One-Click Triggers:  Click '💊 Missed Meds Demo' or '🍲 Dad Skips Lunch Demo'")
             print("• Press Ctrl+C to stop the demonstration server.")

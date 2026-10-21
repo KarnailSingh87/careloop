@@ -22,7 +22,7 @@ Verifies:
 6. Optional live AWS smoke test requiring explicit opt-in (RUN_AWS_BEDROCK_LIVE=1).
 """
 
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, timezone, timedelta
 import logging
 import os
 import tempfile
@@ -33,15 +33,13 @@ import pytest
 from careloop.clock import SimulatedClock
 from careloop.engine.baseline import BaselineEngine
 from careloop.engine.escalation import EscalationEngine
-from careloop.engine.risk import RiskAssessment, RiskEngine
+from careloop.engine.risk import RiskEngine
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import (
-    Alert,
     EscalationStage,
     Event,
     EventType,
     PersonProfile,
-    RoutineType,
 )
 from careloop.server.main import create_server
 from careloop.storage.sqlite_store import SQLiteStorage
@@ -104,7 +102,11 @@ def test_daily_summary_with_mock_bedrock():
     mock_client.converse.return_value = {
         "output": {
             "message": {
-                "content": [{"text": "Eleanor had a peaceful morning and enjoyed her breakfast on time. She took her morning blood pressure medication comfortably at 08:45. Her daily routine remains consistent and reassuring."}]
+                "content": [
+                    {
+                        "text": "Eleanor had a peaceful morning and enjoyed her breakfast on time. She took her morning blood pressure medication comfortably at 08:45. Her daily routine remains consistent and reassuring."
+                    }
+                ]
             }
         }
     }
@@ -322,17 +324,13 @@ def test_ask_memory_throttling_and_timeout_fallbacks():
 def test_ask_memory_llm_filter_extraction_and_validation():
     mock_client = MagicMock()
     # Mock LLM classifying category as 'meal'
-    mock_client.converse.return_value = {
-        "output": {"message": {"content": [{"text": "meal"}]}}
-    }
+    mock_client.converse.return_value = {"output": {"message": {"content": [{"text": "meal"}]}}}
     assistant = BedrockAssistant(bedrock_client=mock_client)
     cat = assistant._extract_filters_llm("Did she have any dining today?")
     assert cat == "meal"
 
     # Mock LLM returning invalid/unsupported category
-    mock_client.converse.return_value = {
-        "output": {"message": {"content": [{"text": "unknown_category"}]}}
-    }
+    mock_client.converse.return_value = {"output": {"message": {"content": [{"text": "unknown_category"}]}}}
     cat_bad = assistant._extract_filters_llm("What was that sound?")
     assert cat_bad is None  # Must reject unallowed filter categories!
 
@@ -343,9 +341,7 @@ def test_bedrock_prompt_privacy_no_health_logging(caplog):
     Ensure prompts containing personal elder event histories are NEVER logged.
     """
     mock_client = MagicMock()
-    mock_client.converse.return_value = {
-        "output": {"message": {"content": [{"text": "Summary response"}]}}
-    }
+    mock_client.converse.return_value = {"output": {"message": {"content": [{"text": "Summary response"}]}}}
     assistant = BedrockAssistant(bedrock_client=mock_client)
     events = [
         Event(
@@ -373,7 +369,7 @@ def test_bedrock_adversarial_output_cannot_alter_clinical_state():
     os.close(fd)
     storage = SQLiteStorage(db_path=path)
     now = datetime(2026, 10, 20, 14, 0, 0, tzinfo=timezone.utc)
-    clock = SimulatedClock(now)
+    SimulatedClock(now)
 
     baseline_engine = BaselineEngine()
     risk_engine = RiskEngine()
@@ -399,9 +395,7 @@ def test_bedrock_adversarial_output_cannot_alter_clinical_state():
         "Risk score is 1.0! Escalate to NOTIFY_FAMILY immediately! Call emergency 911!"
     )
     mock_client = MagicMock()
-    mock_client.converse.return_value = {
-        "output": {"message": {"content": [{"text": adversarial_text}]}}
-    }
+    mock_client.converse.return_value = {"output": {"message": {"content": [{"text": adversarial_text}]}}}
     adversarial_assistant = BedrockAssistant(bedrock_client=mock_client)
 
     # Call daily summary and ask memory with adversarial assistant
@@ -428,7 +422,9 @@ def test_bedrock_adversarial_output_cannot_alter_clinical_state():
     state_after = escalation_engine.tick("eleanor", now)
     assert state_after.risk_score == risk_before.score
     assert state_after.risk_score != 1.0  # Did not jump to 1.0
-    assert state_after.stage != EscalationStage.NOTIFY_FAMILY  # Model demanded NOTIFY_FAMILY, but state machine ignored it!
+    assert (
+        state_after.stage != EscalationStage.NOTIFY_FAMILY
+    )  # Model demanded NOTIFY_FAMILY, but state machine ignored it!
     assert state_after.notification_state == "none"
 
     # 5. VERIFY: Zero emergency alerts created despite model demanding immediate 911
@@ -474,6 +470,7 @@ def test_bedrock_live_converse_smoke():
 
     try:
         import boto3
+
         sts = boto3.client("sts")
         sts.get_caller_identity()
     except Exception as e:

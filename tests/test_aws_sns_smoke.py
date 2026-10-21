@@ -43,7 +43,7 @@ def _check_aws_preflight():
     try:
         sts = boto3.client("sts")
         identity = sts.get_caller_identity()
-        account_id = identity.get("Account", "unknown")
+        identity.get("Account", "unknown")
     except (NoCredentialsError, ClientError) as e:
         pytest.skip(f"AWS preflight failed: No valid AWS credentials found ({e}).")
 

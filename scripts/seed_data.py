@@ -36,8 +36,8 @@ from typing import Any, Dict
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from careloop.models import PersonProfile, EmergencyContact, Event, EventType
-from careloop.server.models import Reminder, ReminderStatus
+from careloop.models import EmergencyContact, Event, EventType, PersonProfile, Reminder, ReminderStatus
+
 from careloop.storage.sqlite_store import SQLiteStorage
 
 
@@ -68,14 +68,14 @@ PERSONAS = {
             ],
         ),
         "schedule": {
-            "wake_mu": 450,       # 07:30 UTC
+            "wake_mu": 450,  # 07:30 UTC
             "wake_sigma": 8,
-            "pill_mu": 495,       # 08:15 UTC
+            "pill_mu": 495,  # 08:15 UTC
             "pill_sigma": 6,
             "pill_name": "Lisinopril 10mg (Blood Pressure)",
-            "door_mu": 690,       # 11:30 UTC
+            "door_mu": 690,  # 11:30 UTC
             "door_sigma": 10,
-            "lunch_mu": 765,      # 12:45 UTC
+            "lunch_mu": 765,  # 12:45 UTC
             "lunch_sigma": 8,
             "afternoon_mu": 900,  # 15:00 UTC
             "afternoon_sigma": 12,
@@ -121,14 +121,14 @@ PERSONAS = {
             ],
         ),
         "schedule": {
-            "wake_mu": 420,       # 07:00 UTC
+            "wake_mu": 420,  # 07:00 UTC
             "wake_sigma": 6,
-            "pill_mu": 480,       # 08:00 UTC
+            "pill_mu": 480,  # 08:00 UTC
             "pill_sigma": 5,
             "pill_name": "Metoprolol 25mg (Heart Beta-Blocker)",
-            "door_mu": 675,       # 11:15 UTC
+            "door_mu": 675,  # 11:15 UTC
             "door_sigma": 8,
-            "lunch_mu": 750,      # 12:30 UTC
+            "lunch_mu": 750,  # 12:30 UTC
             "lunch_sigma": 7,
             "afternoon_mu": 870,  # 14:30 UTC
             "afternoon_sigma": 10,
@@ -172,14 +172,14 @@ PERSONAS = {
             ],
         ),
         "schedule": {
-            "wake_mu": 510,       # 08:30 UTC
+            "wake_mu": 510,  # 08:30 UTC
             "wake_sigma": 12,
-            "pill_mu": 555,       # 09:15 UTC
+            "pill_mu": 555,  # 09:15 UTC
             "pill_sigma": 10,
             "pill_name": "Celebrex 200mg (Arthritis)",
-            "door_mu": 720,       # 12:00 UTC
+            "door_mu": 720,  # 12:00 UTC
             "door_sigma": 12,
-            "lunch_mu": 795,      # 13:15 UTC
+            "lunch_mu": 795,  # 13:15 UTC
             "lunch_sigma": 10,
             "afternoon_mu": 960,  # 16:00 UTC
             "afternoon_sigma": 15,
@@ -497,7 +497,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate 60 simulated days of routine data")
     parser.add_argument("--db", default="careloop_local.db", help="Path to SQLite database")
     parser.add_argument("--days", type=int, default=60, help="Number of simulated days")
-    parser.add_argument("--incidents-file", default="scripts/ground_truth_incidents.json", help="Path for JSON ground truth output")
+    parser.add_argument(
+        "--incidents-file", default="scripts/ground_truth_incidents.json", help="Path for JSON ground truth output"
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
 
     args = parser.parse_args()

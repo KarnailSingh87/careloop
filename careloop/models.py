@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class EventType(str, Enum):
     """Supported routine event categories."""
+
     PILL = "pill"
     MEAL = "meal"
     MOVEMENT = "movement"
@@ -27,6 +28,7 @@ class EventType(str, Enum):
 
 class RoutineType(str, Enum):
     """Standard elder daily routine types."""
+
     MORNING_MEDS = "morning_meds"
     EVENING_MEDS = "evening_meds"
     BREAKFAST = "breakfast"
@@ -39,6 +41,7 @@ class RoutineType(str, Enum):
 
 class AlertLevel(str, Enum):
     """Deterministic alert escalation levels."""
+
     INFO = "info"
     CHECKIN_REQUIRED = "checkin_required"
     MISSED_ROUTINE = "missed_routine"
@@ -49,6 +52,7 @@ class AlertLevel(str, Enum):
 
 class EscalationStage(str, Enum):
     """Persisted escalation state machine stages."""
+
     NORMAL = "normal"
     GENTLE_CHECK_IN = "gentle_check_in"
     REPEAT_CHECK_IN = "repeat_check_in"
@@ -57,6 +61,7 @@ class EscalationStage(str, Enum):
 
 class EscalationState(BaseModel):
     """Persisted per-person escalation state."""
+
     person_id: str
     stage: EscalationStage = EscalationStage.NORMAL
     entered_at: datetime
@@ -72,6 +77,7 @@ class EscalationState(BaseModel):
 
 class EmergencyContact(BaseModel):
     """Designated caregiver or family contact."""
+
     name: str
     relationship: str
     phone: str
@@ -81,6 +87,7 @@ class EmergencyContact(BaseModel):
 
 class PersonProfile(BaseModel):
     """Elder parent profile configuration."""
+
     person_id: str
     display_name: str
     timezone: str = "UTC"
@@ -91,27 +98,28 @@ class PersonProfile(BaseModel):
 class Event(BaseModel):
     """
     Routine event log entry.
-    
+
     STRICT PRIVACY GUARANTEE:
     Only metadata (person, type, timestamp, optional tags) is captured.
     Raw audio or ambient sound is never recorded or stored.
     """
+
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     event_type: EventType
     timestamp: datetime
     metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Non-audio metadata such as location, room, pill bottle id, or meal category."
+        default_factory=dict, description="Non-audio metadata such as location, room, pill bottle id, or meal category."
     )
 
 
 class RoutineRule(BaseModel):
     """
     Expected daily routine window configuration.
-    
+
     Times are stored in HH:MM (24-hour UTC or local person-time).
     """
+
     routine_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     routine_type: RoutineType
@@ -129,6 +137,7 @@ class LearnedBaseline(BaseModel):
     Dynamically learned schedule baseline from historical observations.
     Calculated purely via deterministic statistical methods (no LLM in the loop).
     """
+
     person_id: str
     routine_type: Union[RoutineType, str]
     sample_count: int
@@ -150,6 +159,7 @@ class CheckinStatus(str, Enum):
 
 class CheckinPrompt(BaseModel):
     """Alexa voice check-in attempt record."""
+
     checkin_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     routine_type: RoutineType
@@ -164,28 +174,26 @@ class CheckinPrompt(BaseModel):
 class Alert(BaseModel):
     """
     Deterministic alert dispatched to family or caregivers.
-    
+
     RULE: Every alert MUST have explicit, human-readable reasons explaining
     the baseline, the observed data, and why an alert was triggered.
     """
+
     alert_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     level: AlertLevel
     created_at: datetime
     title: str
-    reasons: List[str] = Field(
-        ...,
-        description="Human-readable deterministic reasons justifying this alert."
-    )
+    reasons: List[str] = Field(..., description="Human-readable deterministic reasons justifying this alert.")
     recommended_action: str
     routine_type: Optional[RoutineType] = None
     status: str = "ACTIVE"  # ACTIVE, ACKNOWLEDGED, RESOLVED
     notification_status: str = "pending"  # "pending", "accepted", "delivered", "failed", "retrying"
     severity: str = "high"  # "low", "medium", "high", "critical"
-    dedup_key: str = ""     # Stable deduplication key
+    dedup_key: str = ""  # Stable deduplication key
     message_id: Optional[str] = None  # Provider message identifier (e.g. SNS MessageId)
     accepted_at: Optional[datetime] = None  # When provider accepted dispatch
-    delivered_at: Optional[datetime] = None # When delivery was confirmed
+    delivered_at: Optional[datetime] = None  # When delivery was confirmed
     delivery_error: Optional[str] = None
     retry_count: int = 0
     event_ids: List[str] = Field(default_factory=list)
@@ -195,7 +203,10 @@ class Alert(BaseModel):
     def populate_dedup_and_severity(self) -> "Alert":
         if not self.dedup_key:
             sev = self.severity or (self.level.value if hasattr(self.level, "value") else str(self.level))
-            r_type = self.routine_type.value if hasattr(self.routine_type, "value") else (str(self.routine_type) if self.routine_type else "incident")
+            if self.routine_type is not None:
+                r_type = self.routine_type.value if hasattr(self.routine_type, "value") else str(self.routine_type)
+            else:
+                r_type = "incident"
             date_part = self.created_at.strftime("%Y-%m-%d") if self.created_at else "date"
             self.dedup_key = f"alert:{self.person_id.lower()}:{date_part}:{r_type.lower()}:{sev.lower()}"
         return self
@@ -210,6 +221,7 @@ class ReminderStatus(str, Enum):
 
 class Reminder(BaseModel):
     """Voice reminder scheduled through Alexa+."""
+
     reminder_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     person_id: str
     text: str
