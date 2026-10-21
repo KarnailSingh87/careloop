@@ -19,10 +19,11 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
@@ -137,6 +138,7 @@ class DynamoDBStorage(StorageBase):
             "timestamp": event.timestamp.isoformat(),
             "metadata": json.dumps(event.metadata),
             "item_type": "EVENT",
+            "TTL": int((event.timestamp + timedelta(days=90)).timestamp()),
         }
 
         try:
@@ -513,6 +515,7 @@ class DynamoDBStorage(StorageBase):
                 "event_ids": json.dumps(alert.event_ids),
                 "metadata": json.dumps(alert.metadata),
                 "item_type": "ALERT",
+                "TTL": int((alert.created_at + timedelta(days=180)).timestamp()),
             }
             self._table.put_item(Item=item)
         except ClientError as e:
@@ -678,6 +681,105 @@ class DynamoDBStorage(StorageBase):
         except ClientError as e:
             logger.error(f"Failed to get escalation state from DynamoDB: {e}")
             raise StorageError(f"DynamoDB get_escalation_state failed: {e}") from e
+
+    def purge_expired_events(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 90,
+    ) -> int:
+        """
+        Manually purge routine event records older than max_age_days from DynamoDB.
+        """
+        self._check_closed()
+        cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+        deleted_count = 0
+        try:
+            if person_id:
+                res = self._table.query(
+                    KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}") & Key("SK").begins_with("EVENT#")
+                )
+                items = res.get("Items", [])
+            else:
+                res = self._table.scan(
+                    FilterExpression=Attr("item_type").eq("EVENT") & Attr("timestamp").lt(cutoff_iso)
+                )
+                items = res.get("Items", [])
+
+            for item in items:
+                if item.get("timestamp", "") < cutoff_iso:
+                    self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+                    deleted_count += 1
+            logger.info(f"Purged {deleted_count} expired DynamoDB event records (older than {max_age_days}d).")
+            return deleted_count
+        except ClientError as e:
+            logger.error(f"Failed to purge expired events from DynamoDB: {e}")
+            raise StorageError(f"DynamoDB purge_expired_events failed: {e}") from e
+
+    def purge_expired_alerts(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 180,
+    ) -> int:
+        """
+        Manually purge alert records older than max_age_days from DynamoDB.
+        """
+        self._check_closed()
+        cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+        deleted_count = 0
+        try:
+            if person_id:
+                res = self._table.query(
+                    KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}") & Key("SK").begins_with("ALERT#")
+                )
+                items = res.get("Items", [])
+            else:
+                res = self._table.scan(
+                    FilterExpression=Attr("item_type").eq("ALERT") & Attr("created_at").lt(cutoff_iso)
+                )
+                items = res.get("Items", [])
+
+            for item in items:
+                if item.get("created_at", "") < cutoff_iso:
+                    self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+                    deleted_count += 1
+            logger.info(f"Purged {deleted_count} expired DynamoDB alert records (older than {max_age_days}d).")
+            return deleted_count
+        except ClientError as e:
+            logger.error(f"Failed to purge expired alerts from DynamoDB: {e}")
+            raise StorageError(f"DynamoDB purge_expired_alerts failed: {e}") from e
+
+    def delete_person_data(self, person_id: str) -> Dict[str, int]:
+        """
+        Purge all records associated with a person in DynamoDB.
+        Supports GDPR right-to-be-forgotten deletion.
+        """
+        self._check_closed()
+        results = {"events": 0, "alerts": 0, "baselines": 0, "reminders": 0, "escalation_state": 0, "profiles": 0}
+        try:
+            res = self._table.query(
+                KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}")
+            )
+            items = res.get("Items", [])
+            for item in items:
+                sk = item.get("SK", "")
+                self._table.delete_item(Key={"PK": item["PK"], "SK": sk})
+                if sk.startswith("EVENT#"):
+                    results["events"] += 1
+                elif sk.startswith("ALERT#"):
+                    results["alerts"] += 1
+                elif sk.startswith("BASELINE#"):
+                    results["baselines"] += 1
+                elif sk.startswith("REMINDER#"):
+                    results["reminders"] += 1
+                elif sk == "ESCALATION_STATE":
+                    results["escalation_state"] += 1
+                elif sk == "PROFILE":
+                    results["profiles"] += 1
+            logger.info(f"Deleted all DynamoDB records for person '{person_id}': {results}")
+            return results
+        except ClientError as e:
+            logger.error(f"Failed to delete person data from DynamoDB: {e}")
+            raise StorageError(f"DynamoDB delete_person_data failed: {e}") from e
 
     def clear_demo_data(self, person_id: str = "dad") -> None:
         """

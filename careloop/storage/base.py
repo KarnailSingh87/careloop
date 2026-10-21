@@ -149,6 +149,41 @@ class StorageBase(ABC):
         """Fetch per-person escalation state machine status."""
         raise NotImplementedError
 
+    # --- Data Retention & Privacy Deletion Policies ---
+    @abstractmethod
+    def purge_expired_events(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 90,
+    ) -> int:
+        """
+        Purge routine event records older than max_age_days.
+        Enforces routine data minimization and retention policies.
+        Returns count of deleted event records.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def purge_expired_alerts(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 180,
+    ) -> int:
+        """
+        Purge resolved or historical alert records older than max_age_days.
+        Returns count of deleted alert records.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_person_data(self, person_id: str) -> Dict[str, int]:
+        """
+        Completely purge all records associated with a person.
+        Supports GDPR / CCPA right-to-be-forgotten compliance.
+        Returns summary dictionary with counts of deleted records per entity type.
+        """
+        raise NotImplementedError
+
     # --- Demo Isolation ---
     def clear_demo_data(self, person_id: str = "dad") -> None:
         """

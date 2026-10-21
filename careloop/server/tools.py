@@ -17,6 +17,10 @@ import uuid
 
 from dateutil import parser as date_parser
 
+import collections
+import re
+import time
+
 try:
     from mcp.server.mcpserver.exceptions import ToolError
 except ImportError:
@@ -31,9 +35,40 @@ from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import Event, EventType, EscalationStage, Alert, AlertLevel
 from careloop.notifier import NotifierBase, get_default_notifier, NotificationDeliveryStatus, ALLOWED_SEVERITIES
 from careloop.server.models import Reminder, ReminderStatus, RoutineEventType
+from careloop.server.security import check_tool_authorization
 from careloop.storage.base import StorageBase
 
 logger = logging.getLogger(__name__)
+
+PERSON_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_\-]{1,64}$")
+
+# Notification rate limit tracker to prevent SMS flooding (max 10 notifications per hour per person)
+_NOTIFICATION_TIMESTAMPS: Dict[str, collections.deque] = collections.defaultdict(collections.deque)
+
+
+def validate_person_identifier(person: Optional[str]) -> str:
+    """Validate and sanitize person identifier."""
+    if not person or not isinstance(person, str) or not person.strip():
+        raise ToolError("Person identifier cannot be empty.")
+    cleaned = person.strip().lower()
+    if not PERSON_ID_PATTERN.match(cleaned):
+        raise ToolError(
+            f"Invalid person identifier '{person}'. Must be alphanumeric with dashes/underscores (1-64 characters)."
+        )
+    return cleaned
+
+
+def check_notification_rate_limit(person_id: str, max_per_hour: int = 10) -> bool:
+    """Check sliding window quota for notifications dispatched for a person."""
+    now = time.time()
+    history = _NOTIFICATION_TIMESTAMPS[person_id]
+    while history and history[0] < now - 3600.0:
+        history.popleft()
+    if len(history) >= max_per_hour:
+        return False
+    history.append(now)
+    return True
+
 
 # Valid event types for log_routine_event
 VALID_EVENT_TYPES = {
@@ -102,6 +137,18 @@ def register_tools(
             timestamp: Optional ISO 8601 timestamp string (defaults to current clock time if None)
             metadata: Optional additional metadata dictionary (e.g. source, room, notes)
         """
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("log_routine_event", person=p_id)
+
+        if metadata:
+            if not isinstance(metadata, dict) or len(metadata) > 50:
+                raise ToolError("Invalid metadata: must be a dictionary with at most 50 keys.")
+            try:
+                if len(json.dumps(metadata)) > 8192:
+                    raise ToolError("Invalid metadata: serialized payload exceeds 8KB limit.")
+            except (TypeError, ValueError) as e:
+                raise ToolError(f"Invalid metadata: must be JSON serializable: {e}")
+
         normalized_type = type.strip().lower()
         if normalized_type not in VALID_EVENT_TYPES:
             valid_options = ", ".join(sorted(VALID_EVENT_TYPES.keys()))
@@ -127,7 +174,7 @@ def register_tools(
             event_meta.update(metadata)
 
         event = Event(
-            person_id=person.strip().lower(),
+            person_id=p_id,
             event_type=event_type,
             timestamp=event_time,
             metadata=event_meta,
@@ -165,7 +212,7 @@ def register_tools(
         }
 
     @server.tool()
-    def check_routine_health(person: str) -> Dict[str, Any]:
+    def check_routine_health(person: str = "dad") -> Dict[str, Any]:
         """
         Evaluate an elder parent's routine health, deterministic risk score, and escalation stage.
 
@@ -182,7 +229,9 @@ def register_tools(
         Parameters:
             person: Identifier of the elder parent (e.g. "eleanor", "dad", "mom")
         """
-        person_id = person.strip().lower()
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("check_routine_health", person=p_id)
+        person_id = p_id
         now = clock.now()
 
         # Advance state machine via tick
@@ -236,7 +285,13 @@ def register_tools(
             person: Identifier of the elder parent (e.g. "eleanor", "dad")
             response_text: Full transcribed text spoken by the elder parent
         """
-        person_id = person.strip().lower()
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("respond_to_checkin", person=p_id)
+        if not response_text or not response_text.strip():
+            raise ToolError("Response text cannot be empty.")
+        if len(response_text) > 1000:
+            raise ToolError("Response text exceeds maximum length of 1000 characters.")
+        person_id = p_id
         now = clock.now()
         state = escalation_engine.handle_voice_response(person_id, response_text, now)
         voice_msg = f"Thanks for letting me know, {person_id.capitalize()}. I've updated your routine status."
@@ -265,15 +320,18 @@ def register_tools(
             text: Spoken reminder message (e.g. "Drink water and take blood pressure pill")
             time: Target scheduled time (ISO 8601 string or HH:MM time, e.g. "15:00")
         """
-        if not person or not person.strip():
-            raise ToolError("Person identifier cannot be empty.")
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("schedule_reminder", person=p_id)
         if not text or not text.strip():
             raise ToolError("Reminder text cannot be empty.")
+        if len(text) > 1000:
+            raise ToolError("Reminder text exceeds maximum length of 1000 characters.")
+        person_id = p_id
+
         t = time.strip()
         if not t:
             raise ToolError("Reminder scheduled time cannot be empty.")
 
-        import re
         hh_mm_match = re.match(r"^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$", t)
         if hh_mm_match:
             h, m = int(hh_mm_match.group(1)), int(hh_mm_match.group(2))
@@ -289,7 +347,7 @@ def register_tools(
                 )
 
         reminder = Reminder(
-            person_id=person.strip().lower(),
+            person_id=person_id,
             text=text.strip(),
             scheduled_time=normalized_time,
             status=ReminderStatus.PENDING,
@@ -332,8 +390,10 @@ def register_tools(
             severity: Alert severity level: 'low', 'medium', 'high', or 'critical'
             message: Plain-English explanation of why family is being alerted
         """
-        if not person or not person.strip():
-            raise ToolError("Person identifier cannot be empty.")
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("notify_family", person=p_id)
+        person_id = p_id
+
         sev = severity.strip().lower()
         if sev not in ALLOWED_SEVERITIES:
             valid_sevs = ", ".join(sorted(ALLOWED_SEVERITIES))
@@ -342,6 +402,14 @@ def register_tools(
             )
         if not message or not message.strip():
             raise ToolError("Alert message cannot be empty.")
+        if len(message) > 1000:
+            raise ToolError("Alert message exceeds maximum length of 1000 characters.")
+
+        if not check_notification_rate_limit(person_id):
+            raise ToolError(
+                f"Notification rate limit exceeded for {person_id}. "
+                "Too many family notifications triggered in a short period."
+            )
 
         person_id = person.strip().lower()
         now = clock.now()
@@ -476,7 +544,10 @@ def register_tools(
         Parameters:
             person: Identifier of the elder parent (e.g. 'eleanor', 'dad', 'mom')
         """
-        person_id = person.strip().lower()
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("confirm_ok", person=p_id)
+        person_id = p_id
+
         now = clock.now()
         state = escalation_engine.reset_to_normal(
             person_id=person_id,
@@ -493,7 +564,7 @@ def register_tools(
         }
 
     @server.tool()
-    def daily_summary(person: str, date: Optional[str] = None) -> Dict[str, Any]:
+    def daily_summary(person: str = "dad", date: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a warm, empathetic daily routine summary for family caregivers using Amazon Bedrock.
         Synthesizes medication checks, meals, and general movement patterns for a specific date.
@@ -510,10 +581,10 @@ def register_tools(
             person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             date: Optional target date string (YYYY-MM-DD or 'today'). Defaults to today.
         """
-        if not person or not person.strip():
-            raise ToolError("Person identifier cannot be empty.")
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("daily_summary", person=p_id)
+        person_id = p_id
 
-        person_id = person.strip().lower()
         now = clock.now()
         profile = storage.get_profile(person_id)
         person_tz_str = profile.timezone if profile and profile.timezone else "UTC"
@@ -566,7 +637,7 @@ def register_tools(
         }
 
     @server.tool()
-    def ask_memory(person: str, question: str) -> Dict[str, Any]:
+    def ask_memory(person: str = "dad", question: str = "") -> Dict[str, Any]:
         """
         Answer caregiver questions about the elder parent's routine history, habits, and recorded events.
         Uses Amazon Bedrock memory Q&A sandboxed strictly to factual event logs.
@@ -583,12 +654,15 @@ def register_tools(
             person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             question: Specific query about the parent's routine
         """
-        if not person or not person.strip():
-            raise ToolError("Person identifier cannot be empty.")
+        p_id = validate_person_identifier(person)
+        check_tool_authorization("ask_memory", person=p_id)
+        person_id = p_id
+
         if not question or not question.strip():
             raise ToolError("Question cannot be empty.")
+        if len(question) > 1000:
+            raise ToolError("Question exceeds maximum length of 1000 characters.")
 
-        person_id = person.strip().lower()
         now = clock.now()
         profile = storage.get_profile(person_id)
         display_name = profile.display_name if profile else person_id.capitalize()
@@ -621,9 +695,11 @@ def register_tools(
         Parameters:
             person: Optional identifier of the elder parent. If omitted, ticks all known persons.
         """
+        p_id = validate_person_identifier(person) if person else None
+        check_tool_authorization("tick_escalation", person=p_id)
+
         now = clock.now()
-        if person:
-            p_id = person.strip().lower()
+        if p_id:
             state = escalation_engine.tick(p_id, now)
             voice_msg = f"Routine check completed for {p_id}. Current stage is {state.stage.value}."
             return {

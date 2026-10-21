@@ -12,7 +12,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from careloop.models import (
@@ -777,6 +777,84 @@ class SQLiteStorage(StorageBase):
             version=version,
             metadata=json.loads(r["metadata"]),
         )
+
+    def purge_expired_events(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 90,
+    ) -> int:
+        """
+        Purge routine event records older than max_age_days.
+        Enforces data minimization principles.
+        """
+        with self._lock:
+            self._check_closed()
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+            with self._conn:
+                if person_id:
+                    cursor = self._conn.execute(
+                        "DELETE FROM events WHERE person_id = ? AND timestamp < ?",
+                        (person_id, cutoff),
+                    )
+                else:
+                    cursor = self._conn.execute(
+                        "DELETE FROM events WHERE timestamp < ?",
+                        (cutoff,),
+                    )
+                deleted = cursor.rowcount
+                logger.info(f"Purged {deleted} expired event records (older than {max_age_days}d).")
+                return deleted
+
+    def purge_expired_alerts(
+        self,
+        person_id: Optional[str] = None,
+        max_age_days: int = 180,
+    ) -> int:
+        """
+        Purge resolved or historical alert records older than max_age_days.
+        """
+        with self._lock:
+            self._check_closed()
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+            with self._conn:
+                if person_id:
+                    cursor = self._conn.execute(
+                        "DELETE FROM alerts WHERE person_id = ? AND created_at < ?",
+                        (person_id, cutoff),
+                    )
+                else:
+                    cursor = self._conn.execute(
+                        "DELETE FROM alerts WHERE created_at < ?",
+                        (cutoff,),
+                    )
+                deleted = cursor.rowcount
+                logger.info(f"Purged {deleted} expired alert records (older than {max_age_days}d).")
+                return deleted
+
+    def delete_person_data(self, person_id: str) -> Dict[str, int]:
+        """
+        Purge all records associated with a person across all tables.
+        Provides right-to-be-forgotten / GDPR deletion support.
+        """
+        with self._lock:
+            self._check_closed()
+            results = {}
+            with self._conn:
+                for table in (
+                    "events",
+                    "alerts",
+                    "reminders",
+                    "baselines",
+                    "escalation_states",
+                    "profiles",
+                ):
+                    cur = self._conn.execute(
+                        f"DELETE FROM {table} WHERE person_id = ?",
+                        (person_id,),
+                    )
+                    results[table] = cur.rowcount
+            logger.info(f"Deleted all records for person '{person_id}': {results}")
+            return results
 
     def clear_demo_data(self, person_id: str = "dad") -> None:
         """

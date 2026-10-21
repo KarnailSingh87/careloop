@@ -48,93 +48,16 @@ logging.basicConfig(
 logger = logging.getLogger("careloop.server")
 
 
-class AlexaAuthMiddleware:
-    """
-    ASGI middleware enforcing Alexa+ MCP authentication requirements.
+from careloop.config import AppConfig, load_config
+from careloop.server.security import (
+    AlexaAuthMiddleware,
+    SecurityHeadersMiddleware,
+    RequestSizeLimitMiddleware,
+    RateLimitMiddleware,
+    install_privacy_log_filter,
+)
 
-    Validates:
-    - Authorization: Bearer <token>
-    - x-alexa-auth-token: <token>
-    - x-api-key: <token>
-    - ?auth_token=<token> (query parameter fallback)
-
-    Bypasses:
-    - Public health & simulator endpoints: /health, /simulator, /, /favicon.ico
-    - CORS pre-flight OPTIONS requests
-    """
-
-    def __init__(self, app: Any, auth_token: Optional[str] = None) -> None:
-        self.app = app
-        self.auth_token = (
-            auth_token
-            if auth_token is not None
-            else os.getenv("ALEXA_AUTH_TOKEN", "").strip()
-        )
-
-    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        method = scope.get("method", "GET").upper()
-        path = scope.get("path", "")
-
-        # 1. Bypass CORS pre-flight requests
-        if method == "OPTIONS":
-            await self.app(scope, receive, send)
-            return
-
-        # 2. Bypass public monitoring and simulator UI endpoints
-        if path in ("/health", "/simulator", "/", "/favicon.ico") or path.startswith("/simulator/"):
-            await self.app(scope, receive, send)
-            return
-
-        # 3. If no auth token is configured, allow open access (local/test mode)
-        if not self.auth_token:
-            await self.app(scope, receive, send)
-            return
-
-        # 4. Extract token from headers or query parameters
-        headers = dict(scope.get("headers", []))
-        auth_header = headers.get(b"authorization", b"").decode("utf-8").strip()
-        alexa_header = headers.get(b"x-alexa-auth-token", b"").decode("utf-8").strip()
-        api_key_header = headers.get(b"x-api-key", b"").decode("utf-8").strip()
-
-        query_string = scope.get("query_string", b"").decode("utf-8")
-        query_token = ""
-        if "auth_token=" in query_string:
-            import urllib.parse
-            parsed_qs = urllib.parse.parse_qs(query_string)
-            query_token = parsed_qs.get("auth_token", [""])[0].strip()
-
-        extracted_token = ""
-        if auth_header.lower().startswith("bearer "):
-            extracted_token = auth_header[7:].strip()
-        elif alexa_header:
-            extracted_token = alexa_header
-        elif api_key_header:
-            extracted_token = api_key_header
-        elif query_token:
-            extracted_token = query_token
-        import hmac
-
-        if not hmac.compare_digest(extracted_token, self.auth_token):
-            logger.warning(f"Unauthorized request to {path}: missing or invalid Alexa+ auth token")
-            response = JSONResponse(
-                {
-                    "jsonrpc": "2.0",
-                    "error": {
-                        "code": -32001,
-                        "message": "Unauthorized: Missing or invalid Alexa+ authentication token.",
-                    },
-                },
-                status_code=401,
-                headers={"WWW-Authenticate": 'Bearer realm="CareLoop Alexa+ MCP"'},
-            )
-            await response(scope, receive, send)
-            return
-
-        await self.app(scope, receive, send)
+install_privacy_log_filter()
 
 
 def create_server(
@@ -229,11 +152,34 @@ def create_app(
     tick_interval_seconds: float = 30.0,
     enable_background_loop: bool = True,
     auth_token: Optional[str] = None,
+    config: Optional[AppConfig] = None,
 ) -> Starlette:
     """
     Build the ASGI Starlette app wrapping the MCP Streamable HTTP transport.
     Runs a periodic escalation background loop so routines are monitored autonomously.
     """
+    if config is None:
+        base_cfg = load_config()
+        if auth_token is not None:
+            config = AppConfig(
+                env=base_cfg.env,
+                auth_token=auth_token,
+                scoped_tokens=base_cfg.scoped_tokens,
+                jwt_secret=base_cfg.jwt_secret,
+                allowed_origins=base_cfg.allowed_origins,
+                max_request_body_size_bytes=base_cfg.max_request_body_size_bytes,
+                rate_limit_rpm=base_cfg.rate_limit_rpm,
+                notification_rate_limit_per_hour=base_cfg.notification_rate_limit_per_hour,
+                event_retention_days=base_cfg.event_retention_days,
+                alert_retention_days=base_cfg.alert_retention_days,
+                enable_clock_endpoints=base_cfg.enable_clock_endpoints,
+                enable_demo_endpoints=base_cfg.enable_demo_endpoints,
+                enable_simulator=base_cfg.enable_simulator,
+                allow_query_param_auth=base_cfg.allow_query_param_auth,
+            )
+        else:
+            config = base_cfg
+
     server, storage_inst, clock_inst, escalation_inst = create_server(
         storage=storage, clock=clock, notifier=notifier
     )
@@ -389,6 +335,11 @@ def create_app(
         return JSONResponse(_get_sim_state(person_id))
 
     async def api_clock_advance(request):
+        if not config.enable_clock_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Clock manipulation is disabled in this environment."},
+                status_code=403,
+            )
         try:
             body = await request.json()
         except Exception:
@@ -404,6 +355,11 @@ def create_app(
         return JSONResponse(_get_sim_state(person_id))
 
     async def api_clock_set(request):
+        if not config.enable_clock_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Clock manipulation is disabled in this environment."},
+                status_code=403,
+            )
         try:
             body = await request.json()
         except Exception:
@@ -429,6 +385,11 @@ def create_app(
         return JSONResponse(_get_sim_state(person_id))
 
     async def api_clock_reset(request):
+        if not config.enable_clock_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Clock manipulation is disabled in this environment."},
+                status_code=403,
+            )
         try:
             body = await request.json()
         except Exception:
@@ -485,12 +446,20 @@ def create_app(
             })
         except Exception as e:
             duration_ms = round((time.time() - start_time) * 1000, 2)
+            logger.error(f"Error executing MCP tool '{tool_name}': {e}")
+            if hasattr(e, "__class__") and e.__class__.__name__ == "ToolError":
+                safe_msg = str(e)
+            elif config.is_production():
+                safe_msg = "An internal server error occurred while executing the tool."
+            else:
+                safe_msg = str(e)
+
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": body.get("id", int(time.time() * 1000)),
                 "tool": tool_name,
                 "arguments": arguments,
-                "error": {"code": -32603, "message": str(e)},
+                "error": {"code": -32603, "message": safe_msg},
                 "is_error": True,
                 "duration_ms": duration_ms,
                 "protocol_version": "2025-11-25",
@@ -508,6 +477,11 @@ def create_app(
         return JSONResponse({"tools": tools_list})
 
     async def api_demo_skips_lunch_setup(request):
+        if not config.enable_demo_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Demo endpoints are disabled in this environment."},
+                status_code=403,
+            )
         person_id = "dad"
         if hasattr(storage_inst, "clear_demo_data"):
             storage_inst.clear_demo_data(person_id)
@@ -537,6 +511,11 @@ def create_app(
         return JSONResponse(_get_sim_state(person_id))
 
     async def api_demo_reset(request):
+        if not config.enable_demo_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Demo endpoints are disabled in this environment."},
+                status_code=403,
+            )
         try:
             body = await request.json()
         except Exception:
@@ -574,18 +553,47 @@ def create_app(
     if mcp_route and hasattr(mcp_route, "endpoint"):
         app.routes.append(Route("/v1/mcp", mcp_route.endpoint))
 
-    # Add CORS middleware for browser clients and simulator
+    # Add Middlewares in order:
+    # 1. Alexa+ authentication & SecurityContext middleware (innermost)
+    app.add_middleware(AlexaAuthMiddleware, config=config, auth_token=auth_token)
+
+    # 2. CORS middleware (safe origin policy)
+    if config.is_production():
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=config.allowed_origins,
+            allow_credentials=bool(config.allowed_origins),
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type", "Mcp-Session-Id", "x-alexa-auth-token", "x-api-key"],
+            expose_headers=["Mcp-Session-Id", "Content-Type", "WWW-Authenticate"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["Mcp-Session-Id", "Content-Type", "WWW-Authenticate"],
+        )
+
+    # 3. Request body size limit middleware (defense against memory exhaustion DoS)
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["Mcp-Session-Id", "Content-Type", "WWW-Authenticate"],
+        RequestSizeLimitMiddleware,
+        max_size_bytes=config.max_request_body_size_bytes,
     )
 
-    # Add Alexa+ authentication middleware
-    app.add_middleware(AlexaAuthMiddleware, auth_token=auth_token)
+    # 4. Sliding-window rate limit middleware (defense against abuse / rapid bursts)
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=config.rate_limit_rpm,
+    )
+
+    # 5. Strict security headers middleware (outermost)
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        is_production=config.is_production(),
+    )
 
     return app
 
@@ -620,12 +628,26 @@ def main() -> None:
         help="Disable autonomous background escalation loop",
     )
     parser.add_argument(
+        "--env",
+        choices=["development", "test", "production"],
+        default=os.getenv("CARELOOP_ENV", "development").lower(),
+        help="Deployment environment ('development', 'test', 'production')",
+    )
+    parser.add_argument(
         "--auth-token",
         default=os.getenv("ALEXA_AUTH_TOKEN"),
         help="Alexa+ Bearer authentication token for securing the MCP endpoint",
     )
 
     args = parser.parse_args()
+
+    # Centralized configuration with production fail-closed validation
+    env_override = dict(os.environ)
+    env_override["CARELOOP_ENV"] = args.env
+    if args.auth_token:
+        env_override["ALEXA_AUTH_TOKEN"] = args.auth_token
+
+    config = load_config(env_dict=env_override)
 
     clock = SimulatedClock() if args.clock == "simulated" else SystemClock()
     if args.storage == "dynamodb":
@@ -642,11 +664,13 @@ def main() -> None:
         tick_interval_seconds=args.tick_interval,
         enable_background_loop=not args.disable_background_loop,
         auth_token=args.auth_token,
+        config=config,
     )
 
-    logger.info(f"Starting CareLoop MCP Server on http://{args.host}:{args.port}")
+    logger.info(f"Starting CareLoop MCP Server on http://{args.host}:{args.port} [env={config.env}]")
     logger.info(f"Streamable HTTP MCP endpoint: http://{args.host}:{args.port}/mcp")
-    logger.info(f"Simulator Web UI: http://{args.host}:{args.port}/simulator")
+    if config.enable_simulator:
+        logger.info(f"Simulator Web UI: http://{args.host}:{args.port}/simulator")
     logger.info(f"Health Check: http://{args.host}:{args.port}/health")
 
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
