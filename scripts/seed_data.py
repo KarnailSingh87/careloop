@@ -31,6 +31,7 @@ import json
 import os
 import random
 import sys
+from typing import Any, Dict
 
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -207,10 +208,10 @@ def seed_database(
     total_days: int = 60,
     incidents_json_path: str = "scripts/ground_truth_incidents.json",
     seed: int = 42,
-) -> None:
+) -> Dict[str, Any]:
     """
     Generate 60 simulated days of routine events for 3 personas with realistic noise
-    and injected ground-truth incidents.
+    and injected ground-truth incidents. Returns generation metadata.
     """
     random.seed(seed)
     print("=" * 70)
@@ -478,6 +479,18 @@ def seed_database(
     print("✓ Injected 42 Benign Noise Controls (late lunch, delayed meds, weekend shifts)")
     print(f"✓ Saved ground-truth dataset to: {incidents_json_path}")
     print("✅ Seed data generation completed successfully!\n")
+
+    return {
+        "db_path": db_path,
+        "seed": seed,
+        "total_days": total_days,
+        "total_events": total_events,
+        "personas": list(PERSONAS.keys()),
+        "incidents_count": len(all_ground_truth_incidents),
+        "incidents_json_path": incidents_json_path,
+        "start_date": start_date.isoformat(),
+        "base_end_date": base_end_date.isoformat(),
+    }
 
 
 if __name__ == "__main__":

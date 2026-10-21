@@ -1,0 +1,352 @@
+{
+  "metadata": {
+    "title": "CareLoop 60-Day Routine Benchmark & Evaluation Results",
+    "timestamp": "2026-10-21T15:42:50.801461+00:00",
+    "random_seed": 42,
+    "total_days": 60,
+    "cold_start_days": 7,
+    "active_evaluation_days": 53,
+    "total_active_person_days": 159,
+    "personas": [
+      "eleanor",
+      "dad",
+      "martha"
+    ],
+    "database": "careloop_local.db",
+    "ground_truth_file": "scripts/ground_truth_incidents.json"
+  },
+  "careloop_adaptive_engine": {
+    "combined": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 0,
+      "tn": 459,
+      "precision": 100.0,
+      "recall": 100.0,
+      "detection_rate": 100.0,
+      "false_alarm_rate": 0.0,
+      "false_alerts_per_person_day": 0.0,
+      "false_alerts_per_month": 0.0,
+      "avg_delay_sched_min": 106.7,
+      "avg_delay_grace_min": 26.7
+    },
+    "by_persona": {
+      "eleanor": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 153,
+        "precision": 100.0,
+        "recall": 100.0,
+        "detection_rate": 100.0,
+        "false_alarm_rate": 0.0,
+        "false_alerts_per_person_day": 0.0,
+        "false_alerts_per_month": 0.0,
+        "avg_delay_sched_min": 100.0,
+        "avg_delay_grace_min": 20.0,
+        "name": "Eleanor Davis (Age 78)",
+        "archetype": "Independent Elder \u00b7 Morning Routine",
+        "total_events": 474,
+        "active_days": 53
+      },
+      "dad": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 153,
+        "precision": 100.0,
+        "recall": 100.0,
+        "detection_rate": 100.0,
+        "false_alarm_rate": 0.0,
+        "false_alerts_per_person_day": 0.0,
+        "false_alerts_per_month": 0.0,
+        "avg_delay_sched_min": 105.0,
+        "avg_delay_grace_min": 25.0,
+        "name": "Arthur Davis / Dad (Age 81)",
+        "archetype": "Retired Veteran \u00b7 Early Riser",
+        "total_events": 474,
+        "active_days": 53
+      },
+      "martha": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 153,
+        "precision": 100.0,
+        "recall": 100.0,
+        "detection_rate": 100.0,
+        "false_alarm_rate": 0.0,
+        "false_alerts_per_person_day": 0.0,
+        "false_alerts_per_month": 0.0,
+        "avg_delay_sched_min": 115.0,
+        "avg_delay_grace_min": 35.0,
+        "name": "Martha Jenkins (Age 84)",
+        "archetype": "Arthritis Schedule \u00b7 Late Riser",
+        "total_events": 474,
+        "active_days": 53
+      }
+    }
+  },
+  "traditional_static_baseline": {
+    "combined": {
+      "tp": 17,
+      "fp": 80,
+      "fn": 1,
+      "tn": 379,
+      "precision": 17.53,
+      "recall": 94.44,
+      "detection_rate": 94.44,
+      "false_alarm_rate": 17.429,
+      "false_alerts_per_person_day": 0.5031,
+      "false_alerts_per_month": 15.09,
+      "avg_delay_sched_min": 0.0,
+      "avg_delay_grace_min": 0.0
+    },
+    "by_persona": {
+      "eleanor": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 153,
+        "precision": 100.0,
+        "recall": 100.0,
+        "detection_rate": 100.0,
+        "false_alarm_rate": 0.0,
+        "false_alerts_per_person_day": 0.0,
+        "false_alerts_per_month": 0.0,
+        "avg_delay_sched_min": 90.0,
+        "avg_delay_grace_min": 0.0,
+        "name": "Eleanor Davis (Age 78)",
+        "archetype": "Independent Elder \u00b7 Morning Routine",
+        "total_events": 474,
+        "active_days": 53
+      },
+      "dad": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 153,
+        "precision": 100.0,
+        "recall": 100.0,
+        "detection_rate": 100.0,
+        "false_alarm_rate": 0.0,
+        "false_alerts_per_person_day": 0.0,
+        "false_alerts_per_month": 0.0,
+        "avg_delay_sched_min": 100.0,
+        "avg_delay_grace_min": 0.0,
+        "name": "Arthur Davis / Dad (Age 81)",
+        "archetype": "Retired Veteran \u00b7 Early Riser",
+        "total_events": 474,
+        "active_days": 53
+      },
+      "martha": {
+        "tp": 5,
+        "fp": 80,
+        "fn": 1,
+        "tn": 73,
+        "precision": 5.88,
+        "recall": 83.33,
+        "detection_rate": 83.33,
+        "false_alarm_rate": 52.288,
+        "false_alerts_per_person_day": 1.5094,
+        "false_alerts_per_month": 45.28,
+        "avg_delay_sched_min": 42.0,
+        "avg_delay_grace_min": 0.0,
+        "name": "Martha Jenkins (Age 84)",
+        "archetype": "Arthritis Schedule \u00b7 Late Riser",
+        "total_events": 474,
+        "active_days": 53
+      }
+    }
+  },
+  "incident_audit_records": [
+    {
+      "incident_id": "INC-ELEANOR-001",
+      "person": "Eleanor",
+      "day": 14,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 45.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Expected 'medication' around 08:20 UTC (sigma=10.4m)."
+    },
+    {
+      "incident_id": "INC-ELEANOR-002",
+      "person": "Eleanor",
+      "day": 22,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 195.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    },
+    {
+      "incident_id": "INC-ELEANOR-003",
+      "person": "Eleanor",
+      "day": 34,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'meal' around 12:49 UTC (sigma=5.9m)."
+    },
+    {
+      "incident_id": "INC-ELEANOR-004",
+      "person": "Eleanor",
+      "day": 42,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 45.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Expected 'medication' around 08:20 UTC (sigma=5.0m)."
+    },
+    {
+      "incident_id": "INC-ELEANOR-005",
+      "person": "Eleanor",
+      "day": 50,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 195.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    },
+    {
+      "incident_id": "INC-ELEANOR-006",
+      "person": "Eleanor",
+      "day": 57,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'meal' around 12:46 UTC (sigma=8.4m)."
+    },
+    {
+      "incident_id": "INC-DAD-007",
+      "person": "Arthur",
+      "day": 16,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'meal' around 12:33 UTC (sigma=7.1m)."
+    },
+    {
+      "incident_id": "INC-DAD-008",
+      "person": "Arthur",
+      "day": 24,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'medication' around 08:03 UTC (sigma=7.4m)."
+    },
+    {
+      "incident_id": "INC-DAD-009",
+      "person": "Arthur",
+      "day": 31,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 195.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    },
+    {
+      "incident_id": "INC-DAD-010",
+      "person": "Arthur",
+      "day": 39,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'medication' around 08:05 UTC (sigma=9.0m)."
+    },
+    {
+      "incident_id": "INC-DAD-011",
+      "person": "Arthur",
+      "day": 46,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'meal' around 12:38 UTC (sigma=10.8m)."
+    },
+    {
+      "incident_id": "INC-DAD-012",
+      "person": "Arthur",
+      "day": 55,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 195.0,
+      "delay_grace_min": 15.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    },
+    {
+      "incident_id": "INC-MARTHA-013",
+      "person": "Martha",
+      "day": 18,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'medication' around 09:15 UTC (sigma=9.6m)."
+    },
+    {
+      "incident_id": "INC-MARTHA-014",
+      "person": "Martha",
+      "day": 27,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 75.0,
+      "delay_grace_min": 45.0,
+      "reasons": "Expected 'meal' around 13:10 UTC (sigma=14.7m)."
+    },
+    {
+      "incident_id": "INC-MARTHA-015",
+      "person": "Martha",
+      "day": 36,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 210.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    },
+    {
+      "incident_id": "INC-MARTHA-016",
+      "person": "Martha",
+      "day": 44,
+      "type": "Missed Medication",
+      "status": "DETECTED (TP)",
+      "delay_min": 60.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Expected 'medication' around 09:19 UTC (sigma=13.8m)."
+    },
+    {
+      "incident_id": "INC-MARTHA-017",
+      "person": "Martha",
+      "day": 52,
+      "type": "Missed Lunch",
+      "status": "DETECTED (TP)",
+      "delay_min": 75.0,
+      "delay_grace_min": 45.0,
+      "reasons": "Expected 'meal' around 13:13 UTC (sigma=10.8m)."
+    },
+    {
+      "incident_id": "INC-MARTHA-018",
+      "person": "Martha",
+      "day": 58,
+      "type": "Daytime Inactivity (Fall)",
+      "status": "DETECTED (TP)",
+      "delay_min": 210.0,
+      "delay_grace_min": 30.0,
+      "reasons": "Prolonged daytime inactivity / zero movement detected"
+    }
+  ],
+  "edge_case_handling": {
+    "cold_start": "Days 1-7 (min_observations=5) build routine priors; alerts strictly suppressed.",
+    "unresolved_incidents": "Evaluated once per occurrence as incident-level true/false positive.",
+    "repeated_alerts": "Idempotent scheduled ticks prevent duplicate alerts and false-alarm inflation.",
+    "incidents_without_fixed_time": "Inactivity delay measured relative to 3h inactivity threshold onset.",
+    "future_leakage_prevention": "Strict chronological replay via SimulatedClock; future events excluded."
+  },
+  "limitations": "These reproducible metrics are evaluated on synthetic simulation data with Gaussian jitter, benign offsets, and injected incidents under fixed seed=42. While mathematically rigorous, synthetic performance must not be conflated with real-world clinical efficacy or multi-center trials."
+}

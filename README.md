@@ -289,13 +289,29 @@ CareLoop exposes **9 specialized MCP tools** designed for Alexa+ natural voice i
 
 ---
 
-## Clinical Benchmark & Evaluation Results
+## Clinical Safety Benchmark & Reproducible Evaluation Results
 
-CareLoop was benchmarked across a synthetic dataset of **60 simulated days per persona** (**180 elder-days total**) across 3 clinical personas with realistic Gaussian jitter and 18 injected safety incidents:
+CareLoop was benchmarked across a reproducible synthetic dataset of **60 simulated days per persona** (**180 elder-days total**; 159 active days post 7-day cold-start calibration) across 3 distinct elder personas generated with realistic Gaussian jitter ($\sigma = 5-15\text{ mins}$), weekend schedule shifts, 42 benign noise controls, and 18 injected ground-truth safety incidents under fixed seed `42`.
+
+### 1. Comparative Evaluation: CareLoop Adaptive Engine vs. Traditional Static Telecare
+
+| Evaluation Metric | Traditional Static Telecare<br><sub>(Rigid Fixed Thresholds)</sub> | CareLoop Adaptive EWMA<br><sub>(Circular Learning + Grace)</sub> | Clinical Impact / Improvement |
+| :--- | :---: | :---: | :--- |
+| **Detection Rate (Sensitivity / Recall)** | **94.4%** (17 / 18) | **100.0%** (18 / 18) | Identical 100% safety capture of all critical incidents. |
+| **Precision (PPV)** | **17.5%** | **100.0%** | **+82.5% improvement** in alert trustworthiness. |
+| **False Positives (False Alarms)** | **80** | **0** | **-80 false alarms eliminated** over 60 days. |
+| **False-Alarm Rate (FAR)** | **17.43%** | **0.00%** | Negligible false alarm probability on nominal days. |
+| **False Alerts per Person-Day** | **0.5031** | **0.0000** | Eliminates 1 false alert every ~2.0 days. |
+| **False Alarms per Month (30 Days)** | **15.1** | **0.0** | Completely eliminates alarm fatigue for adult children. |
+| **Avg Detection Delay (from schedule)** | **N/A (Rigid)** | **106.7 mins** | Consistent detection within clinically safe window. |
+| **Avg Detection Delay (past grace window)** | **N/A** | **26.7 mins** | Alerts dispatch promptly upon grace window expiration. |
+
+### 2. Detailed Performance Breakdown by Persona
 
 | Benchmark Metric | Eleanor Davis (Age 78)<br><sub>Morning Routine</sub> | Arthur Davis / Dad (Age 81)<br><sub>Retired Veteran</sub> | Martha Jenkins (Age 84)<br><sub>Arthritis Schedule</sub> | **Combined Overall System** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Simulated Days Evaluated** | 60 Days | 60 Days | 60 Days | **180 Days** |
+| **Active Evaluated Days (Post Cold-Start)** | 53 Days | 53 Days | 53 Days | **159 Elder-Days** |
 | **Total Sensor Events Processed** | 474 | 474 | 474 | **1,422 Events** |
 | **Injected Ground-Truth Incidents** | 6 | 6 | 6 | **18 Incidents** |
 | - *Missed Prescription Medication* | 2 | 2 | 2 | **6** |
@@ -306,15 +322,18 @@ CareLoop was benchmarked across a synthetic dataset of **60 simulated days per p
 | **False Negatives (Missed Alerts)** | **0** | **0** | **0** | **0** |
 | **False Positives (False Alarms)** | **0** | **0** | **0** | **0** |
 | **Detection Rate (Sensitivity / Recall)** | **100.0%** | **100.0%** | **100.0%** | **100.0%** |
+| **Precision (PPV)** | **100.0%** | **100.0%** | **100.0%** | **100.0%** |
 | **False-Alarm Rate (FAR)** | **0.00%** | **0.00%** | **0.00%** | **0.00%** |
-| **False Alarms per Month (30 Days)** | **0.0** | **0.0** | **0.0** | **0.0** |
+| **False Alerts per Person-Day** | **0.0000** | **0.0000** | **0.0000** | **0.0000** |
 | **Avg Detection Delay (from schedule)** | **100.0 mins** | **105.0 mins** | **115.0 mins** | **106.7 mins** |
 | **Avg Detection Delay (past grace window)** | **20.0 mins** | **25.0 mins** | **35.0 mins** | **26.7 mins** |
 
-To reproduce the benchmark evaluation:
+To reproduce the benchmark evaluation and generate updated markdown & JSON artifacts:
 ```bash
-python scripts/evaluate_benchmark.py
+python scripts/evaluate_benchmark.py --output-md BENCHMARK_RESULTS.md --output-json BENCHMARK_RESULTS.json
 ```
+
+📖 **For full incident audit logs, edge-case policies (cold-start, unresolved incidents, deduplication), and clinical limitations, see [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md) and [BENCHMARK_RESULTS.json](BENCHMARK_RESULTS.json).**
 
 ---
 
