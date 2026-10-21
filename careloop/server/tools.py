@@ -510,31 +510,51 @@ def register_tools(
             person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             date: Optional target date string (YYYY-MM-DD or 'today'). Defaults to today.
         """
+        if not person or not person.strip():
+            raise ToolError("Person identifier cannot be empty.")
+
         person_id = person.strip().lower()
         now = clock.now()
+        profile = storage.get_profile(person_id)
+        person_tz_str = profile.timezone if profile and profile.timezone else "UTC"
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(person_tz_str)
+        except Exception:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo("UTC")
+
+        local_now = now.astimezone(tz) if now.tzinfo else now
 
         if not date or date.strip().lower() == "today":
-            target_date = now.date()
+            target_date = local_now.date()
+            date_str = target_date.isoformat()
+        elif date.strip().lower() == "yesterday":
+            target_date = (local_now - timedelta(days=1)).date()
             date_str = target_date.isoformat()
         else:
             try:
                 target_date = date_parser.parse(date).date()
                 date_str = target_date.isoformat()
             except Exception:
-                target_date = now.date()
+                target_date = local_now.date()
                 date_str = target_date.isoformat()
 
         all_events = storage.get_events(person_id, limit=200)
-        events_on_date = [e for e in all_events if e.timestamp.date() == target_date]
+        events_on_date = [
+            e for e in all_events
+            if (e.timestamp.astimezone(tz) if e.timestamp.tzinfo else e.timestamp).date() == target_date
+        ]
 
-        profile = storage.get_profile(person_id)
         display_name = profile.display_name if profile else person_id.capitalize()
 
         summary_text = llm_assistant.daily_summary(
             person=person_id,
             target_date=target_date,
             storage=storage,
+            now=now,
             display_name=display_name,
+            person_tz=person_tz_str,
         )
 
         return {
@@ -563,10 +583,16 @@ def register_tools(
             person: Identifier of the elder parent (e.g. 'eleanor', 'dad')
             question: Specific query about the parent's routine
         """
+        if not person or not person.strip():
+            raise ToolError("Person identifier cannot be empty.")
+        if not question or not question.strip():
+            raise ToolError("Question cannot be empty.")
+
         person_id = person.strip().lower()
         now = clock.now()
         profile = storage.get_profile(person_id)
         display_name = profile.display_name if profile else person_id.capitalize()
+        person_tz_str = profile.timezone if profile and profile.timezone else "UTC"
 
         answer = llm_assistant.ask_memory(
             person=person_id,
@@ -574,6 +600,7 @@ def register_tools(
             storage=storage,
             now=now,
             display_name=display_name,
+            person_tz=person_tz_str,
         )
 
         return {

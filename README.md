@@ -7,8 +7,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
-[![AWS DynamoDB](https://img.shields.io/badge/AWS-DynamoDB%20Encrypted-blue.svg)](https://aws.amazon.com/dynamodb/)
-[![Tests Passing](https://img.shields.io/badge/tests-118%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-139%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -450,6 +449,181 @@ Clicking the **▶ Dad Skips Lunch Demo** button runs a 6-step end-to-end demons
   4. Click the `▶ Dad Skips Lunch Demo` button in the hero banner.
   5. Watch the scenario execute with synchronized voice announcements, audio chimes, MCP packet cards, and the family phone notification animation.
   6. Verify all 6 steps complete cleanly, concluding with the resolution banner on the family phone.
+
+---
+
+## Notification and Alert Delivery Lifecycle Architecture
+
+CareLoop implements an auditable, multi-tier notification pipeline designed for safety, resilience, and strict privacy.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Engine as Escalation State Machine / MCP Tool
+    participant Storage as SQLite / DynamoDB Store
+    participant Notifier as Notifier Interface (careloop/notifier.py)
+    participant SNS as Amazon SNS Gateway
+    participant Carrier as Telecom Carrier / Aggregator
+    participant Phone as Family Recipient Phone
+
+    Engine->>Storage: 1. Generate & Persist Alert Record<br/>(severity, deterministic reasons, dedup_key)
+    Engine->>Notifier: 2. send_notification(person, severity, message, dedup_key)
+    alt Console Mode (Local / Demo)
+        Notifier-->>Engine: NotificationResult(status=DELIVERED, target="console_stdout")
+    else AWS Mode (Production)
+        Notifier->>SNS: sns.publish(TopicArn / PhoneNumber, Message)
+        alt SNS Accepts Request (HTTP 200)
+            SNS-->>Notifier: {"MessageId": "msg-12345"}
+            Notifier-->>Engine: NotificationResult(status=ACCEPTED, message_id="msg-12345")
+            Note over Engine,Storage: Alert marked "accepted" (Gateway ACK).<br/>Downstream SMS carrier delivery is PENDING.
+            SNS--)Carrier: Carrier Dispatch via Aggregator (10DLC / Toll-Free)
+            alt Carrier Delivery to Handset
+                Carrier--)Phone: SMS Audio / Text Alert Received
+                Carrier--)SNS: Carrier Delivery Receipt
+                Note over SNS: Handset confirmation recorded in<br/>CloudWatch SMS Delivery Status logs
+            else Carrier Rejection / Drop
+                Carrier--)SNS: Carrier Failure (Sandbox / Filter / STOP)
+            end
+        else SNS Publish Rejected
+            SNS-->>Notifier: ClientError (InvalidParameter / AuthorizationError)
+            Notifier-->>Engine: NotificationResult(status=FAILED, error=...)
+            Engine->>Storage: Alert marked "failed" (retry_count += 1)
+        end
+    end
+```
+
+### 1. The Three Explicit Delivery Tiers
+
+CareLoop **never reports an SMS as delivered just because Amazon SNS accepted a publish request**. We enforce an explicit distinction between three stages:
+
+| Tier | Status Enum | Meaning | Persistence State |
+| :--- | :--- | :--- | :--- |
+| **Tier 1: Alert Generation** | `PENDING` | The escalation state machine or MCP tool evaluated clinical risk and created a structured `Alert` in storage with deterministic reasons and a stable deduplication key. | `notification_status="pending"` |
+| **Tier 2: Provider Acceptance** | `ACCEPTED` | AWS SNS returned HTTP 200 with a unique `MessageId`. The message is safely queued on the AWS cloud gateway. Handset delivery is asynchronous and pending. | `notification_status="accepted"`, `accepted_at=now`, `message_id=...` |
+| **Tier 3: Carrier Delivery** | `DELIVERED` | The notification was definitively delivered to the recipient (e.g. verified console stdout in local mode, or carrier delivery receipt logged in CloudWatch). | `notification_status="delivered"`, `delivered_at=now` |
+
+### 2. Telecom Carrier Realities & AWS SNS Delivery Constraints
+
+When operating on AWS with Amazon SNS for SMS notifications, downstream carrier delivery is subject to telecom regulations that developers must account for:
+
+- **SMS Origination Identity (US 10DLC & Toll-Free Numbers)**: US cellular carriers (AT&T, Verizon, T-Mobile) require all Application-to-Person (A2P) messaging to originate from registered **10-Digit Long Codes (10DLC)** tied to an approved Brand and Campaign in the Campaign Registry, or a verified Toll-Free Number. Unregistered messages are filtered or blocked outright by carrier firewalls.
+- **AWS SMS Sandbox**: All newly provisioned AWS accounts start in the **Amazon SNS SMS Sandbox**. In the sandbox, SMS messages can **only** be sent to phone numbers explicitly verified in the Amazon SNS console. Direct publishing to unverified numbers will be rejected by AWS.
+- **Regional Telecom Restrictions**:
+  - In India, commercial and transactional SMS requires pre-registered sender headers and message templates approved via TRAI Distributed Ledger Technology (DLT) portals.
+  - In the UK, alphanumeric sender IDs may require carrier pre-registration.
+- **Recipient Opt-Out (STOP / START)**: Recipients who text "STOP" to the origination number are automatically added to the AWS SNS opt-out list. AWS SNS will reject any subsequent publish attempts to that phone number until the recipient texts "START".
+- **Delivery Confirmation Mechanism**: To monitor whether an `ACCEPTED` publish actually reached the recipient handset, production deployments must enable **CloudWatch SMS Delivery Status Logging** (`sns/<region>/<account_id>/DirectPublishToPhoneNumber`). CloudWatch logs the final carrier delivery receipt (e.g. `SUCCESS`, `UNKNOWN`, `CARRIER_UNREACHABLE`).
+- **Permissions and Costs**:
+  - Requires IAM action `sns:Publish` on the specific topic ARN or target phone number.
+  - AWS SMS charges vary by country (e.g., ~$0.0075 per SMS in the US, plus carrier pass-through surcharges and monthly 10DLC campaign registration fees).
+
+### 3. Deduplication and Retry Behavior
+
+- **Stable Deduplication Key**: Alerts automatically generate a deterministic deduplication key: `alert:{person_id}:{date}:{routine_type}:{severity}`.
+- **15-Minute MCP Window**: When `notify_family` is invoked, CareLoop checks for an existing active alert sharing the deduplication key within the last 15 minutes. Duplicate invocations are suppressed with status `skipped_deduplicated` to prevent notification spam.
+- **Idempotent Scheduled Ticks**: The escalation background worker evaluates the current stage idempotently. Repeated ticks while in `NOTIFY_FAMILY` do not create duplicate alert records or re-publish messages.
+- **Automatic Retry with Backoff**: When a notification attempt fails (`status="failed"`), CareLoop increments `retry_count` and records the exact error in `delivery_error`. The `retry_failed_notifications()` job retries failed alerts without duplicating already accepted or delivered alerts.
+
+### 4. PII Privacy Protection & Testing Policy
+
+- **Phone Number Masking**: All phone numbers displayed in the simulator UI, console logs, or alert records are masked using `mask_phone_number()` (e.g. `+1-555-019-2834` ➔ `+1-55***2834`).
+- **Zero Real SMS in Test Suite**: All unit and integration tests use `InMemoryNotifier` or `ConsoleNotifier`. The standard test suite makes zero external network calls.
+- **Opt-In AWS Smoke Test**: A dedicated test ([tests/test_aws_sns_smoke.py](file:///Users/harsh/Desktop/Alexa+/tests/test_aws_sns_smoke.py)) is provided for live AWS verification. It requires explicit opt-in (`RUN_AWS_SMOKE_TEST=1`), executes preflight STS credential checks, and strictly forbids hardcoded phone numbers (requiring `CARELOOP_TEST_PHONE` or `CARELOOP_SNS_TOPIC_ARN`).
+
+---
+
+## Voice Reminders Architecture & Alexa Integration Notice
+
+CareLoop includes a safe voice reminder scheduler and lifecycle manager ([careloop/reminders.py](file:///Users/harsh/Desktop/Alexa+/careloop/reminders.py)):
+
+### 1. Current Implemented Capabilities
+- **Schedule Validation**: The `schedule_reminder` tool validates person identifiers, reminder text, and schedules formatted as 24-hour time-of-day (`HH:MM`) or ISO 8601 timestamps (`YYYY-MM-DDTHH:MM:SSZ`).
+- **Encrypted Persistence**: Reminders are stored in SQLite and DynamoDB with status tracking (`PENDING`, `COMPLETED`, `FAILED`, `DISMISSED`).
+- **Due Reminder Processing**: The `ReminderScheduler` scans pending reminders, compares scheduled times against the injectable `Clock` in the person's configured timezone, triggers delivery bridges, and records completion timestamps (`completed_at`).
+- **Conversational Feedback**: The MCP tool returns immediate natural voice responses for Alexa+ TTS (e.g. *"I have scheduled a reminder for Eleanor at 14:00: Take blood pressure medication."*).
+
+### 2. Missing Component for Physical Amazon Echo Audio Broadcast
+
+CareLoop **explicitly identifies the architectural boundary for physical Echo speaker delivery**:
+
+CareLoop runs as a standalone Model Context Protocol (MCP) server. To make a physical Amazon Echo device ring chimes and audibly speak a reminder proactively when it becomes due, the following external components are required:
+
+1. **Alexa Reminders API Endpoint**: Direct HTTP requests to `https://api.amazonalexa.com/v1/alerts/reminders`.
+2. **Customer Consent & OAuth 2.0 Access Token**: The elder's Amazon account must explicitly grant permission `alexa::alerts:reminders:skill:readwrite` inside the Alexa smartphone app, and the backend must hold a valid Login with Amazon (LWA) access token for that specific customer.
+3. **Alexa Skills Kit (ASK) Runtime Bridge**: An ASK Lambda skill or proactive events dispatcher mapped to the elder's specific Amazon Echo endpoint ID.
+
+In the absence of the customer-delegated ASK OAuth token, CareLoop provides a `ConsoleReminderDeliveryBridge` for local testing and returns formatted TTS text over MCP, rather than pretending physical Echo delivery occurred.
+
+---
+
+## Sandboxed Generative Layer (Amazon Bedrock) & Clinical Safety Independence
+
+CareLoop integrates with **Amazon Bedrock Runtime** using the official **Converse API** ([careloop/llm/bedrock.py](file:///Users/harsh/Desktop/Alexa+/careloop/llm/bedrock.py)) under strict clinical boundaries:
+
+```mermaid
+flowchart LR
+    subgraph GenerativeLayer ["Sandboxed Bedrock Converse API"]
+        CaregiverQ["Caregiver Question / Summary Request"] --> Filter["1. Rule-First Filter Parsing<br/>(Event Type + Local Date Range)"]
+        Filter --> CheckZero{"2. Matching Events > 0?"}
+        CheckZero -- "No (0 events)" --> NoRecord["Explicit 'No Record' Response<br/>(Bedrock Converse NEVER called)"]
+        CheckZero -- "Yes" --> MinMeta["3. Send MINIMUM Metadata Only<br/>(Strip internal IDs / audio)"]
+        MinMeta --> Converse["4. boto3 Bedrock Converse<br/>(anthropic.claude-3-haiku)"]
+        Converse --> Answer["Warm 3-Sentence Summary / Q&A Answer"]
+    end
+
+    subgraph ClinicalSafetyCore ["Deterministic Safety Core (Zero LLM)"]
+        EWMA["Circular EWMA Baseline"]
+        Risk["Multi-Factor Risk Engine"]
+        Escalation["Escalation State Machine"]
+        Alerts["Family Alert Dispatcher"]
+    end
+
+    Converse -.->|"❌ STRICTLY FORBIDDEN:<br/>Cannot alter risk, state, or alerts"| ClinicalSafetyCore
+```
+
+### 1. Configuration & Model Selection
+- **Configurable Model ID**: Controlled via the `BEDROCK_MODEL_ID` environment variable (default: `anthropic.claude-3-haiku-20240307-v1:0`). Also compatible with `amazon.nova-micro-v1:0`, `anthropic.claude-3-5-sonnet-20240620-v1:0`, and custom provisioned model ARNs.
+- **Region**: Configurable via `AWS_REGION` or `AWS_DEFAULT_REGION` (default: `us-east-1`).
+- **SDK Compatibility**: Built with official `boto3` (`1.43+`) and `botocore` using `bedrock-runtime.converse()`.
+
+### 2. IAM Permissions
+Production deployments require the following least-privilege IAM policy:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CareLoopBedrockConverseAccess",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-*"
+    }
+  ]
+}
+```
+
+### 3. Cost Profile & Economic Efficiency
+- **Anthropic Claude 3 Haiku Pricing**:
+  - Input tokens: **$0.00025 per 1,000 tokens** ($0.25 / MTok).
+  - Output tokens: **$0.00125 per 1,000 tokens** ($1.25 / MTok).
+- **Per-Inference Cost**:
+  - *Daily Summary*: ~180 input tokens + ~65 output tokens = **$0.000126 per summary** (~1/8th of a cent).
+  - *Memory Q&A*: ~120 input tokens + ~40 output tokens = **$0.000080 per query**.
+  - *Zero-Record Queries*: **$0.000000** (short-circuits before LLM invocation).
+- **Monthly Cost for Monitored Elder**: Under normal family usage (2 daily summaries + 3 memory queries daily), the total monthly Bedrock cost is **under $0.02 USD per month**.
+
+### 4. Local Fallback & High-Availability Resilience
+- **Deterministic 3-Sentence Fallback Template**: When running locally without AWS credentials, or when Bedrock experiences `ThrottlingException`, `ModelTimeoutException`, or model unavailability, CareLoop automatically formats a warm, 3-sentence family summary grounded strictly in observed event metadata. Demos and emergency operations never crash or fail due to LLM outages.
+- **Deterministic Memory Phrasing**: Offline memory queries return exact logged times and event metadata.
+- **Privacy Enforcement**: Prompts containing elder event histories and health data are **strictly forbidden from being logged** to console logs or CloudWatch log groups.
+
+### 5. Architectural Clinical Independence (Regression Verified)
+As verified in [tests/test_bedrock.py](file:///Users/harsh/Desktop/Alexa+/tests/test_bedrock.py) (`test_bedrock_adversarial_output_cannot_alter_clinical_state`), even if an adversarial prompt or model hallucination outputs alarmist text (e.g. demanding 911 or claiming risk is 1.0), the deterministic clinical safety engine ignores model text completely:
+- Risk assessment scores are computed strictly by mathematical anomaly scoring.
+- Escalation stages transition strictly via persisted state machines and timestamps.
+- Zero emergency notifications or alerts can ever be triggered by LLM generative text.
 
 ---
 
