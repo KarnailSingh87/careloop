@@ -54,9 +54,9 @@ This audit evaluates the actual code, protocol compliance, persistence integrity
 | **Mobile Segmented Tabs** | Touch-friendly view switching on $\le 960\text{px}$ | **IMPLEMENTED & VERIFIED** | Segmented tab bar verified; minimum 44px tap targets implemented. |
 | **60-Day Benchmark Evaluator** | Replay 18 ground-truth incidents | **IMPLEMENTED & VERIFIED** | Executed via `scripts/evaluate_benchmark.py`: 100.0% Recall (18/18), 0.00% False Alarm Rate across 459 checks. |
 | **Alexa+ Auth Middleware** | Bearer token, header, and query auth | **IMPLEMENTED & VERIFIED** | Verified in `tests/test_auth.py` (7 tests). Bypass paths for `/health` and `/simulator` verified. |
-| **AWS SAM Template** | Fargate, ALB, DynamoDB, SNS, EventBridge | **IMPLEMENTED & VERIFIED** | Verified in `tests/test_deployment.py::test_sam_template_specification` against CloudFormation schema. |
-| **AWS CDK Stack** | Python CDK infrastructure code | **IMPLEMENTED & VERIFIED** | Verified in `tests/test_deployment.py::test_cdk_stack_specification`. |
-| **EventBridge Tick Lambda** | 1-minute autonomous tick execution | **PARTIALLY VERIFIED** | Handler tested in `test_deployment.py`; missing auth forwarding when token is active. |
+| **AWS SAM Template** | Fargate, ALB, DynamoDB, SNS, EventBridge | **IMPLEMENTED & VERIFIED** | Verified in `tests/test_deployment.py` with PyYAML and schema validation. |
+| **AWS CDK Stack** | Python CDK infrastructure code | **IMPLEMENTED & VERIFIED** | Synthesized and verified via `aws_cdk.assertions.Template` in `tests/test_deployment.py`. |
+| **EventBridge Tick Lambda** | 1-minute autonomous tick execution | **IMPLEMENTED & VERIFIED** | Verified in `tests/test_deployment.py`; handles Bearer tokens, Secrets Manager retrieval, and DLQ failure retries. |
 
 ---
 
@@ -265,8 +265,8 @@ CareLoop has achieved full functional implementation across its MCP server, 60-d
 ## 8. Unresolved Issues & Environmental Limitations
 
 1. **Live AWS Cloud Integration Testing**:
-   - *Limitation*: Unit and integration tests verify DynamoDB and Bedrock operations against mocks and interface contracts. End-to-end testing against real AWS endpoints (`https://bedrock-runtime.us-east-1.amazonaws.com` and real DynamoDB tables) requires an active AWS account with provisioned IAM credentials, which are intentionally decoupled from the local test harness to maintain zero external network side effects.
-2. **P2 Enhancement: Configurable CORS Origin Whitelist**:
-   - Currently, `careloop/server/main.py` uses `allow_origins=["*"]` to simplify local testing across localhost ports (`8000`, `3000`, `5173`) and the Alexa+ developer console simulator. For strict enterprise deployments, an environment variable `CORS_ALLOWED_ORIGINS` can restrict this to specific domain origins.
-3. **P2 Enhancement: DynamoDB TTL Expiration**:
-   - Long-term historical events in DynamoDB can leverage DynamoDB native TTL by writing an epoch `ttl` attribute on `Event` items to automatically retire motion sensor records older than 90 days.
+   - *Limitation*: Unit and integration tests verify DynamoDB and Bedrock operations against mocks, synthesized templates, and interface contracts. End-to-end testing against live AWS endpoints (`https://bedrock-runtime.us-east-1.amazonaws.com` and live DynamoDB tables) requires an active AWS account with provisioned IAM credentials and explicit approval (`RUN_AWS_SMOKE_TEST=1`), which is intentionally decoupled from ordinary unit testing to avoid incurring unexpected cloud costs.
+2. **CORS Origin Whitelisting (RESOLVED)**:
+   - Implemented in Security Hardening Pass: Production mode requires an explicit `ALLOWED_ORIGINS` whitelist. Wildcard `*` in production with credentials fails closed with `SecurityConfigurationError`.
+3. **DynamoDB TTL Expiration (RESOLVED)**:
+   - Implemented in Storage & Deployment Pass: `TTL` epoch attribute is written on all event and alert records in DynamoDB. `time_to_live_attribute="TTL"` is configured on both the CDK stack and SAM template for automated hands-off record retirement.

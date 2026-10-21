@@ -536,9 +536,46 @@ def create_app(
         escalation_inst.reset_to_normal(person_id, base_reset, reason="Simulation demo reset")
         return JSONResponse(_get_sim_state(person_id))
 
+    async def oauth_protected_resource_metadata(request: Request) -> JSONResponse:
+        """
+        RFC 9728 OAuth 2.0 Protected Resource Metadata endpoint.
+        Discovered by Alexa+ MCP Toolkit to determine authorization server boundaries.
+        """
+        host = request.headers.get("host", "127.0.0.1:8000")
+        proto = "https" if request.url.is_secure or "https" in request.headers.get("x-forwarded-proto", "") else "http"
+        base_url = f"{proto}://{host}"
+        return JSONResponse({
+            "resource": base_url,
+            "authorization_servers": [f"{base_url}/oauth"],
+            "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
+            "bearer_methods_supported": ["header"],
+            "resource_documentation": "https://github.com/KarnailSingh87/careloop",
+        })
+
+    async def oauth_authorization_server_metadata(request: Request) -> JSONResponse:
+        """
+        RFC 8414 OAuth 2.0 Authorization Server Metadata endpoint.
+        Declares OAuth 2.1 PKCE (S256) support for Alexa+ Tier 2 account linking.
+        """
+        host = request.headers.get("host", "127.0.0.1:8000")
+        proto = "https" if request.url.is_secure or "https" in request.headers.get("x-forwarded-proto", "") else "http"
+        base_url = f"{proto}://{host}"
+        return JSONResponse({
+            "issuer": base_url,
+            "authorization_endpoint": f"{base_url}/oauth/authorize",
+            "token_endpoint": f"{base_url}/oauth/token",
+            "response_types_supported": ["code"],
+            "grant_types_supported": ["authorization_code", "client_credentials"],
+            "code_challenge_methods_supported": ["S256"],
+            "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+            "scopes_supported": ["careloop:elder:read", "careloop:elder:write", "careloop:mcp"],
+        })
+
     app.routes.append(Route("/", root_endpoint, methods=["GET"]))
     app.routes.append(Route("/health", health_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator", simulator_endpoint, methods=["GET"]))
+    app.routes.append(Route("/.well-known/oauth-protected-resource", oauth_protected_resource_metadata, methods=["GET"]))
+    app.routes.append(Route("/.well-known/oauth-authorization-server", oauth_authorization_server_metadata, methods=["GET"]))
     app.routes.append(Route("/api/state", api_state_endpoint, methods=["GET"]))
     app.routes.append(Route("/api/clock/advance", api_clock_advance, methods=["POST"]))
     app.routes.append(Route("/api/clock/set", api_clock_set, methods=["POST"]))

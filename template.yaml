@@ -23,9 +23,17 @@ Parameters:
     Default: ""
     Description: Optional email address to subscribe to CareLoop SNS alerts.
 
+  AlexaAuthTokenSecretArn:
+    Type: String
+    Default: ""
+    Description: >
+      Optional AWS Secrets Manager Secret ARN containing the ALEXA_AUTH_TOKEN.
+      If provided, CareLoop ECS task and tick Lambda will retrieve the secret securely at runtime.
+
 Conditions:
   HasEmail: !Not [!Equals [!Ref CaregiverAlertEmail, ""]]
   UseCustomImage: !Not [!Equals [!Ref ContainerImageUri, ""]]
+  HasAuthTokenSecret: !Not [!Equals [!Ref AlexaAuthTokenSecretArn, ""]]
 
 Resources:
   # ===========================================================================
@@ -50,6 +58,9 @@ Resources:
         SSEEnabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
 
   # ===========================================================================
   # 2. Amazon SNS: Family Alert Topic with Server-Side Encryption
@@ -213,15 +224,13 @@ Resources:
                   - sns:Publish
                 Resource: !Ref CareLoopTopic
 
-              # Bedrock: Model invocation strictly for Claude 3 foundation models
+              # Bedrock: Model invocation strictly for the configured foundation model
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
-                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
-                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0"
-                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-*"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
 
               # CloudWatch Logs
               - Effect: Allow
@@ -243,6 +252,22 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  CareLoopSecretsPolicy:
+    Type: AWS::IAM::Policy
+    Condition: HasAuthTokenSecret
+    Properties:
+      PolicyName: CareLoopSecretsAccessPolicy
+      Roles:
+        - !Ref CareLoopTaskRole
+        - !Ref CareLoopExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: !Ref AlexaAuthTokenSecretArn
 
   # ===========================================================================
   # 5. CloudWatch Logs & ECS Fargate Service
@@ -341,6 +366,11 @@ Resources:
               Value: "system"
             - Name: ESCALATION_TICK_INTERVAL_SECONDS
               Value: "60.0"
+          Secrets: !If
+            - HasAuthTokenSecret
+            - - Name: ALEXA_AUTH_TOKEN
+                ValueFrom: !Ref AlexaAuthTokenSecretArn
+            - !Ref "AWS::NoValue"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -371,8 +401,15 @@ Resources:
           TargetGroupArn: !Ref CareLoopTargetGroup
 
   # ===========================================================================
-  # 6. EventBridge Scheduled Rule: Autonomous Minute Tick
+  # 6. EventBridge Scheduled Rule: Autonomous Minute Tick & Dead Letter Queue
   # ===========================================================================
+  CareLoopTickDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: CareLoopTickRunnerDLQ
+      MessageRetentionPeriod: 1209600 # 14 days
+      KmsMasterKeyId: alias/aws/sqs
+
   CareLoopTickFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -385,12 +422,29 @@ Resources:
       Environment:
         Variables:
           MCP_SERVER_URL: !Sub "http://${CareLoopALB.DNSName}"
+          ALEXA_AUTH_TOKEN_SECRET_ARN: !If [HasAuthTokenSecret, !Ref AlexaAuthTokenSecretArn, ""]
+      Policies:
+        - !If
+          - HasAuthTokenSecret
+          - Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref AlexaAuthTokenSecretArn
+          - !Ref "AWS::NoValue"
       Events:
         MinuteSchedule:
           Type: Schedule
           Properties:
             Schedule: "rate(1 minute)"
             Description: "Autonomous routine health tick every minute"
+            DeadLetterConfig:
+              Type: SQS
+              QueueArn: !GetAtt CareLoopTickDLQ.Arn
+            RetryPolicy:
+              MaximumRetryAttempts: 2
+              MaximumEventAgeInSeconds: 300
 
 # =============================================================================
 # Outputs
@@ -412,6 +466,18 @@ Outputs:
     Description: Encrypted DynamoDB single-table name
     Value: !Ref CareLoopTable
 
+  DynamoDbTableArn:
+    Description: Encrypted DynamoDB single-table ARN
+    Value: !GetAtt CareLoopTable.Arn
+
   SnsTopicArn:
     Description: Amazon SNS Alert Topic ARN
     Value: !Ref CareLoopTopic
+
+  TickDLQArn:
+    Description: Amazon SQS Dead Letter Queue ARN for failed EventBridge ticks
+    Value: !GetAtt CareLoopTickDLQ.Arn
+
+  TickDLQUrl:
+    Description: Amazon SQS Dead Letter Queue URL for failed EventBridge ticks
+    Value: !Ref CareLoopTickDLQ

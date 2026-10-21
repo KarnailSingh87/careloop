@@ -37,6 +37,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     req_data = json.dumps(payload).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     auth_token = (os.getenv("ALEXA_AUTH_TOKEN") or os.getenv("MCP_AUTH_TOKEN") or "").strip()
+    if not auth_token:
+        secret_arn = os.getenv("ALEXA_AUTH_TOKEN_SECRET_ARN", "").strip()
+        if secret_arn:
+            try:
+                import boto3
+                sm = boto3.client("secretsmanager")
+                res = sm.get_secret_value(SecretId=secret_arn)
+                auth_token = res.get("SecretString", "").strip()
+            except Exception as sm_err:
+                logger.warning(f"Failed to fetch secret from Secrets Manager: {sm_err}")
+
     if auth_token:
         headers["Authorization"] = f"Bearer {auth_token}"
         headers["x-alexa-auth-token"] = auth_token

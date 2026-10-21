@@ -135,8 +135,8 @@ def is_reminder_due(reminder: Reminder, now: datetime, person_tz_str: str = "UTC
         if created_local.tzinfo is not None:
             try:
                 created_local = created_local.astimezone(local_now.tzinfo)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Could not convert created_at timezone: {e}")
 
         if local_now.date() > created_local.date():
             # If a day or more has passed since creation, reminder is definitely due

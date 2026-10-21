@@ -76,7 +76,7 @@ class SQLiteStorage(StorageBase):
         with self._lock:
             self._check_closed()
             with self._conn:
-                # 1. Base Tables Creation
+                # 1. Base Tables Creation (without indexes that depend on migrated columns)
                 self._conn.executescript("""
                     CREATE TABLE IF NOT EXISTS events (
                         event_id TEXT PRIMARY KEY,
@@ -85,10 +85,6 @@ class SQLiteStorage(StorageBase):
                         timestamp TEXT NOT NULL,
                         metadata TEXT NOT NULL
                     );
-                    CREATE INDEX IF NOT EXISTS idx_events_person_time 
-                        ON events (person_id, timestamp DESC);
-                    CREATE INDEX IF NOT EXISTS idx_events_type 
-                        ON events (person_id, event_type, timestamp DESC);
 
                     CREATE TABLE IF NOT EXISTS reminders (
                         reminder_id TEXT PRIMARY KEY,
@@ -101,8 +97,6 @@ class SQLiteStorage(StorageBase):
                         error TEXT,
                         metadata TEXT NOT NULL DEFAULT '{}'
                     );
-                    CREATE INDEX IF NOT EXISTS idx_reminders_person 
-                        ON reminders (person_id, status, scheduled_time ASC);
 
                     CREATE TABLE IF NOT EXISTS profiles (
                         person_id TEXT PRIMARY KEY,
@@ -133,10 +127,6 @@ class SQLiteStorage(StorageBase):
                         event_ids TEXT NOT NULL DEFAULT '[]',
                         metadata TEXT NOT NULL
                     );
-                    CREATE INDEX IF NOT EXISTS idx_alerts_person 
-                        ON alerts (person_id, status, created_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_alerts_dedup
-                        ON alerts (person_id, dedup_key, status);
 
                     CREATE TABLE IF NOT EXISTS escalation_states (
                         person_id TEXT PRIMARY KEY,
@@ -164,11 +154,9 @@ class SQLiteStorage(StorageBase):
                         last_updated TEXT NOT NULL,
                         PRIMARY KEY (person_id, routine_type)
                     );
-                    CREATE INDEX IF NOT EXISTS idx_baselines_person 
-                        ON baselines (person_id);
                 """)
 
-                # 2. Incremental Migrations via PRAGMA user_version
+                # 2. Incremental Migrations via PRAGMA user_version & column backfills
                 cursor = self._conn.execute("PRAGMA user_version")
                 current_ver = cursor.fetchone()[0]
 
@@ -215,6 +203,22 @@ class SQLiteStorage(StorageBase):
                     self._conn.execute("ALTER TABLE reminders ADD COLUMN error TEXT")
                 if "metadata" not in rem_cols:
                     self._conn.execute("ALTER TABLE reminders ADD COLUMN metadata TEXT NOT NULL DEFAULT '{}'")
+
+                # 3. Create Indexes (guaranteed safe after column migrations)
+                self._conn.executescript("""
+                    CREATE INDEX IF NOT EXISTS idx_events_person_time 
+                        ON events (person_id, timestamp DESC);
+                    CREATE INDEX IF NOT EXISTS idx_events_type 
+                        ON events (person_id, event_type, timestamp DESC);
+                    CREATE INDEX IF NOT EXISTS idx_reminders_person 
+                        ON reminders (person_id, status, scheduled_time ASC);
+                    CREATE INDEX IF NOT EXISTS idx_alerts_person 
+                        ON alerts (person_id, status, created_at DESC);
+                    CREATE INDEX IF NOT EXISTS idx_alerts_dedup
+                        ON alerts (person_id, dedup_key, status);
+                    CREATE INDEX IF NOT EXISTS idx_baselines_person 
+                        ON baselines (person_id);
+                """)
 
                 if current_ver < self.SCHEMA_VERSION:
                     self._conn.execute(f"PRAGMA user_version = {self.SCHEMA_VERSION};")
@@ -840,19 +844,24 @@ class SQLiteStorage(StorageBase):
             self._check_closed()
             results = {}
             with self._conn:
-                for table in (
-                    "events",
-                    "alerts",
-                    "reminders",
-                    "baselines",
-                    "escalation_states",
-                    "profiles",
-                ):
-                    cur = self._conn.execute(
-                        f"DELETE FROM {table} WHERE person_id = ?",
-                        (person_id,),
-                    )
-                    results[table] = cur.rowcount
+                results["events"] = self._conn.execute(
+                    "DELETE FROM events WHERE person_id = ?", (person_id,)
+                ).rowcount
+                results["alerts"] = self._conn.execute(
+                    "DELETE FROM alerts WHERE person_id = ?", (person_id,)
+                ).rowcount
+                results["reminders"] = self._conn.execute(
+                    "DELETE FROM reminders WHERE person_id = ?", (person_id,)
+                ).rowcount
+                results["baselines"] = self._conn.execute(
+                    "DELETE FROM baselines WHERE person_id = ?", (person_id,)
+                ).rowcount
+                results["escalation_states"] = self._conn.execute(
+                    "DELETE FROM escalation_states WHERE person_id = ?", (person_id,)
+                ).rowcount
+                results["profiles"] = self._conn.execute(
+                    "DELETE FROM profiles WHERE person_id = ?", (person_id,)
+                ).rowcount
             logger.info(f"Deleted all records for person '{person_id}': {results}")
             return results
 

@@ -384,8 +384,8 @@ class RateLimitMiddleware:
             return
 
         path = scope.get("path", "")
-        # Bypass health check and static simulator assets from rate limiting
-        if path in ("/health", "/favicon.ico"):
+        # Bypass health check, static simulator assets, and RFC discovery endpoints from rate limiting
+        if path in ("/health", "/favicon.ico") or path.startswith("/.well-known/"):
             await self.app(scope, receive, send)
             return
 
@@ -519,8 +519,8 @@ class AlexaAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # 2. Public health check bypass (essential for ALB and ECS health checks)
-        if path == "/health":
+        # 2. Public health check & RFC 9728 / RFC 8414 OAuth metadata discovery bypass
+        if path == "/health" or path.startswith("/.well-known/"):
             await self.app(scope, receive, send)
             return
 
@@ -544,7 +544,7 @@ class AlexaAuthMiddleware:
 
         # Query param extraction (only allowed in development/test mode)
         query_string = scope.get("query_string", b"").decode("utf-8")
-        query_token = ""
+        query_auth_val: Optional[str] = None
         if "auth_token=" in query_string:
             if self.config.is_production():
                 res = JSONResponse(
@@ -563,25 +563,25 @@ class AlexaAuthMiddleware:
 
             import urllib.parse
             parsed_qs = urllib.parse.parse_qs(query_string)
-            query_token = parsed_qs.get("auth_token", [""])[0].strip()
+            query_auth_val = parsed_qs.get("auth_token", [""])[0].strip() or None
 
-        extracted_token = ""
+        candidate_token: Optional[str] = None
         auth_method = "none"
         if auth_header.lower().startswith("bearer "):
-            extracted_token = auth_header[7:].strip()
+            candidate_token = auth_header[7:].strip()
             auth_method = "bearer"
         elif alexa_header:
-            extracted_token = alexa_header
+            candidate_token = alexa_header
             auth_method = "alexa_header"
         elif api_key_header:
-            extracted_token = api_key_header
+            candidate_token = api_key_header
             auth_method = "api_key"
-        elif query_token:
-            extracted_token = query_token
+        elif query_auth_val:
+            candidate_token = query_auth_val
             auth_method = "query_param"
 
         # 5. Production Mode: Must fail closed if no token is provided
-        if not extracted_token:
+        if not candidate_token:
             if self.config.is_production():
                 logger.warning(f"Unauthorized access attempt to {path}: No authentication credentials provided.")
                 res = JSONResponse(
@@ -631,7 +631,7 @@ class AlexaAuthMiddleware:
             return
 
         # 6. Verify token
-        security_context = self.token_manager.verify_token(extracted_token)
+        security_context = self.token_manager.verify_token(candidate_token)
         if not security_context:
             logger.warning(f"Unauthorized access to {path}: Invalid token provided.")
             res = JSONResponse(

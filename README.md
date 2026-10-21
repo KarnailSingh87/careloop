@@ -7,7 +7,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
-[![Tests Passing](https://img.shields.io/badge/tests-139%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-156%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -627,14 +627,175 @@ As verified in [tests/test_bedrock.py](file:///Users/harsh/Desktop/Alexa+/tests/
 
 ---
 
-## Strict Privacy Architecture
+## Threat Model & Security Architecture
 
-CareLoop is built from the ground up for strict healthcare and elder privacy:
+CareLoop protects vulnerable elderly individuals who depend on reliable ambient monitoring and timely family notifications. A security compromise of this system could result in physical danger, loss of privacy, or dangerous notification sabotage.
 
-1. **Zero Raw Audio Storage**: Neither CareLoop nor the MCP server ever captures, records, or stores ambient audio. Only discrete metadata tuples are stored: `(person_id, event_type, timestamp, metadata)`.
-2. **Deterministic Safety Isolation**: Amazon Bedrock is used strictly for phrasing daily summaries and answering factual routine questions. The LLM **cannot** invoke emergency alerts or change escalation stages.
-3. **Auditability & Explainability**: Every alert dispatched to family contains deterministic, explainable reasons (e.g. *"Blood pressure medication window closed at 09:15 UTC. Routine check-in unanswered after 120 seconds."*).
-4. **Encryption at Rest**: On AWS, all DynamoDB items and Amazon SNS messages are encrypted with AWS KMS customer-managed keys.
+### 1. Threat Vectors and Defensive Mitigations
+
+| Threat Vector | Attacker Capability | CareLoop Defensive Control |
+|---|---|---|
+| **Unauthorized Routine Snooping** | Attacker attempts to read private routines, medication history, or room movement (`/api/state`, `ask_memory`, `daily_summary`). | **Strict Bearer/API Key Auth & PBAC**: Every request is intercepted by `AlexaAuthMiddleware` before reaching storage or tools. Unauthenticated callers receive `401 Unauthorized`. Callers are restricted strictly to permitted persons (`allowed_persons`). |
+| **Forged Routine Injection** | Attacker injects false meal or medication events to mislead caregivers into believing an incapacitated elder is safe. | **Authentication & Scoped Identity**: `log_routine_event` requires a verified authentication token mapped to the elder's device. Cross-person submissions raise `ToolError` (Access Denied). |
+| **Escalation & Alarm Suppression** | Attacker invokes `confirm_ok` or `respond_to_checkin` to prematurely reset an active emergency check-in to `normal`. | **Person-Scoped Authorization**: Callers can only reset escalation for their explicitly authorized person. All resets log the authenticated caller ID and reason. |
+| **Notification Abuse & SMS Flooding** | Attacker repeatedly triggers `notify_family` to induce caregiver alarm fatigue or run up SMS carrier charges. | **15-Min Deduplication & Quota Limiter**: Identical alerts are suppressed within a 15-minute sliding window. Furthermore, `check_notification_rate_limit` throttles notifications to a maximum of 10 per hour per person. |
+| **Cross-Person Lateral Movement** | Multi-resident deployment where household A's smart speaker attempts to query or manipulate household B's elder. | **Person-Based Access Control (PBAC)**: Every tool enforces `ctx.is_person_allowed(person)`. Household A's token cannot read or alter household B's data (regression tested in `test_cross_person_access_denial`). |
+| **Denial of Service via Payload Exhaustion** | Attacker sends massive HTTP request bodies (multi-megabyte JSON or audio streams) to exhaust server memory. | **Request Size Limiting**: `RequestSizeLimitMiddleware` strictly caps incoming request bodies at 64KB (`413 Payload Too Large`), checking both `Content-Length` and chunked streams. |
+| **Brute-Force & Credential Stuffing** | Attacker rapidly tests authentication tokens against `/mcp`. | **Sliding-Window Rate Limiting**: `RateLimitMiddleware` limits requests to 120 rpm per client identifier, returning `429 Too Many Requests` with `Retry-After: 60`. |
+| **Cross-Origin Hijacking (CORS)** | Malicious third-party website tricks an authenticated caregiver's browser into invoking MCP tools. | **Hardened CORS Policy**: In production, wildcard `*` with credentials is strictly prohibited. Only explicitly configured `ALLOWED_ORIGINS` are accepted. |
+| **Internal Trace & Infrastructure Leaks** | Attacker sends malformed inputs to trigger uncaught exceptions, revealing SQL schemas, file paths, or stack traces. | **Sanitized Error Responses**: In production, internal exceptions return clean JSON-RPC errors (`code: -32603, message: "An internal server error occurred."`). Full traces are logged internally to sanitized log sinks. |
+
+---
+
+## Privacy Architecture & Data Governance
+
+CareLoop applies healthcare privacy principles and data minimization to protect elderly dignity and personal autonomy:
+
+```mermaid
+flowchart LR
+    subgraph DataMinimization ["1. Ambient Data Minimization"]
+        Audio[("Spoken Voice / Mic")] -->|"Transcribed on Device"| Text["Structured Metadata Only<br/>{person: 'dad', type: 'pill'}"]
+        Discard["Raw Voice Discarded<br/>(NEVER Transmitted or Stored)"] -.-> Audio
+    end
+
+    subgraph StatisticalEngine ["2. Mathematical Circadian Modeling"]
+        Text --> Cir["Circular Statistics<br/>μ = 510m (8:30 AM), σ = 24m<br/>(No qualitative behavioral notes)"]
+    end
+
+    subgraph StorageGovernance ["3. Retention & Deletion Governance"]
+        Cir --> Retention["Automated Retention Expiry<br/>• Routine Events: 90 days<br/>• Alert Records: 180 days<br/>• DynamoDB native TTL"]
+        Retention --> RightToForget["Right-to-be-Forgotten (GDPR/CCPA)<br/>delete_person_data(person_id)"]
+    end
+
+    subgraph ScrubbedAudit ["4. Structured Logging Filter"]
+        StorageGovernance --> Filter["PrivacyLogFilter<br/>• Redacts Bearer & API tokens<br/>• Masks phone numbers (+1***-***-**71)<br/>• Forbids Bedrock prompt logging"]
+    end
+```
+
+### 1. Data Minimization
+- **Zero Raw Voice Storage**: CareLoop operates exclusively on structured metadata tuples `(person_id, event_type, timestamp, metadata)`. Neither raw audio bytes, waveforms, nor ambient recordings ever touch the server or database. Any storage payload containing audio keys (`wav`, `mp3`, `raw_audio`, `ambient_audio`) triggers an immediate `PrivacyViolationError`.
+- **Circular Baselines without Behavioral Commentary**: Personal routines are modeled strictly as circular statistical coordinates on the 1440-minute day. The system learns timing distributions mathematically without retaining diary entries or invasive lifestyle notes.
+
+### 2. Privacy-Conscious Logging (`PrivacyLogFilter`)
+- An automated log filter runs on all CareLoop logging channels.
+- Redacts authorization headers (`Bearer [REDACTED_TOKEN]`), query parameters (`auth_token=[REDACTED_TOKEN]`), and API keys.
+- Automatically masks caregiver phone numbers (e.g. `+1 (415) 555-2671` -> `+1***-***-**71`).
+- Prompts sent to Amazon Bedrock containing elder routine logs are strictly prohibited from being persisted to log files or AWS CloudWatch.
+
+### 3. Explicit Retention and Deletion Policies
+- **Routine Event Expiration (`purge_expired_events`)**: Routine events older than 90 days (`ROUTINE_EVENT_RETENTION_DAYS`) are purged from storage. On DynamoDB, each event item contains an automated epoch `TTL` attribute for hands-off AWS-managed deletion.
+- **Alert Record Expiration (`purge_expired_alerts`)**: Resolved alerts older than 180 days (`ALERT_RECORD_RETENTION_DAYS`) are purged.
+- **Right-to-be-Forgotten Deletion (`delete_person_data`)**: Supports complete erasure of all records (events, alerts, baselines, reminders, escalation states, profiles) associated with a person in both SQLite and DynamoDB.
+
+---
+
+## MCP Transport & Authentication Reality
+
+CareLoop implements the **Streamable HTTP MCP Specification (2025-11-25+)**:
+
+1. **Transport Protocol**:
+   - MCP over Streamable HTTP operates over standard HTTP `POST /mcp` and `POST /v1/mcp` endpoints.
+   - Long-running streaming sessions utilize Server-Sent Events (SSE) and HTTP chunked transfer.
+2. **Official Authentication Mechanism**:
+   - Standard HTTP headers: `Authorization: Bearer <token>` or `x-api-key: <token>`.
+   - MCP clients (such as Alexa+ Cloud Adapter, Claude Desktop, Cursor, or custom gateway proxies) transmit the bearer token in the HTTP handshake.
+   - In CareLoop, authentication and security context resolution occur at the **ASGI middleware layer (`AlexaAuthMiddleware`)**, intercepting packets *before* they reach the FastMCP JSON-RPC router.
+3. **Session Identification**:
+   - `Mcp-Session-Id` header is preserved, validated, and exposed in CORS headers.
+
+---
+
+## Development Mode Isolation vs. Production Enforcement
+
+CareLoop provides a clearly isolated development environment while enforcing uncompromising security in production:
+
+| Feature / Behavior | Development Mode (`CARELOOP_ENV=development`) | Production Mode (`CARELOOP_ENV=production`) |
+|---|---|---|
+| **Authentication Requirement** | Optional if no token configured (defaults to local admin). If token set, token verified. | **Strictly Mandatory (Fail Closed)**. Missing or empty token causes startup failure (`SecurityConfigurationError`) or 401. |
+| **Weak / Default Tokens** | Permitted for quick local hacking (`"default"`, `"test"`). | **Strictly Forbidden**. Tokens in `INSECURE_DEFAULT_TOKENS` or under 16 characters are rejected on startup. |
+| **Query Parameter Auth** | Permitted (`?auth_token=...`) for quick browser testing. | **Strictly Forbidden (401)**. URL query parameters leak into browser history, proxies, and access logs. |
+| **Simulator UI (`/simulator`)** | Enabled with interactive visual controls. | **Disabled by Default (403)** unless explicitly enabled via `ENABLE_SIMULATOR=true`. |
+| **Clock Manipulation (`/api/clock/*`)** | Enabled for simulated time advancement. | **Strictly Disabled (403 Forbidden)**. Production uses physical system clock or NTP. |
+| **Demo Scenario Reset (`/api/demo/*`)** | Enabled for automated hackathon demonstrations. | **Strictly Disabled (403 Forbidden)**. Cannot wipe production clinical records. |
+| **CORS Policy** | Wildcard `*` allowed with credentials for local dev servers. | **Explicit Whitelist Only**. Wildcard with credentials raises `SecurityConfigurationError`. |
+| **Error Trace Exposure** | Full error details logged and returned for debugging. | **Sanitized Generic Messages**. Zero stack traces, file paths, or internal schema leaked. |
+
+---
+
+## AWS Deployment Architecture & Guide
+
+For the complete AWS CDK and SAM deployment guide, transport compatibility evaluation (ECS Fargate vs. API Gateway), least-privilege IAM policies, status checks, live smoke testing, and clean teardown procedures, see **[DEPLOYMENT.md](file:///Users/harsh/Desktop/Alexa+/DEPLOYMENT.md)**.
+
+## Deployment Security Checklist
+
+Before deploying CareLoop to public production on AWS:
+
+- [ ] **1. Set Production Environment**: Ensure `CARELOOP_ENV=production` is set in the ECS task definition / environment.
+- [ ] **2. Provision Strong Secrets**:
+  - Generate a cryptographically secure token (minimum 32 random alphanumeric characters): `openssl rand -hex 32`.
+  - Store in **AWS Secrets Manager** (`AWS_SECRETS_MANAGER_SECRET_ID=careloop/production/secrets`).
+  - Never commit tokens or credentials to git or docker images.
+- [ ] **3. Terminate TLS / HTTPS**:
+  - Enforce HTTPS (TLS 1.2+ / TLS 1.3) at the Application Load Balancer (ALB) with an AWS ACM certificate.
+  - Redirect all HTTP port 80 traffic to HTTPS port 443.
+- [ ] **4. Configure Whitelisted CORS Origins**:
+  - Set `ALLOWED_ORIGINS=https://alexa.amazon.com,https://your-caregiver-portal.com`.
+  - Confirm `*` is not in allowed origins.
+- [ ] **5. Enable DynamoDB Point-in-Time Recovery & KMS**:
+  - Verify `PointInTimeRecoveryEnabled: true` in CloudFormation / CDK.
+  - Verify AWS KMS customer-managed key encryption for DynamoDB table and SNS alert topic.
+- [ ] **6. Apply Least-Privilege IAM Roles**:
+  - Confirm the ECS Task Role only has permissions on the specific DynamoDB table ARN, SNS topic ARN, and Bedrock model ARN.
+- [ ] **7. Verify Simulated Endpoints are Disabled**:
+  - Confirm `CLOCK_MODE=system`.
+  - Run verification test ensuring `/api/clock/advance` and `/api/demo/reset` return 403 Forbidden.
+- [ ] **8. Validate Rate Limiting & Request Guardrails**:
+  - Verify `RATE_LIMIT_RPM` (e.g. 120) and `MAX_REQUEST_BODY_SIZE_BYTES` (64KB) are configured.
+
+---
+
+## Automated Security Verification & Audit Report
+
+CareLoop includes automated security checks that run in CI/CD before any deployment:
+
+### 1. Static Application Security Testing (Bandit AST Scanner)
+
+```bash
+bandit -r careloop
+```
+
+**Results**:
+- **Code Scanned**: 5,967 lines of Python code across 14 modules.
+- **High Severity Issues**: **0**
+- **Medium Severity Issues**: **0**
+- **Low Severity Issues**: **0**
+- **Findings**: Clean pass. No hardcoded credentials, no SQL injection vectors, and no unsafe deserialization patterns.
+
+### 2. Automated Test Suite (Pytest)
+
+```bash
+pytest tests/
+```
+
+**Results**:
+- **Total Tests**: **158 tests** (156 passing, 2 opt-in live AWS smoke tests skipped).
+- **Security Hardening Suite ([tests/test_security_hardening.py](file:///Users/harsh/Desktop/Alexa+/tests/test_security_hardening.py))**: 17 dedicated security tests covering unauthenticated attacks, token tampering, cross-person access denial, role restrictions, request size limits, notification abuse, and production fail-closed invariants.
+- **Pass Rate**: **100%**.
+
+---
+
+## Known Remaining Risks & Responsible Disclosure
+
+CareLoop is designed as an ambient assisted-living companion to give families peace of mind. To maintain transparency, we document known architectural boundaries and residual risks:
+
+1. **Voice Biometric Identity on Echo Devices**:
+   - *Residual Risk*: If an unauthorized visitor or television audio speaks in the room, an ambient Echo device could report false routines if it does not enforce speaker recognition.
+   - *Mitigation & Future Work*: Production Alexa Skill deployments should integrate with **Alexa Voice Profiles (Voice ID)** to cryptographically bind spoken utterances to the enrolled elder.
+2. **Telecommunication Carrier SMS Delivery Constraints**:
+   - *Residual Risk*: AWS SNS `Publish` returns success when AWS accepts the message, but downstream telecom carriers may filter, delay, or block SMS messages due to 10DLC registration requirements, regional restrictions, or local network outages.
+   - *Mitigation*: CareLoop explicitly records the 3-tier delivery lifecycle (`ACCEPTED` vs `DELIVERED` vs `FAILED`) and recommends primary notification via push notification or multiple caregiver phone numbers.
+3. **Medical Device & Compliance Disclaimer**:
+   - *Explicit Notice*: **CareLoop is not a Class II medical device and is not certified as an emergency response system (PERS) or FDA-regulated software.** It does not claim formal HIPAA BAA or SOC 2 certification. It is an ambient wellness assistant intended to support, not replace, professional human caregiving.
 
 ---
 

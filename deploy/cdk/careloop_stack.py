@@ -29,6 +29,8 @@ from aws_cdk import (
     aws_events_targets as targets,
     aws_lambda as lambda_,
     aws_logs as logs,
+    aws_sqs as sqs,
+    aws_secretsmanager as secretsmanager,
 )
 from constructs import Construct
 
@@ -36,11 +38,29 @@ from constructs import Construct
 class CareLoopStack(Stack):
     """CareLoop AWS Cloud Infrastructure Stack."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        bedrock_model_id: str = "anthropic.claude-3-haiku-20240307-v1:0",
+        auth_token_secret_arn: str | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        model_id = (
+            self.node.try_get_context("bedrockModelId")
+            or os.getenv("BEDROCK_MODEL_ID")
+            or bedrock_model_id
+        )
+        token_secret_arn = (
+            auth_token_secret_arn
+            or self.node.try_get_context("authTokenSecretArn")
+            or os.getenv("ALEXA_AUTH_TOKEN_SECRET_ARN")
+        )
+
         # ---------------------------------------------------------------------
-        # 1. DynamoDB: Single-Table Architecture with Encryption at Rest
+        # 1. DynamoDB: Single-Table Architecture with Encryption at Rest & TTL
         # ---------------------------------------------------------------------
         table = dynamodb.Table(
             self,
@@ -56,7 +76,10 @@ class CareLoopStack(Stack):
             ),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             encryption=dynamodb.TableEncryption.AWS_MANAGED,
-            point_in_time_recovery=True,
+            time_to_live_attribute="TTL",
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             removal_policy=RemovalPolicy.DESTROY,  # Easily cleanable in hackathon/dev teardown
         )
 
@@ -113,7 +136,7 @@ class CareLoopStack(Stack):
         # Grant SNS publish exclusively to the CareLoopAlertsTopic
         alerts_topic.grant_publish(task_role)
 
-        # Grant Bedrock Claude Foundation Model invocation strictly for summaries/Q&A
+        # Grant Bedrock Claude Foundation Model invocation strictly for the configured model
         task_role.add_to_policy(
             iam.PolicyStatement(
                 sid="BedrockConverseClaudeAccess",
@@ -123,12 +146,20 @@ class CareLoopStack(Stack):
                     "bedrock:InvokeModelWithResponseStream",
                 ],
                 resources=[
-                    f"arn:aws:bedrock:{self.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0",
-                    f"arn:aws:bedrock:{self.region}::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0",
-                    f"arn:aws:bedrock:{self.region}::foundation-model/anthropic.claude-*",
+                    f"arn:aws:bedrock:{self.region}::foundation-model/{model_id}",
                 ],
             )
         )
+
+        # Secrets Manager resolution for ALEXA_AUTH_TOKEN if configured
+        ecs_secrets: dict[str, ecs.Secret] = {}
+        token_secret = None
+        if token_secret_arn:
+            token_secret = secretsmanager.Secret.from_secret_complete_arn(
+                self, "AlexaAuthTokenSecret", token_secret_arn
+            )
+            token_secret.grant_read(task_role)
+            ecs_secrets["ALEXA_AUTH_TOKEN"] = ecs.Secret.from_secrets_manager(token_secret)
 
         # ---------------------------------------------------------------------
         # 5. ECS Fargate Application Load Balanced Service
@@ -163,10 +194,11 @@ class CareLoopStack(Stack):
                     "NOTIFIER_TYPE": "sns",
                     "SNS_TOPIC_ARN": alerts_topic.topic_arn,
                     "AWS_REGION": self.region,
-                    "BEDROCK_MODEL_ID": "anthropic.claude-3-haiku-20240307-v1:0",
+                    "BEDROCK_MODEL_ID": model_id,
                     "CLOCK_MODE": "system",
                     "ESCALATION_TICK_INTERVAL_SECONDS": "60.0",
                 },
+                secrets=ecs_secrets if ecs_secrets else None,
             ),
         )
 
@@ -189,10 +221,33 @@ class CareLoopStack(Stack):
         )
 
         # ---------------------------------------------------------------------
-        # 6. EventBridge Scheduled Rule: Call tick every minute
+        # 6. Dead Letter Queue & EventBridge Scheduled Rule: Call tick every minute
         # ---------------------------------------------------------------------
+        tick_dlq = sqs.Queue(
+            self,
+            "CareLoopTickDLQ",
+            queue_name="CareLoopTickRunnerDLQ",
+            retention_period=Duration.days(14),
+            encryption=sqs.QueueEncryption.KMS_MANAGED,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
         lambda_dir = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "../tick_lambda")
+        )
+
+        tick_lambda_env = {
+            "MCP_SERVER_URL": f"http://{fargate_service.load_balancer.load_balancer_dns_name}",
+        }
+        if token_secret_arn:
+            tick_lambda_env["ALEXA_AUTH_TOKEN_SECRET_ARN"] = token_secret_arn
+
+        tick_log_group = logs.LogGroup(
+            self,
+            "CareLoopTickLogGroup",
+            log_group_name="/aws/lambda/CareLoopTickRunner",
+            retention=logs.RetentionDays.ONE_WEEK,
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         tick_lambda = lambda_.Function(
@@ -204,13 +259,14 @@ class CareLoopStack(Stack):
             code=lambda_.Code.from_asset(lambda_dir),
             timeout=Duration.seconds(20),
             memory_size=128,
-            log_retention=logs.RetentionDays.ONE_WEEK,
-            environment={
-                "MCP_SERVER_URL": f"http://{fargate_service.load_balancer.load_balancer_dns_name}",
-            },
+            log_group=tick_log_group,
+            environment=tick_lambda_env,
         )
 
-        # Trigger tick every minute via EventBridge
+        if token_secret:
+            token_secret.grant_read(tick_lambda)
+
+        # Trigger tick every minute via EventBridge with retry limit and DLQ failure monitoring
         minute_rule = events.Rule(
             self,
             "CareLoopMinuteTickRule",
@@ -218,7 +274,14 @@ class CareLoopStack(Stack):
             description="Autonomous minute tick triggering CareLoop routine health checks",
             schedule=events.Schedule.rate(Duration.minutes(1)),
         )
-        minute_rule.add_target(targets.LambdaFunction(tick_lambda))
+        minute_rule.add_target(
+            targets.LambdaFunction(
+                tick_lambda,
+                dead_letter_queue=tick_dlq,
+                max_event_age=Duration.minutes(5),
+                retry_attempts=2,
+            )
+        )
 
         # ---------------------------------------------------------------------
         # 7. Stack Outputs
@@ -255,7 +318,35 @@ class CareLoopStack(Stack):
 
         CfnOutput(
             self,
+            "DynamoDbTableArn",
+            value=table.table_arn,
+            description="Encrypted DynamoDB single-table ARN",
+        )
+
+        CfnOutput(
+            self,
             "SnsTopicArn",
             value=alerts_topic.topic_arn,
             description="Amazon SNS Alert Topic ARN for caregiver notifications",
+        )
+
+        CfnOutput(
+            self,
+            "EventBridgeRuleName",
+            value=minute_rule.rule_name,
+            description="EventBridge scheduled rule name executing routine tick",
+        )
+
+        CfnOutput(
+            self,
+            "TickDLQArn",
+            value=tick_dlq.queue_arn,
+            description="Amazon SQS Dead Letter Queue ARN for failed EventBridge ticks",
+        )
+
+        CfnOutput(
+            self,
+            "TickDLQUrl",
+            value=tick_dlq.queue_url,
+            description="Amazon SQS Dead Letter Queue URL for failed EventBridge ticks",
         )
