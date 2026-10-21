@@ -608,8 +608,8 @@ class SQLiteStorage(StorageBase):
                         if curr_ts.tzinfo is None:
                             curr_ts = curr_ts.replace(tzinfo=timezone.utc)
 
-                        # Reject stale update if stored version is newer or stored timestamp is strictly newer
-                        if curr_ver > state.version or curr_ts > state.last_updated:
+                        # Reject stale update if stored version is newer
+                        if curr_ver > state.version:
                             raise StaleStateError(
                                 f"Stale write rejected for {state.person_id}: stored version={curr_ver} > state version={state.version}"
                             )
@@ -704,6 +704,38 @@ class SQLiteStorage(StorageBase):
             version=version,
             metadata=json.loads(r["metadata"]),
         )
+
+    def clear_demo_data(self, person_id: str = "dad") -> None:
+        """
+        Clear demo-generated events and alerts for an isolated simulation session.
+        Preserves baseline profiles, historical benchmark data, and other persons.
+        """
+        with self._lock:
+            self._check_closed()
+            with self._conn:
+                self._conn.execute(
+                    """
+                    DELETE FROM events
+                    WHERE person_id = ?
+                      AND (
+                        event_id LIKE 'demo_%'
+                        OR json_extract(metadata, '$.source') IN ('simulator_demo', 'simulator_manual')
+                      )
+                    """,
+                    (person_id,),
+                )
+                self._conn.execute(
+                    """
+                    DELETE FROM alerts
+                    WHERE person_id = ?
+                      AND (
+                        alert_id LIKE 'demo_%'
+                        OR json_extract(metadata, '$.source') = 'simulator_demo'
+                        OR title LIKE '%Dad Unresponsive%'
+                      )
+                    """,
+                    (person_id,),
+                )
 
     def close(self) -> None:
         with self._lock:

@@ -8,7 +8,7 @@
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
 [![AWS DynamoDB](https://img.shields.io/badge/AWS-DynamoDB%20Encrypted-blue.svg)](https://aws.amazon.com/dynamodb/)
-[![Tests Passing](https://img.shields.io/badge/tests-98%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-118%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -300,6 +300,156 @@ To reproduce the benchmark evaluation:
 ```bash
 python scripts/evaluate_benchmark.py
 ```
+
+---
+
+## Web Voice Simulator & Browser Environment Guide
+
+CareLoop provides an interactive, accessible ambient voice simulator at `http://127.0.0.1:8000/simulator` for testing, evaluation, and live hackathon demonstrations.
+
+> **Architecture Clarification**: The simulator is an ambient developer cockpit interacting directly with CareLoop's running **FastMCP Streamable HTTP server** via standards-compliant JSON-RPC 2.0 tool calls. It does **not** claim to be connected to Amazon's proprietary Alexa+ cloud; rather, it emulates the ambient Alexa+ device experience using native browser APIs and real MCP tool invocations.
+
+### 1. Launching the Server & Simulator
+
+Start the CareLoop server in simulated clock mode with SQLite local persistence:
+
+```bash
+# Start server with simulated clock and local SQLite database
+python -m careloop.server --host 127.0.0.1 --port 8000 --clock simulated --storage sqlite
+```
+
+Once running:
+- **Simulator UI**: [`http://127.0.0.1:8000/simulator`](http://127.0.0.1:8000/simulator)
+- **FastMCP Streamable HTTP Endpoint**: `http://127.0.0.1:8000/mcp`
+- **Health Check**: `http://127.0.0.1:8000/health`
+
+### 2. Browser Permissions & Microphone Access (Web Speech API)
+
+The simulator features a voice input interface powered by the W3C Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
+
+- **Secure Context Requirement (HTTPS / Localhost)**:
+  Modern web browsers strictly enforce that microphone access is granted **only within a Secure Context**.
+  - **Local Development**: `http://localhost:8000` or `http://127.0.0.1:8000` are treated by browsers as inherently secure origins, allowing microphone access over HTTP.
+  - **Remote / Network Deployment**: If the server is hosted remotely (e.g. on AWS EC2, ECS Fargate behind an ALB, or a local LAN IP like `http://192.168.1.50:8000`), the browser **will block microphone access** unless served over **HTTPS** with a valid TLS certificate.
+- **Microphone Permissions**:
+  When clicking the 🎙️ **Microphone** button, the browser displays a permission prompt (*"Allow careloop to use your microphone"*). Click **Allow**.
+- **Browser Compatibility Matrix**:
+  | Browser | Speech Recognition (Mic Input) | Speech Synthesis (TTS Audio) | Text Input Fallback |
+  | :--- | :---: | :---: | :---: |
+  | **Google Chrome / Chromium** | ✅ Native (`webkitSpeechRecognition`) | ✅ Supported | ✅ Fully Supported |
+  | **Microsoft Edge** | ✅ Native | ✅ Supported | ✅ Fully Supported |
+  | **Apple Safari (macOS / iOS)** | ✅ Native (requires mic permission) | ✅ Supported | ✅ Fully Supported |
+  | **Mozilla Firefox** | ⚠️ Not supported natively by Firefox | ✅ Supported | ✅ **Default Fallback** |
+
+### 3. Fallback Manual Text Input & Quick Action Chips
+
+If microphone permission is declined, if the browser lacks Web Speech Recognition support (such as Firefox), or if you are demonstrating in a quiet office environment:
+- **Manual Text Input**: Type any phrase into the input field at the bottom of the conversation column and press `[Send]` or hit `Enter`.
+- **Quick Action Chips**: One-click prompt chips are provided above the input bar:
+  - `💊 Took blood pressure pills`
+  - `🥪 Finished lunch`
+  - `🚶 Dad got out of bed`
+  - `❓ How is Dad doing?`
+  - `👍 I'm fine, Alexa!`
+
+### 4. Input Source Discrimination & Real Tool Inspection
+
+The UI strictly distinguishes and visually tags the provenance of every event:
+- **`🎤 Browser Speech API`**: Spoken voice input transcribed by browser speech recognition.
+- **`⌨️ Manual Text Input`**: Phrases typed by hand into the input bar.
+- **`🔘 Quick Action Chip`**: Pre-configured testing chips clicked by the user.
+
+Every MCP tool call generates an expandable, inspectable **MCP Tool Call Card** displaying:
+- Tool name (e.g. `log_routine_event`, `check_routine_health`, `confirm_ok`, `notify_family`).
+- Sanitized input arguments.
+- Real HTTP/JSON-RPC status (`🟢 200 OK` or `🔴 Error`).
+- Server latency in milliseconds (`duration_ms`).
+- MCP protocol transport version (`2025-11-25`).
+- Structured backend return payload and TTS response string.
+- Inline **Retry Tool Call** button if an invocation fails.
+- **Zero Simulation of Fake Successes**: If a backend tool call fails or returns an error, the simulator never fabricates a success message.
+
+### 5. Documented Voice Phrase Mapping Directory
+
+CareLoop uses deterministic parsing to match natural elder voice phrases to registered MCP tools:
+
+| User Voice / Text Phrase | Target MCP Tool | Extracted Arguments | System Behavior |
+| :--- | :--- | :--- | :--- |
+| *"I took my blood pressure medication"* | `log_routine_event` | `{"type": "medication"}` | Records pill event, updates circular EWMA baseline, resets escalation to `NORMAL`. |
+| *"I finished eating lunch"* | `log_routine_event` | `{"type": "meal"}` | Records meal event, updates circular EWMA baseline, resets escalation to `NORMAL`. |
+| *"Dad got out of bed"* | `log_routine_event` | `{"type": "movement"}` | Records room movement, resets daytime inactivity counter to 0. |
+| *"The front door opened"* | `log_routine_event` | `{"type": "door"}` | Records contact sensor event. |
+| *"How is Dad doing today?"* | `check_routine_health` | `{"person": "dad"}` | Evaluates multi-factor risk score and returns active stage and clinical reasons. |
+| *"Remind Dad to drink water at 3 PM"* | `schedule_reminder` | `{"text": "...", "time": "15:00"}` | Schedules spoken reminder for elder. |
+| *"Alert my daughter / call family"* | `notify_family` | `{"severity": "high"}` | Directly dispatches emergency alert to registered contacts via Notifier. |
+| *"I'm fine! / Everything is okay"* | `confirm_ok` | `{"person": "dad"}` | Resolves any active check-in or alarm state back to `NORMAL`. |
+| *"Give me Dad's daily summary"* | `daily_summary` | `{"date": "today"}` | Amazon Bedrock Claude 3 Haiku generates warm, factual daily caregiver summary. |
+| *"Did Dad take his pills today?"* | `ask_memory` | `{"question": "..."}` | Factual Bedrock memory Q&A sandboxed strictly to recorded event logs. |
+
+### 6. Controllable Simulation Clock & Safe Demo Reset
+
+- **Injectable Clock Controls**: The time controls (`+15m`, `+1hr`, `Reset 08:15 AM`, `Set 12:45 PM`, `Set 14:00 PM`) send HTTP requests to `/api/clock/*`, modifying the exact same injectable `SimulatedClock` instance used across all backend engines. The server time advances globally across the baseline engine, risk engine, and escalation state machine.
+- **Isolated Demo Reset**: The `↺ Reset Demo Data` button invokes `POST /api/demo/reset`.
+  - **Isolation Guarantee**: Reset deletes **only** isolated demo records (`metadata.source IN ('simulator_demo', 'simulator_manual')` or `event_id LIKE 'demo_%'`) and demo alerts for the selected profile.
+  - **Production Safety**: It **cannot** erase production sensor records, historical baseline profiles, or other family profiles (`eleanor`, etc.).
+  - **Safety Gate**: In production deployments (`CLOCK_MODE=system`), demo reset is strictly disabled (`403 Forbidden`).
+
+### 7. "Dad Skips Lunch" 6-Step Automated Scenario Walkthrough
+
+Clicking the **▶ Dad Skips Lunch Demo** button runs a 6-step end-to-end demonstration exercising the full event log, baseline evaluation, escalation state transitions, and caregiver notification pathway:
+
+1. **Step 1 (08:30 AM - Normal Morning)**:
+   - Resets demo state cleanly via `/api/demo/reset`.
+   - Sets clock to `08:30 UTC`.
+   - Calls `log_routine_event(type="medication")` for blood pressure pill.
+   - Sets clock to `10:00 UTC` and calls `log_routine_event(type="movement")` in living room.
+   - Calls `check_routine_health`: Risk score is `0.0 (LOW)`, escalation stage is `NORMAL`.
+2. **Step 2 (12:45 PM - Expected Lunch Time)**:
+   - Sets clock to `12:45 UTC` (Dad's learned baseline expects lunch at 12:44 UTC).
+   - Dad takes a long nap; no movement or meal logged.
+   - Calls `check_routine_health`: Current time is within the 30-minute grace window ($12:44 + 30\text{m} = 13:14$). Risk remains `LOW` with **zero false alarms** generated.
+3. **Step 3 (02:00 PM / 14:00 UTC - Grace Window Passed & Missed Lunch Detected)**:
+   - Sets clock to `14:00 UTC`.
+   - Calls `tick_escalation`: Lunch grace window expired 46 minutes ago, and no movement for 4.0 hours.
+   - Multi-factor risk engine calculates score `0.5 (MEDIUM)`.
+   - State machine advances: `NORMAL` ➔ `GENTLE_CHECK_IN`.
+   - Alexa plays gentle chime and speaks check-in prompt: *"Arthur, I noticed you haven't logged lunch today. Just checking in—did you get a chance to eat?"*
+4. **Step 4 (+2 Minutes - Gentle Timeout ➔ Repeat Check-In)**:
+   - Advances clock by 2 minutes (`14:02 UTC`).
+   - Dad remains asleep with no response.
+   - Calls `tick_escalation`: Gentle check-in timeout (60s) expired.
+   - State machine advances: `GENTLE_CHECK_IN` ➔ `REPEAT_CHECK_IN`.
+   - Alexa sounds an attention chime and repeats check-in.
+5. **Step 5 (+2 Minutes - Repeat Timeout ➔ NOTIFY FAMILY)**:
+   - Advances clock by 2 minutes (`14:04 UTC`).
+   - Calls `tick_escalation`: Repeat timeout expired with zero response.
+   - State machine advances: `REPEAT_CHECK_IN` ➔ `NOTIFY_FAMILY`.
+   - Alert persisted to database with deterministic audit reasons:
+     - `Prolonged daytime inactivity / no movement detected (weight: 0.3)`
+     - `Expected meal routine not logged today (weight: 0.2)`
+   - Dispatches emergency alert to daughter Linda Davis via Notifier (Amazon SNS).
+   - The interactive Family Phone mockup displays the urgent incoming notification card.
+6. **Step 6 (Dad Confirms OK ➔ Safe Recovery)**:
+   - Dad hears chimes and wakes up: *"I'm fine! I was just taking an afternoon nap."*
+   - Calls `confirm_ok(person="dad")`.
+   - State machine resets to `NORMAL`. Active alerts transition to `RESOLVED`.
+   - Family phone mockup updates to show resolution banner: *"Dad confirmed safe: 'Arthur Davis confirmed they are fine' · Check-in resolved"*.
+
+### 8. End-to-End Verification & Manual Browser Testing
+
+- **Automated API & End-to-End Test Suite**:
+  Automated integration test [tests/test_simulator_e2e.py](file:///Users/harsh/Desktop/Alexa+/tests/test_simulator_e2e.py) boots the complete ASGI application, executes the full 6-step scenario via HTTP, and asserts every database state change, escalation transition, and notification delivery:
+  ```bash
+  pytest tests/test_simulator_e2e.py -v
+  ```
+- **Manual Browser Verification Steps**:
+  *(Note: Dedicated headless browser automation libraries like Playwright/Selenium are not pre-installed in this environment; verify manually in your browser as follows:)*
+  1. Start the server with `python -m careloop.server --host 127.0.0.1 --port 8000 --clock simulated`.
+  2. Open `http://127.0.0.1:8000/simulator` in Google Chrome, Microsoft Edge, or Apple Safari.
+  3. Verify the top connection pill displays `MCP Online` in emerald green.
+  4. Click the `▶ Dad Skips Lunch Demo` button in the hero banner.
+  5. Watch the scenario execute with synchronized voice announcements, audio chimes, MCP packet cards, and the family phone notification animation.
+  6. Verify all 6 steps complete cleanly, concluding with the resolution banner on the family phone.
 
 ---
 

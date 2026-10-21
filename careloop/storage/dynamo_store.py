@@ -638,5 +638,32 @@ class DynamoDBStorage(StorageBase):
             logger.error(f"Failed to get escalation state from DynamoDB: {e}")
             raise StorageError(f"DynamoDB get_escalation_state failed: {e}") from e
 
+    def clear_demo_data(self, person_id: str = "dad") -> None:
+        """
+        Clear demo-generated events and alerts for an isolated simulation session.
+        Preserves baseline profiles, historical benchmark data, and other persons.
+        """
+        self._check_closed()
+        try:
+            # Query demo events
+            res = self._table.query(
+                KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}") & Key("SK").begins_with("EVENT#")
+            )
+            for item in res.get("Items", []):
+                meta = json.loads(item.get("metadata", "{}"))
+                if meta.get("source") in ("simulator_demo", "simulator_manual") or item.get("event_id", "").startswith("demo_"):
+                    self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+
+            # Query demo alerts
+            res_alerts = self._table.query(
+                KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}") & Key("SK").begins_with("ALERT#")
+            )
+            for item in res_alerts.get("Items", []):
+                if item.get("alert_id", "").startswith("demo_") or "Dad Unresponsive" in item.get("title", ""):
+                    self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
+        except ClientError as e:
+            logger.error(f"Failed to clear demo data from DynamoDB: {e}")
+            raise StorageError(f"DynamoDB clear_demo_data failed: {e}") from e
+
     def close(self) -> None:
         self._closed = True

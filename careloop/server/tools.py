@@ -74,6 +74,7 @@ def register_tools(
         person: str,
         type: str,
         timestamp: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Record an elderly parent's routine event (medication, meal, movement, door).
@@ -99,6 +100,7 @@ def register_tools(
             person: Identifier of the elder parent (e.g. "eleanor", "dad", "mom")
             type: Event category: 'medication' (or 'pill'), 'meal', 'movement', or 'door'
             timestamp: Optional ISO 8601 timestamp string (defaults to current clock time if None)
+            metadata: Optional additional metadata dictionary (e.g. source, room, notes)
         """
         normalized_type = type.strip().lower()
         if normalized_type not in VALID_EVENT_TYPES:
@@ -120,11 +122,15 @@ def register_tools(
         else:
             event_time = clock.now()
 
+        event_meta = {"source": "alexa_plus", "raw_type": type}
+        if metadata and isinstance(metadata, dict):
+            event_meta.update(metadata)
+
         event = Event(
             person_id=person.strip().lower(),
             event_type=event_type,
             timestamp=event_time,
-            metadata={"source": "alexa_plus", "raw_type": type},
+            metadata=event_meta,
         )
 
         storage.save_event(event)

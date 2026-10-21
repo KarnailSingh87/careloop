@@ -35,7 +35,7 @@ from careloop.engine.escalation import EscalationEngine
 from careloop.engine.risk import RiskEngine
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import Event, EventType, EscalationStage, PersonProfile
-from careloop.notifier import get_default_notifier
+from careloop.notifier import NotifierBase, get_default_notifier
 from careloop.server.tools import register_tools
 from careloop.storage.base import StorageBase
 from careloop.storage.sqlite_store import SQLiteStorage
@@ -140,10 +140,11 @@ class AlexaAuthMiddleware:
 def create_server(
     storage: Optional[StorageBase] = None,
     clock: Optional[Clock] = None,
+    notifier: Optional[NotifierBase] = None,
     name: str = "CareLoop",
 ) -> Tuple[FastMCP, StorageBase, Clock, EscalationEngine]:
     """
-    Construct the CareLoop FastMCP server with injectable storage and clock.
+    Construct the CareLoop FastMCP server with injectable storage, clock, and notifier.
     """
     if storage is None:
         backend = os.getenv("STORAGE_BACKEND", "sqlite").lower()
@@ -186,7 +187,8 @@ def create_server(
         logger.warning(f"Could not pre-warm baseline engine: {e}")
 
     risk_engine = RiskEngine()
-    notifier = get_default_notifier()
+    if notifier is None:
+        notifier = get_default_notifier()
     escalation_engine = EscalationEngine(
         storage=storage,
         risk_engine=risk_engine,
@@ -223,6 +225,7 @@ def create_server(
 def create_app(
     storage: Optional[StorageBase] = None,
     clock: Optional[Clock] = None,
+    notifier: Optional[NotifierBase] = None,
     tick_interval_seconds: float = 30.0,
     enable_background_loop: bool = True,
     auth_token: Optional[str] = None,
@@ -232,7 +235,7 @@ def create_app(
     Runs a periodic escalation background loop so routines are monitored autonomously.
     """
     server, storage_inst, clock_inst, escalation_inst = create_server(
-        storage=storage, clock=clock
+        storage=storage, clock=clock, notifier=notifier
     )
     app = server.streamable_http_app()
 
@@ -433,6 +436,9 @@ def create_app(
         person_id = body.get("person", "dad").strip().lower()
 
         if isinstance(clock_inst, SimulatedClock):
+            if hasattr(storage_inst, "clear_demo_data"):
+                storage_inst.clear_demo_data(person_id)
+                storage_inst.clear_demo_data("eleanor")
             base_reset = datetime(2026, 10, 20, 8, 15, 0, tzinfo=timezone.utc)
             clock_inst.set_time(base_reset)
             escalation_inst.reset_to_normal(person_id, base_reset, reason="Simulation reset to 08:15 AM")
@@ -503,6 +509,9 @@ def create_app(
 
     async def api_demo_skips_lunch_setup(request):
         person_id = "dad"
+        if hasattr(storage_inst, "clear_demo_data"):
+            storage_inst.clear_demo_data(person_id)
+
         if isinstance(clock_inst, SimulatedClock):
             clock_inst.set_time(datetime(2026, 10, 20, 8, 30, 0, tzinfo=timezone.utc))
 
@@ -512,7 +521,7 @@ def create_app(
                 person_id=person_id,
                 event_type=EventType.MOVEMENT,
                 timestamp=datetime(2026, 10, 20, 7, 30, 0, tzinfo=timezone.utc),
-                metadata={"source": "bedroom_motion", "room": "bedroom"},
+                metadata={"source": "simulator_demo", "room": "bedroom"},
             )
         )
         storage_inst.save_event(
@@ -520,11 +529,32 @@ def create_app(
                 person_id=person_id,
                 event_type=EventType.PILL,
                 timestamp=datetime(2026, 10, 20, 8, 15, 0, tzinfo=timezone.utc),
-                metadata={"medication": "blood_pressure_lisinopril", "source": "smart_pillbox"},
+                metadata={"medication": "blood_pressure_lisinopril", "source": "simulator_demo"},
             )
         )
         escalation_inst.reset_to_normal(person_id, clock_inst.now(), reason="Dad skips lunch scenario setup")
 
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_demo_reset(request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        person_id = body.get("person", "dad").strip().lower()
+
+        if not isinstance(clock_inst, SimulatedClock):
+            return JSONResponse(
+                {"error": "Demo reset is disabled in production system mode."},
+                status_code=403,
+            )
+
+        if hasattr(storage_inst, "clear_demo_data"):
+            storage_inst.clear_demo_data(person_id)
+
+        base_reset = datetime(2026, 10, 20, 8, 15, 0, tzinfo=timezone.utc)
+        clock_inst.set_time(base_reset)
+        escalation_inst.reset_to_normal(person_id, base_reset, reason="Simulation demo reset")
         return JSONResponse(_get_sim_state(person_id))
 
     app.routes.append(Route("/", root_endpoint, methods=["GET"]))
@@ -537,6 +567,7 @@ def create_app(
     app.routes.append(Route("/api/mcp/call", api_mcp_call, methods=["POST"]))
     app.routes.append(Route("/api/mcp/tools", api_mcp_tools, methods=["GET"]))
     app.routes.append(Route("/api/demo/skips-lunch/setup", api_demo_skips_lunch_setup, methods=["POST"]))
+    app.routes.append(Route("/api/demo/reset", api_demo_reset, methods=["POST"]))
 
     # Alias /v1/mcp to the same endpoint as /mcp for Alexa+ versioned route compatibility
     mcp_route = next((r for r in app.routes if getattr(r, "path", None) == "/mcp"), None)

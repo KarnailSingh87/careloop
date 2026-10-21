@@ -1498,9 +1498,185 @@
       }
     }
 
+    /* Connection Status Indicator */
+    .conn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+    .conn-pill.disconnected {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+    }
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .conn-pill.disconnected .conn-dot {
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      animation: alert-flash 1s infinite alternate;
+    }
+
+    /* Connection Lost Alert Banner */
+    .alert-banner-disconnected {
+      display: none;
+      background: rgba(185, 28, 28, 0.95);
+      border: 1px solid #ef4444;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Message Bubble Source Badges */
+    .input-source-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge-speech {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .badge-text {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .badge-chip {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    /* MCP Card Error & Status */
+    .mcp-card-error {
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      border-left: 3px solid #ef4444 !important;
+      background: rgba(25, 10, 15, 0.95) !important;
+    }
+    .mcp-status-success {
+      color: #34d399;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .mcp-status-error {
+      color: #f87171;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .mcp-block-error {
+      color: #fca5a5 !important;
+      border-left: 2px solid #ef4444;
+    }
+    .mcp-retry-btn {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .mcp-retry-btn:hover {
+      background: rgba(239, 68, 68, 0.4);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Phrase Directory Table */
+    .phrase-table-card {
+      display: none;
+      background: rgba(10, 15, 28, 0.85);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .phrase-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+    .phrase-table th {
+      text-align: left;
+      padding: 6px 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .phrase-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .phrase-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Laptop Responsive Viewport Optimization */
     @media (min-width: 961px) {
-      .col-elder, .col-alexa, .col-phone {
-        display: flex !important;
+      .main-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr 340px;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .card {
+        max-height: calc(100vh - 170px);
+        overflow-y: auto;
+      }
+      .alexa-ambient-panel {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 170px);
+      }
+      .conversation-log {
+        flex: 1 1 0;
+        min-height: 220px;
+        max-height: none;
+        overflow-y: auto;
+      }
+      .phone-notifications-stream {
+        max-height: calc(100vh - 310px);
+        overflow-y: auto;
       }
     }
   </style>
@@ -1522,11 +1698,17 @@
           <h1>CareLoop</h1>
           <span class="badge-streamable">MCP Streamable HTTP · 2025-11-25</span>
         </div>
-        <p>Alexa+ Ambient Voice Safety Assistant · Zero LLM Alert Decisions</p>
+        <p>Ambient Elder Care Voice Simulator · Direct FastMCP Streamable HTTP Calls (Not connected to Alexa+ cloud)</p>
       </div>
     </div>
 
     <div class="header-controls">
+      <!-- Connection Status Pill -->
+      <div class="conn-pill" id="conn-status-pill" title="Connected to MCP Server (http://127.0.0.1:8000)">
+        <span class="conn-dot" id="conn-dot"></span>
+        <span id="conn-text">MCP Online</span>
+      </div>
+
       <!-- Sliding Theme Toggle Pill (Off-White Warm / Dark Mode) -->
       <div class="theme-toggle-wrap">
         <div
@@ -1592,6 +1774,15 @@
       </button>
     </div>
   </header>
+
+  <!-- Connection Lost Alert Banner -->
+  <div class="alert-banner-disconnected" id="connection-alert-banner">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">⚠️</span>
+      <span id="connection-alert-msg">Cannot reach CareLoop MCP Server at http://127.0.0.1:8000. Start server using: python -m careloop.server --clock simulated</span>
+    </div>
+    <button class="banner-btn" onclick="retryConnection()" style="background: rgba(255,255,255,0.25); border-color: #fff; color: #fff;">🔄 Retry Connection</button>
+  </div>
 
   <!-- Simple Understanding Status Banner for Family & Caregivers -->
   <div class="simple-banner" id="care-summary-banner">
@@ -1691,8 +1882,8 @@
         <button class="btn" onclick="advanceClock(60)">+1 Hour</button>
         <button class="btn" onclick="advanceClock(180)">+3 Hours</button>
         <button class="btn" onclick="advanceClock(1440)">+1 Day</button>
-        <button class="btn btn-jump-2pm" onclick="jumpTo2pm()">⚡ Jump to 2:00 PM (14:00 UTC)</button>
-        <button class="btn btn-reset" onclick="resetClock()">↺ Reset Simulation (08:15 AM)</button>
+        <button class="btn btn-reset" onclick="resetClock()">↺ Reset Simulation Clock (08:15 AM)</button>
+        <button class="btn btn-reset-demo" onclick="resetDemoSession()" style="grid-column: span 2; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; font-weight: 700;">↺ Reset Demo Data (Isolate Clean State)</button>
       </div>
 
       <!-- Privacy Guarantee -->
@@ -1746,18 +1937,98 @@
         </div>
       </div>
 
-      <!-- Quick Utterance Chips -->
+      <!-- Quick Utterance Chips & Phrase Directory -->
       <div style="display: flex; flex-direction: column; gap: 6px;">
-        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Tap to test Alexa phrases (mapped to MCP tools):</span>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Tap to test Alexa phrases (mapped to MCP tools):</span>
+          <button class="btn" style="padding: 2px 8px; font-size: 10px; font-weight: 700; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;" onclick="togglePhraseTable()">
+            📖 Mapped Phrases Directory
+          </button>
+        </div>
+
+        <!-- Collapsible Phrase Directory Table -->
+        <div class="phrase-table-card" id="phrase-table-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">
+            <span>Deterministic User Phrase → Real MCP Tool Mapping (Spec 2025-11-25)</span>
+            <button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="togglePhraseTable()">✕ Close</button>
+          </div>
+          <table class="phrase-table">
+            <thead>
+              <tr>
+                <th>User Spoken / Typed Phrase</th>
+                <th>Target MCP Tool</th>
+                <th>Key Arguments</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>"I took my pill" / "medicine"</td>
+                <td><code>log_routine_event</code></td>
+                <td><code>{ "type": "medication" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I took my pill', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"I just had my lunch" / "food"</td>
+                <td><code>log_routine_event</code></td>
+                <td><code>{ "type": "meal" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I just had my lunch', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"Walking in kitchen" / "movement"</td>
+                <td><code>log_routine_event</code></td>
+                <td><code>{ "type": "movement" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Walking in the kitchen', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"Front door opened" / "garden"</td>
+                <td><code>log_routine_event</code></td>
+                <td><code>{ "type": "door" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Front door opened', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"I'm fine" / "I'm okay"</td>
+                <td><code>confirm_ok</code></td>
+                <td><code>{ "person": "dad" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I\'m fine', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"Check routine health"</td>
+                <td><code>check_routine_health</code></td>
+                <td><code>{ "person": "dad" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Check routine health', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"How is Dad doing today?"</td>
+                <td><code>daily_summary</code></td>
+                <td><code>{ "date": "today" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"Did Dad take his pills today?"</td>
+                <td><code>ask_memory</code></td>
+                <td><code>{ "question": "..." }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">Execute</button></td>
+              </tr>
+              <tr>
+                <td>"Remind Dad to drink water"</td>
+                <td><code>schedule_reminder</code></td>
+                <td><code>{ "text": "...", "time": "15:00" }</code></td>
+                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Remind Dad to drink water at 3 PM', 'chip')">Execute</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="chips-wrap">
-          <button class="chip" onclick="handleUserPhrase('I took my pill')">"I took my pill" 💊</button>
-          <button class="chip" onclick="handleUserPhrase('I just had my lunch')">"I just had lunch" 🍲</button>
-          <button class="chip" onclick="handleUserPhrase('I\'m in the kitchen')">"Walking in kitchen" 🚶</button>
-          <button class="chip" onclick="handleUserPhrase('Front door opened')">"Front door opened" 🚪</button>
-          <button class="chip" onclick="handleUserPhrase('I\'m fine')">"I'm fine" ✅</button>
-          <button class="chip" onclick="handleUserPhrase('How is Dad doing today?')">"Daily summary" 📋</button>
-          <button class="chip" onclick="handleUserPhrase('Did Dad take his pills today?')">"Did Dad take pills?" 🔍</button>
-          <button class="chip" onclick="handleUserPhrase('Check routine health')">"Check routine health" 🩺</button>
+          <button class="chip" onclick="handleUserPhrase('I took my pill', 'chip')">"I took my pill" 💊</button>
+          <button class="chip" onclick="handleUserPhrase('I just had my lunch', 'chip')">"I just had lunch" 🍲</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m in the kitchen', 'chip')">"Walking in kitchen" 🚶</button>
+          <button class="chip" onclick="handleUserPhrase('Front door opened', 'chip')">"Front door opened" 🚪</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m fine', 'chip')">"I'm fine" ✅</button>
+          <button class="chip" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">"Daily summary" 📋</button>
+          <button class="chip" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">"Did Dad take pills?" 🔍</button>
+          <button class="chip" onclick="handleUserPhrase('Check routine health', 'chip')">"Check routine health" 🩺</button>
         </div>
       </div>
 
@@ -1973,7 +2244,7 @@
       speechRecognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         document.getElementById('speech-input').value = transcript;
-        submitSpeechInput();
+        submitSpeechInput('voice');
       };
 
       speechRecognition.onerror = (event) => {
@@ -2075,6 +2346,50 @@
       }
     }
 
+    // Connection Status Management
+    let isConnected = true;
+
+    function setConnectionStatus(connected, errMsg = '') {
+      isConnected = connected;
+      const pill = document.getElementById('conn-status-pill');
+      const text = document.getElementById('conn-text');
+      const banner = document.getElementById('connection-alert-banner');
+      const bannerMsg = document.getElementById('connection-alert-msg');
+
+      if (connected) {
+        if (pill) {
+          pill.className = 'conn-pill';
+          pill.title = 'Connected to CareLoop MCP Server (http://127.0.0.1:8000)';
+        }
+        if (text) text.innerText = 'MCP Online';
+        if (banner) banner.style.display = 'none';
+      } else {
+        if (pill) {
+          pill.className = 'conn-pill disconnected';
+          pill.title = `Disconnected from MCP Server: ${errMsg}`;
+        }
+        if (text) text.innerText = 'MCP Offline';
+        if (banner) {
+          banner.style.display = 'flex';
+          if (bannerMsg) {
+            bannerMsg.innerText = `Cannot reach CareLoop MCP Server at http://127.0.0.1:8000 (${errMsg}). Start server using: python -m careloop.server --clock simulated`;
+          }
+        }
+      }
+    }
+
+    async function retryConnection() {
+      const bannerMsg = document.getElementById('connection-alert-msg');
+      if (bannerMsg) bannerMsg.innerText = 'Attempting reconnection to CareLoop MCP Server...';
+      await fetchState();
+    }
+
+    function togglePhraseTable() {
+      const card = document.getElementById('phrase-table-card');
+      if (!card) return;
+      card.style.display = (card.style.display === 'block') ? 'none' : 'block';
+    }
+
     // Fetch live system state from backend
     async function fetchState() {
       try {
@@ -2082,14 +2397,20 @@
           headers: getAuthHeaders()
         });
         if (res.status === 401) {
-          appendAlexaMessage("⚠️ 401 Unauthorized: Alexa+ Authentication Token required. Click the 'Alexa+ Auth' button in the top bar to enter your token.");
+          setConnectionStatus(true);
+          appendAlexaMessage("⚠️ 401 Unauthorized: Alexa+ Authentication Token required. Click the 'Alexa+ Auth' button in the top bar to enter your token.", null, true);
           return;
         }
-        if (!res.ok) return;
+        if (!res.ok) {
+          setConnectionStatus(false, `HTTP ${res.status}`);
+          return;
+        }
         const data = await res.json();
+        setConnectionStatus(true);
         updateUI(data);
       } catch (e) {
         console.error("Error fetching state:", e);
+        setConnectionStatus(false, e.message);
       }
     }
 
@@ -2154,7 +2475,7 @@
       const stage = data.escalation ? data.escalation.stage : "normal";
       const name = data.person ? data.person.display_name : "Elder";
       const clockStr = data.clock ? data.clock.time_str : "--:--:-- UTC";
-      const activeAlerts = (data.alerts || []).filter(a => !a.resolved);
+      const activeAlerts = (data.alerts || []).filter(a => a.status === 'ACTIVE');
 
       // Update mobile badge count
       if (mobileAlertCount) {
@@ -2228,7 +2549,7 @@
           <div class="phone-alert-card ${isResolved ? 'resolved' : ''}">
             <div class="phone-alert-top">
               <span class="alert-tag">${isResolved ? 'RESOLVED' : 'URGENT ALERT'}</span>
-              <span class="alert-time">${a.time_str || ''}</span>
+              <span class="alert-time">${escapeHtml(a.time_str || '')}</span>
             </div>
             <div class="alert-headline">${escapeHtml(a.title)}</div>
             <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-top: 2px;">
@@ -2239,7 +2560,7 @@
             </ul>
             <div class="phone-actions">
               <button class="btn-phone btn-phone-call" onclick="callElder()">📞 Call ${currentPerson === 'dad' ? 'Dad' : 'Mom'}</button>
-              <button class="btn-phone" onclick="acknowledgeAlert('${a.alert_id}')">Acknowledge</button>
+              <button class="btn-phone" onclick="acknowledgeAlert('${escapeHtml(a.alert_id)}')">Acknowledge</button>
             </div>
           </div>
         `;
@@ -2253,50 +2574,50 @@
     }
 
     function acknowledgeAlert(alertId) {
-      appendAlexaMessage(`Family caregiver acknowledged alert. Status updated in audit history.`);
+      appendAlexaMessage(`Family caregiver acknowledged alert ${alertId}. Status updated in audit history.`);
     }
 
-    // Natural Language Phrase to MCP Tool Mapping
+    // Natural Language Phrase to MCP Tool Mapping (Deterministic)
     function mapPhraseToMcp(phrase) {
       const lower = phrase.trim().toLowerCase();
       
-      // Medication
+      // 1. Medication
       if (lower.includes('pill') || lower.includes('medication') || lower.includes('medicine') || lower.includes('lisinopril')) {
         return {
           tool: "log_routine_event",
-          arguments: { person: currentPerson, type: "medication" },
+          arguments: { person: currentPerson, type: "medication", metadata: { source: "simulator_manual", medication: "prescribed_medication" } },
           alexaVoice: `Logged your medication, ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}. Great job staying on schedule!`
         };
       }
 
-      // Meal
+      // 2. Meal
       if (lower.includes('lunch') || lower.includes('breakfast') || lower.includes('dinner') || lower.includes('ate') || lower.includes('eat') || lower.includes('meal') || lower.includes('food')) {
         return {
           tool: "log_routine_event",
-          arguments: { person: currentPerson, type: "meal" },
+          arguments: { person: currentPerson, type: "meal", metadata: { source: "simulator_manual", meal: "lunch" } },
           alexaVoice: `Recorded your meal routine, ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}. Hope you enjoyed it!`
         };
       }
 
-      // Movement
+      // 3. Movement
       if (lower.includes('kitchen') || lower.includes('living room') || lower.includes('walk') || lower.includes('moving') || lower.includes('bedroom')) {
         return {
           tool: "log_routine_event",
-          arguments: { person: currentPerson, type: "movement" },
+          arguments: { person: currentPerson, type: "movement", metadata: { source: "simulator_manual", room: "living_room" } },
           alexaVoice: `Movement activity verified in the home.`
         };
       }
 
-      // Door
+      // 4. Door
       if (lower.includes('door') || lower.includes('outside') || lower.includes('garden') || lower.includes('leaving')) {
         return {
           tool: "log_routine_event",
-          arguments: { person: currentPerson, type: "door" },
+          arguments: { person: currentPerson, type: "door", metadata: { source: "simulator_manual", contact: "front_door" } },
           alexaVoice: `Door sensor event recorded safely.`
         };
       }
 
-      // Confirm OK / I'm fine
+      // 5. Confirm OK / I'm fine
       if (lower.includes('fine') || lower.includes('ok') || lower.includes('okay') || lower.includes('good') || lower.includes('alright')) {
         return {
           tool: "confirm_ok",
@@ -2305,7 +2626,7 @@
         };
       }
 
-      // Routine Health
+      // 6. Routine Health
       if (lower.includes('routine health') || lower.includes('risk') || lower.includes('how is the routine') || lower.includes('health status')) {
         return {
           tool: "check_routine_health",
@@ -2314,8 +2635,8 @@
         };
       }
 
-      // Daily summary
-      if (lower.includes('summary') || lower.includes('how is') || lower.includes('how was today') || lower.includes('daily report')) {
+      // 7. Daily summary
+      if (lower.includes('summary') || lower.includes('how was today') || lower.includes('daily report')) {
         return {
           tool: "daily_summary",
           arguments: { person: currentPerson, date: "today" },
@@ -2323,35 +2644,35 @@
         };
       }
 
-      // Memory Q&A
-      if (lower.includes('did') || lower.includes('when') || lower.includes('what time') || lower.includes('has')) {
+      // 8. Reminders
+      if (lower.includes('remind') || lower.includes('reminder')) {
         return {
-          tool: "ask_memory",
-          arguments: { person: currentPerson, question: phrase },
-          alexaVoice: `Checking factual event logs for you.`
+          tool: "schedule_reminder",
+          arguments: { person: currentPerson, text: phrase, time: "15:00" },
+          alexaVoice: `Scheduled reminder for ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}.`
         };
       }
 
-      // Default fallback
+      // 9. Memory Q&A (default fallback)
       return {
         tool: "ask_memory",
         arguments: { person: currentPerson, question: phrase },
-        alexaVoice: `Checking records for your query.`
+        alexaVoice: `Checking factual event logs for your question.`
       };
     }
 
     // Submit Speech or Text Input
-    async function submitSpeechInput() {
+    async function submitSpeechInput(source = 'text') {
       const inputEl = document.getElementById('speech-input');
       const phrase = inputEl.value.trim();
       if (!phrase) return;
       inputEl.value = '';
 
-      handleUserPhrase(phrase);
+      handleUserPhrase(phrase, source);
     }
 
-    async function handleUserPhrase(phrase) {
-      appendUserMessage(phrase);
+    async function handleUserPhrase(phrase, source = 'text') {
+      appendUserMessage(phrase, source);
       playChime('alexa');
 
       const mapping = mapPhraseToMcp(phrase);
@@ -2362,8 +2683,19 @@
       try {
         const res = await callMcpTool(mapping.tool, mapping.arguments);
         
+        if (res.is_error) {
+          appendAlexaMessage(
+            `Error executing MCP tool '${mapping.tool}': ${res.error ? res.error.message : 'Unknown error'}. Backend error returned safely.`,
+            res,
+            true
+          );
+          return;
+        }
+
         let voiceResponse = mapping.alexaVoice;
-        if (mapping.tool === 'daily_summary' && res.result && res.result.summary) {
+        if (res.result && res.result.voice_response) {
+          voiceResponse = res.result.voice_response;
+        } else if (mapping.tool === 'daily_summary' && res.result && res.result.summary) {
           voiceResponse = res.result.summary;
         } else if (mapping.tool === 'ask_memory' && res.result && res.result.answer) {
           voiceResponse = res.result.answer;
@@ -2371,19 +2703,12 @@
           voiceResponse = `Routine risk score is ${res.result.risk_score} (${res.result.risk_level} risk). Stage is ${res.result.escalation_stage}.`;
         }
 
-        appendAlexaMessage(voiceResponse, {
-          tool: mapping.tool,
-          arguments: mapping.arguments,
-          result: res.result,
-          duration_ms: res.duration_ms,
-          protocol_version: res.protocol_version || "2025-11-25",
-        });
-
+        appendAlexaMessage(voiceResponse, res, false);
         speakText(voiceResponse);
         await fetchState();
       } catch (err) {
         console.error("MCP tool execution error:", err);
-        appendAlexaMessage(`Error invoking MCP tool: ${err.message}`);
+        appendAlexaMessage(`Error invoking MCP tool: ${err.message}`, null, true);
       } finally {
         document.getElementById('voice-status-label').innerText = "Alexa is ready. Say or type a phrase...";
       }
@@ -2391,32 +2716,82 @@
 
     // Call MCP Tool via backend Streamable HTTP bridge
     async function callMcpTool(toolName, args) {
+      const start = performance.now();
       const payload = {
         tool: toolName,
         arguments: args,
       };
 
-      const res = await fetch('/api/mcp/call', {
-        method: 'POST',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error ? errJson.error.message || JSON.stringify(errJson.error) : res.statusText);
+      let res;
+      try {
+        res = await fetch('/api/mcp/call', {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload)
+        });
+      } catch (netErr) {
+        const durationMs = Math.round(performance.now() - start);
+        return {
+          jsonrpc: "2.0",
+          tool: toolName,
+          arguments: args,
+          is_error: true,
+          error: { code: -32603, message: `Network error: ${netErr.message}` },
+          duration_ms: durationMs,
+          protocol_version: "2025-11-25"
+        };
       }
-      return await res.json();
+
+      const durationMs = Math.round(performance.now() - start);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.is_error) {
+        return {
+          jsonrpc: "2.0",
+          tool: toolName,
+          arguments: args,
+          is_error: true,
+          error: data.error || { code: -32603, message: `HTTP ${res.status}: ${res.statusText}` },
+          duration_ms: data.duration_ms || durationMs,
+          protocol_version: data.protocol_version || "2025-11-25"
+        };
+      }
+      return data;
     }
 
-    // Append user message to conversation log
-    function appendUserMessage(text) {
+    async function retryMcpTool(toolName, args) {
+      appendAlexaMessage(`Retrying MCP tool: ${toolName}...`);
+      try {
+        const res = await callMcpTool(toolName, args);
+        if (res.is_error) {
+          appendAlexaMessage(`Retry failed: ${res.error ? res.error.message : 'Unknown error'}`, res, true);
+        } else {
+          appendAlexaMessage(`Retry succeeded for ${toolName}.`, res, false);
+          await fetchState();
+        }
+      } catch (e) {
+        appendAlexaMessage(`Retry error: ${e.message}`, null, true);
+      }
+    }
+
+    // Append user message to conversation log with distinct source badge
+    function appendUserMessage(text, source = 'text') {
       const container = document.getElementById('conversation-log');
       const msgDiv = document.createElement('div');
       msgDiv.className = 'msg-bubble msg-user';
+
+      let sourceBadge = '';
+      if (source === 'voice') {
+        sourceBadge = '<span class="input-source-badge badge-speech">🎤 Browser Speech API</span>';
+      } else if (source === 'chip') {
+        sourceBadge = '<span class="input-source-badge badge-chip">🔘 Quick Action Chip</span>';
+      } else {
+        sourceBadge = '<span class="input-source-badge badge-text">⌨️ Manual Text Input</span>';
+      }
+
       msgDiv.innerHTML = `
         <div class="msg-author">
           <span>${currentPerson === 'dad' ? 'Arthur (Dad)' : 'Eleanor (Mom)'}</span>
+          ${sourceBadge}
         </div>
         <div class="bubble-body">${escapeHtml(text)}</div>
       `;
@@ -2425,37 +2800,65 @@
     }
 
     // Append Alexa message with visible MCP Tool Call Card
-    function appendAlexaMessage(text, mcpData = null) {
+    function appendAlexaMessage(text, mcpData = null, isError = false) {
       const container = document.getElementById('conversation-log');
       const msgDiv = document.createElement('div');
-      msgDiv.className = 'msg-bubble msg-alexa';
+      msgDiv.className = `msg-bubble msg-alexa ${isError ? 'msg-error' : ''}`;
 
       let mcpCardHtml = '';
       if (mcpData) {
-        const cardId = 'mcp-card-' + Math.random().toString(36).substring(2, 9);
         const argsStr = JSON.stringify(mcpData.arguments, null, 2);
-        const resStr = JSON.stringify(mcpData.result, null, 2);
+        const resStr = mcpData.is_error
+          ? JSON.stringify(mcpData.error || { error: "Execution failed" }, null, 2)
+          : JSON.stringify(mcpData.result, null, 2);
         
+        const statusBadge = mcpData.is_error
+          ? '<span class="mcp-status-error">🔴 Error (-32603)</span>'
+          : '<span class="mcp-status-success">🟢 200 OK</span>';
+
+        const argsJsonEscaped = escapeHtml(JSON.stringify(mcpData.arguments || {}));
+        const retryBtn = mcpData.is_error
+          ? `<button class="mcp-retry-btn" onclick='retryMcpTool("${escapeHtml(mcpData.tool)}", ${argsJsonEscaped})'>🔄 Retry Tool Call</button>`
+          : '';
+
         mcpCardHtml = `
-          <div class="mcp-card">
+          <div class="mcp-card ${mcpData.is_error ? 'mcp-card-error' : ''}">
             <div class="mcp-header">
-              <span class="mcp-tool-badge">⚡ MCP: tools/call → ${mcpData.tool}</span>
-              <span class="mcp-latency">⚡ ${mcpData.duration_ms}ms · ${mcpData.protocol_version}</span>
+              <span class="mcp-tool-badge">⚡ MCP: tools/call → ${escapeHtml(mcpData.tool)}</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                ${statusBadge}
+                <span class="mcp-latency">⚡ ${mcpData.duration_ms}ms · ${escapeHtml(mcpData.protocol_version || "2025-11-25")}</span>
+              </div>
             </div>
-            <div style="font-size: 10px; color: #94a3b8;">Arguments:</div>
+            <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">Sanitized Arguments:</div>
             <div class="mcp-block">${escapeHtml(argsStr)}</div>
-            <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">Result:</div>
-            <div class="mcp-block">${escapeHtml(resStr)}</div>
+            <div style="font-size: 10px; color: #94a3b8; font-weight: 600; margin-top: 4px;">
+              ${mcpData.is_error ? 'Error Details (No Stack Traces / Secrets Leaked):' : 'MCP Tool Result:'}
+            </div>
+            <div class="mcp-block ${mcpData.is_error ? 'mcp-block-error' : ''}">${escapeHtml(resStr)}</div>
+            ${retryBtn}
           </div>
         `;
       }
 
+      const alexaTextHtml = text ? `
+        <div style="margin-bottom: ${mcpData ? '8px' : '0'};">
+          <span style="font-size: 10px; color: #38bdf8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">
+            🗣️ Alexa Spoken TTS Response:
+          </span>
+          ${escapeHtml(text)}
+        </div>
+      ` : '';
+
       msgDiv.innerHTML = `
         <div class="msg-author">
-          <span>🛡️ Alexa+ Assistant</span>
+          <span>🛡️ CareLoop MCP Server</span>
+          <span class="input-source-badge" style="background: rgba(0, 198, 255, 0.15); color: #38bdf8; border: 1px solid rgba(0, 198, 255, 0.3);">
+            FastMCP Streamable HTTP
+          </span>
         </div>
         <div class="bubble-body">
-          ${escapeHtml(text)}
+          ${alexaTextHtml}
           ${mcpCardHtml}
         </div>
       `;
@@ -2467,7 +2870,7 @@
       document.getElementById('conversation-log').innerHTML = `
         <div class="msg-bubble msg-alexa">
           <div class="msg-author">
-            <span>🛡️ Alexa+ Assistant</span>
+            <span>🛡️ CareLoop MCP Server</span>
           </div>
           <div class="bubble-body">
             Conversation cleared. I am actively monitoring ${currentPerson === 'dad' ? 'Arthur' : 'Eleanor'}.
@@ -2514,8 +2917,54 @@
       if (res.ok) {
         const data = await res.json();
         updateUI(data);
-        appendAlexaMessage(`Clock and escalation reset to nominal morning state (08:15 AM).`);
+        appendAlexaMessage(`Simulation clock reset to nominal morning state (08:15 AM).`);
       }
+    }
+
+    async function resetDemoSession() {
+      playChime('alexa');
+      if (demoActive) stopDemo();
+      try {
+        const res = await fetch('/api/demo/reset', {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ person: currentPerson })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          updateUI(data);
+          appendAlexaMessage(`Demo session reset: isolated demo events and alerts cleared. Baseline profiles and production records preserved. Clock at 08:15 AM.`);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          appendAlexaMessage(`Demo reset failed: ${err.error || res.statusText}`, null, true);
+        }
+      } catch (e) {
+        appendAlexaMessage(`Demo reset error: ${e.message}`, null, true);
+      }
+    }
+
+    async function setClockTime(timeStr) {
+      const res = await fetch('/api/clock/set', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ time: timeStr, person: currentPerson })
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to set clock to ${timeStr}`);
+      }
+      return await res.json();
+    }
+
+    async function advanceClockMinutes(mins) {
+      const res = await fetch('/api/clock/advance', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ minutes: mins, person: currentPerson })
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to advance clock by ${mins}m`);
+      }
+      return await res.json();
     }
 
     function onPersonChange() {
@@ -2525,6 +2974,7 @@
 
     // ==========================================
     // "DAD SKIPS LUNCH" AUTOMATED DEMO SCENARIO
+    // (Uses real MCP tools and real state machine)
     // ==========================================
     async function startDadSkipsLunchDemo() {
       if (demoActive) {
@@ -2544,109 +2994,155 @@
       progressCard.style.display = 'flex';
 
       clearConversation();
-      appendAlexaMessage(`🚀 Starting "Dad Skips Lunch" automated hackathon demonstration scenario.`);
+      appendAlexaMessage(`🚀 Starting "Dad Skips Lunch" automated hackathon demonstration scenario with real MCP tools.`);
 
-      // Step 1: Setup morning nominal state (08:30 AM)
-      await runDemoStep(1, 6, "Step 1: Normal Morning (08:30 AM)", 
-        "Dad wakes up on schedule, takes morning blood pressure medication, and moves about the bedroom.",
-        async () => {
-          await fetch('/api/demo/skips-lunch/setup', { method: 'POST' });
-          await fetchState();
-          
-          appendAlexaMessage("Good morning Arthur! Your morning blood pressure medication (Lisinopril 10mg) is confirmed. Baseline routine is nominal.");
-          speakText("Good morning Arthur! Blood pressure medication confirmed.");
-        }, 5000
-      );
+      try {
+        // Step 1: Setup morning nominal state (08:30 AM)
+        await runDemoStep(1, 6, "Step 1: Normal Morning (08:30 AM)", 
+          "Dad wakes up on schedule, takes morning blood pressure medication (Lisinopril 10mg), and moves about the bedroom.",
+          async () => {
+            // 1. Reset demo isolation
+            const resetRes = await fetch('/api/demo/reset', {
+              method: 'POST',
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ person: "dad" })
+            });
+            if (!resetRes.ok) throw new Error("Failed to reset demo state");
 
-      // Step 2: Midday 12:45 PM (Expected lunch time arrives)
-      await runDemoStep(2, 6, "Step 2: Expected Lunch Time (12:45 PM)", 
-        "Dad's learned baseline expects lunch at 12:44 UTC. Dad is feeling tired and takes a long nap in the bedroom. No kitchen movement or lunch logged.",
-        async () => {
-          await fetch('/api/clock/set', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: "12:45", person: "dad" })
-          });
-          await fetchState();
-          appendAlexaMessage("Clock advanced to 12:45 UTC. Expected lunch time window begins. Still within 30m grace window (no alert).");
-        }, 5000
-      );
+            // 2. Set clock to 08:30
+            await setClockTime("08:30");
 
-      // Step 3: 2:00 PM (14:00 UTC) - Grace Window Passes, Missed Lunch Detected!
-      await runDemoStep(3, 6, "Step 3: Missed Lunch & Inactivity (02:00 PM)", 
-        "Clock jumps to 14:00 UTC. Lunch grace window expired 45 mins ago! Inactivity: no movement for 5 hours. Risk elevated to 0.5 (MEDIUM). State transitions: NORMAL → GENTLE_CHECK_IN.",
-        async () => {
-          await fetch('/api/clock/set', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: "14:00", person: "dad" })
-          });
-          await fetchState();
-          playChime('alexa');
-          
-          const prompt = "Arthur, I noticed you haven't logged lunch today. Just checking in—did you get a chance to eat or would you like a reminder?";
-          appendAlexaMessage(`[GENTLE CHECK-IN PROMPT]\n${prompt}`);
-          speakText(prompt);
-        }, 6000
-      );
+            // 3. Log real medication event via MCP
+            const medRes = await callMcpTool("log_routine_event", {
+              person: "dad",
+              type: "medication",
+              metadata: { source: "simulator_demo", medication: "blood_pressure_lisinopril" }
+            });
+            if (medRes.is_error) throw new Error(medRes.error ? medRes.error.message : "Medication log failed");
+            appendAlexaMessage("Confirmed blood pressure medication (Lisinopril 10mg).", medRes);
+            speakText("Good morning Arthur! Your morning blood pressure medication is confirmed.");
 
-      // Step 4: Gentle Check-in Timeout (+60s) → Repeat Check-In
-      await runDemoStep(4, 6, "Step 4: Gentle Timeout (+60s) → Repeat Check-In", 
-        "Dad is still sound asleep and does not respond to Alexa. Gentle check-in timeout (60s) expires. State transitions: GENTLE_CHECK_IN → REPEAT_CHECK_IN.",
-        async () => {
-          await fetch('/api/clock/advance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ minutes: 2, person: "dad" })
-          });
-          await fetchState();
-          playChime('alert');
+            // 4. Set clock to 10:00 and log movement in living room
+            await setClockTime("10:00");
+            const moveRes = await callMcpTool("log_routine_event", {
+              person: "dad",
+              type: "movement",
+              metadata: { source: "simulator_demo", room: "living_room" }
+            });
+            if (moveRes.is_error) throw new Error(moveRes.error ? moveRes.error.message : "Movement log failed");
+            appendAlexaMessage("Recorded mid-morning movement in living room (10:00 AM).", moveRes);
 
-          const repeatPrompt = "Arthur, checking in once more with an attention chime. Please say 'I'm fine' or let me know if you need assistance.";
-          appendAlexaMessage(`[REPEAT CHECK-IN PROMPT]\n${repeatPrompt}`);
-          speakText(repeatPrompt);
-        }, 6000
-      );
+            // 5. Check routine health via MCP
+            const healthRes = await callMcpTool("check_routine_health", { person: "dad" });
+            if (healthRes.is_error) throw new Error(healthRes.error ? healthRes.error.message : "Health check failed");
+            appendAlexaMessage(
+              `Routine health nominal: risk score is ${healthRes.result.risk_score} (${healthRes.result.risk_level} risk). Stage is ${healthRes.result.escalation_stage}.`,
+              healthRes
+            );
 
-      // Step 5: Repeat Check-in Timeout (+60s) → NOTIFY FAMILY!
-      await runDemoStep(5, 6, "Step 5: Repeat Timeout (+60s) → Dispatched Family Alert!", 
-        "Second timeout expires with zero response. State machine advances to NOTIFY_FAMILY. Deterministic SNS/SMS alert dispatched to daughter Linda Davis with explainable reasons!",
-        async () => {
-          await fetch('/api/clock/advance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ minutes: 2, person: "dad" })
-          });
-          await fetchState();
-          playChime('alert');
+            await fetchState();
+          }, 5000
+        );
 
-          appendAlexaMessage("🚨 Escalation triggered: NOTIFY_FAMILY stage reached. Alert dispatched to Linda Davis: 'Elder Care Alert: Dad Unresponsive to Routine Check-Ins'.");
-        }, 6000
-      );
+        // Step 2: Midday 12:45 PM (Expected lunch time arrives)
+        await runDemoStep(2, 6, "Step 2: Expected Lunch Time (12:45 PM)", 
+          "Dad's learned baseline expects lunch at 12:44 UTC. Dad is feeling tired and takes a long nap in the bedroom. No kitchen movement or lunch logged.",
+          async () => {
+            await setClockTime("12:45");
 
-      // Step 6: Dad Wakes Up & Confirms OK!
-      await runDemoStep(6, 6, "Step 6: Dad Confirms Safe → Escalation Reset to Normal", 
-        "Dad hears the chime and wakes up: 'I'm fine, just had a long nap!' Invokes confirm_ok tool. State resets to NORMAL. Family phone displays resolved state.",
-        async () => {
-          appendUserMessage("I'm fine! I was just taking an afternoon nap.");
-          playChime('resolve');
+            // Real check_routine_health tool call
+            const healthRes = await callMcpTool("check_routine_health", { person: "dad" });
+            if (healthRes.is_error) throw new Error(healthRes.error ? healthRes.error.message : "Health check failed");
 
-          const res = await callMcpTool('confirm_ok', { person: "dad" });
-          
-          const confirmMsg = "Glad you're okay, Arthur! I've marked your status as safe and notified Linda that you were just resting comfortably.";
-          appendAlexaMessage(confirmMsg, {
-            tool: "confirm_ok",
-            arguments: { person: "dad" },
-            result: res.result,
-            duration_ms: res.duration_ms,
-            protocol_version: "2025-11-25"
-          });
-          speakText(confirmMsg);
+            appendAlexaMessage(
+              `Clock advanced to 12:45 UTC. Expected lunch window begins (learned μ ≈ 12:44 UTC). Current time is within the 30-minute grace window (grace ends ~13:15 UTC). Risk is ${healthRes.result.risk_level.toUpperCase()} (${healthRes.result.risk_score}). Zero false alarms generated.`,
+              healthRes
+            );
 
-          await fetchState();
-          stopDemo(true);
-        }, 6000
-      );
+            await fetchState();
+          }, 5000
+        );
+
+        // Step 3: 2:00 PM (14:00 UTC) - Grace Window Passes, Missed Lunch Detected!
+        await runDemoStep(3, 6, "Step 3: Missed Lunch & Inactivity (02:00 PM)", 
+          "Clock jumps to 14:00 UTC. Lunch grace window expired 45 mins ago! Inactivity: no movement for 5.5 hours. Risk elevated to 0.5 (MEDIUM). State transitions: NORMAL → GENTLE_CHECK_IN.",
+          async () => {
+            await setClockTime("14:00");
+
+            // Real tick_escalation tool call
+            const tickRes = await callMcpTool("tick_escalation", { person: "dad" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            playChime('alexa');
+            const prompt = tickRes.result.voice_response || "Arthur, I noticed you haven't logged lunch today. Just checking in—did you get a chance to eat or would you like a reminder?";
+            appendAlexaMessage(`[GENTLE CHECK-IN PROMPT]\n${prompt}`, tickRes);
+            speakText(prompt);
+
+            await fetchState();
+          }, 6000
+        );
+
+        // Step 4: Gentle Check-in Timeout (+70s) → Repeat Check-In
+        await runDemoStep(4, 6, "Step 4: Gentle Timeout (+70s) → Repeat Check-In", 
+          "Dad is still sound asleep and does not respond to Alexa. Gentle check-in timeout (60s) expires. State transitions: GENTLE_CHECK_IN → REPEAT_CHECK_IN.",
+          async () => {
+            await advanceClockMinutes(2);
+
+            // Real tick_escalation tool call
+            const tickRes = await callMcpTool("tick_escalation", { person: "dad" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            playChime('alert');
+            const repeatPrompt = tickRes.result.voice_response || "Arthur, checking in once more with an attention chime. Please say 'I'm fine' or let me know if you need assistance.";
+            appendAlexaMessage(`[REPEAT CHECK-IN PROMPT]\n${repeatPrompt}`, tickRes);
+            speakText(repeatPrompt);
+
+            await fetchState();
+          }, 6000
+        );
+
+        // Step 5: Repeat Check-in Timeout (+70s) → NOTIFY FAMILY!
+        await runDemoStep(5, 6, "Step 5: Repeat Timeout (+70s) → Dispatched Family Alert!", 
+          "Second timeout expires with zero response. State machine advances to NOTIFY_FAMILY. Deterministic SNS/SMS alert dispatched to daughter Linda Davis with explainable reasons!",
+          async () => {
+            await advanceClockMinutes(2);
+
+            // Real tick_escalation tool call
+            const tickRes = await callMcpTool("tick_escalation", { person: "dad" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            playChime('alert');
+            appendAlexaMessage(
+              `🚨 Escalation triggered: NOTIFY_FAMILY stage reached. Alert dispatched to Linda Davis via Notifier: 'Elder Care Alert: Dad Unresponsive to Routine Check-Ins'.`,
+              tickRes
+            );
+
+            await fetchState();
+          }, 6000
+        );
+
+        // Step 6: Dad Wakes Up & Confirms OK!
+        await runDemoStep(6, 6, "Step 6: Dad Confirms Safe → Escalation Reset to Normal", 
+          "Dad hears the chime and wakes up: 'I'm fine, just had a long nap!' Invokes confirm_ok tool. State resets to NORMAL. Family phone displays resolved state.",
+          async () => {
+            appendUserMessage("I'm fine! I was just taking an afternoon nap.", "voice");
+            playChime('resolve');
+
+            // Real confirm_ok tool call
+            const res = await callMcpTool('confirm_ok', { person: "dad" });
+            if (res.is_error) throw new Error(res.error ? res.error.message : "confirm_ok tool call failed");
+
+            const confirmMsg = res.result.voice_response || "Glad you're okay, Arthur! I've marked your status as safe and notified Linda that you were just resting comfortably.";
+            appendAlexaMessage(confirmMsg, res, false);
+            speakText(confirmMsg);
+
+            await fetchState();
+            stopDemo(true);
+          }, 6000
+        );
+      } catch (err) {
+        console.error("Demo failed:", err);
+      }
     }
 
     async function runDemoStep(stepNum, totalSteps, title, desc, actionFn, durationMs) {
@@ -2656,7 +3152,19 @@
       document.getElementById('demo-step-desc').innerText = desc;
       document.getElementById('demo-bar-fill').style.width = `${(stepNum / totalSteps) * 100}%`;
 
-      await actionFn();
+      try {
+        await actionFn();
+      } catch (err) {
+        demoActive = false;
+        document.getElementById('demo-step-title').innerText = `❌ Error in Step ${stepNum}`;
+        document.getElementById('demo-step-desc').innerText = `Failed: ${err.message}. Scenario stopped (no fake success simulated).`;
+        document.getElementById('demo-step-countdown').innerText = `Halted`;
+        const heroBtn = document.getElementById('hero-demo-btn');
+        heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
+        heroBtn.innerHTML = `<span>▶</span><span>Dad Skips Lunch Demo</span>`;
+        appendAlexaMessage(`❌ Demo scenario halted due to backend error: ${err.message}`, null, true);
+        throw err;
+      }
 
       return new Promise((resolve) => {
         let remainingSeconds = Math.round(durationMs / 1000);

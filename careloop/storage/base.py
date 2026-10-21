@@ -140,6 +140,14 @@ class StorageBase(ABC):
         """Fetch per-person escalation state machine status."""
         raise NotImplementedError
 
+    # --- Demo Isolation ---
+    def clear_demo_data(self, person_id: str = "dad") -> None:
+        """
+        Clear demo-generated events and alerts for an isolated simulation session.
+        Strictly preserves baseline profiles and production records.
+        """
+        pass
+
     # --- Lifecycle & Context Management ---
     @abstractmethod
     def close(self) -> None:
