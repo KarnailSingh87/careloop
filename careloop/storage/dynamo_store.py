@@ -802,7 +802,13 @@ class DynamoDBStorage(StorageBase):
                 KeyConditionExpression=Key("PK").eq(f"PERSON#{person_id}") & Key("SK").begins_with("ALERT#")
             )
             for item in res_alerts.get("Items", []):
-                if item.get("alert_id", "").startswith("demo_") or "Dad Unresponsive" in item.get("title", ""):
+                title = item.get("title", "")
+                if (
+                    item.get("alert_id", "").startswith("demo_")
+                    or "Unresponsive" in title
+                    or "Medication" in title
+                    or "demo" in title.lower()
+                ):
                     self._table.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
         except ClientError as e:
             logger.error(f"Failed to clear demo data from DynamoDB: {e}")

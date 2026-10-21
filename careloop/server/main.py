@@ -112,13 +112,15 @@ def create_server(
     risk_engine = RiskEngine()
     if notifier is None:
         notifier = get_default_notifier()
+    gentle_timeout = float(os.environ.get("CARELOOP_ESC_GENTLE_TIMEOUT", "60.0"))
+    repeat_timeout = float(os.environ.get("CARELOOP_ESC_REPEAT_TIMEOUT", "60.0"))
     escalation_engine = EscalationEngine(
         storage=storage,
         risk_engine=risk_engine,
         baseline_engine=baseline_engine,
         notifier=notifier,
-        gentle_timeout_seconds=60.0,
-        repeat_timeout_seconds=60.0,
+        gentle_timeout_seconds=gentle_timeout,
+        repeat_timeout_seconds=repeat_timeout,
     )
     llm_assistant = BedrockAssistant()
 
@@ -302,6 +304,25 @@ def create_app(
             "available_profiles": [
                 {"id": p.person_id, "name": p.display_name} for p in profiles
             ],
+            "system": {
+                "database": {
+                    "type": "sqlite" if "SQLite" in storage_inst.__class__.__name__ else "dynamodb",
+                    "path": getattr(storage_inst, "db_path", "dynamodb"),
+                },
+                "server": {
+                    "status": "online",
+                    "version": "0.1.0",
+                    "demo_mode": bool(config.enable_demo_endpoints),
+                    "clock_mode": "simulated" if isinstance(clock_inst, SimulatedClock) else "system",
+                },
+                "notifier": {
+                    "type": escalation_inst.notifier.__class__.__name__ if getattr(escalation_inst, "notifier", None) else "ConsoleNotifier",
+                },
+                "timeouts": {
+                    "gentle_seconds": getattr(escalation_inst, "gentle_timeout_seconds", 60.0),
+                    "repeat_seconds": getattr(escalation_inst, "repeat_timeout_seconds", 60.0),
+                },
+            },
         }
 
     # Health check endpoint for AWS ECS / ALB / local verification
@@ -373,7 +394,7 @@ def create_app(
                 target = now.replace(hour=14, minute=0, second=0, microsecond=0)
             else:
                 try:
-                    parsed = date_parser.parse(time_val)
+                    parsed = date_parser.parse(time_val, default=now)
                     if parsed.tzinfo is None:
                         parsed = parsed.replace(tzinfo=timezone.utc)
                     target = parsed
@@ -469,10 +490,16 @@ def create_app(
         tool_objs = await server.list_tools()
         tools_list = []
         for t in tool_objs:
+            schema = (
+                getattr(t, "input_schema", None)
+                or getattr(t, "inputSchema", None)
+                or getattr(t, "parameters", {})
+            )
             tools_list.append({
                 "name": t.name,
                 "description": t.description,
-                "parameters": getattr(t, "parameters", {}),
+                "inputSchema": schema,
+                "parameters": schema,
             })
         return JSONResponse({"tools": tools_list})
 
@@ -507,6 +534,46 @@ def create_app(
             )
         )
         escalation_inst.reset_to_normal(person_id, clock_inst.now(), reason="Dad skips lunch scenario setup")
+
+        return JSONResponse(_get_sim_state(person_id))
+
+    async def api_demo_missed_medication_setup(request):
+        if not config.enable_demo_endpoints:
+            return JSONResponse(
+                {"error": "Forbidden: Demo endpoints are disabled in this environment."},
+                status_code=403,
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        person_id = body.get("person", "eleanor").strip().lower()
+        if hasattr(storage_inst, "clear_demo_data"):
+            storage_inst.clear_demo_data(person_id)
+
+        # Clear any existing pill events for today (2026-10-20) so the morning pill is unrecorded
+        if hasattr(storage_inst, "_conn") and hasattr(storage_inst, "_lock"):
+            with storage_inst._lock:
+                with storage_inst._conn:
+                    storage_inst._conn.execute(
+                        "DELETE FROM events WHERE person_id = ? AND timestamp >= '2026-10-20' AND event_type IN ('pill', 'medication')",
+                        (person_id,),
+                    )
+
+        start_time = datetime(2026, 10, 20, 8, 0, 0, tzinfo=timezone.utc)
+        if isinstance(clock_inst, SimulatedClock):
+            clock_inst.set_time(start_time)
+
+        # Seed morning movement today (07:30 UTC), leaving expected pill (~08:15 UTC) unrecorded!
+        storage_inst.save_event(
+            Event(
+                person_id=person_id,
+                event_type=EventType.MOVEMENT,
+                timestamp=datetime(2026, 10, 20, 7, 30, 0, tzinfo=timezone.utc),
+                metadata={"source": "simulator_demo", "room": "bedroom"},
+            )
+        )
+        escalation_inst.reset_to_normal(person_id, clock_inst.now(), reason="Eleanor missed medication scenario setup")
 
         return JSONResponse(_get_sim_state(person_id))
 
@@ -583,6 +650,7 @@ def create_app(
     app.routes.append(Route("/api/mcp/call", api_mcp_call, methods=["POST"]))
     app.routes.append(Route("/api/mcp/tools", api_mcp_tools, methods=["GET"]))
     app.routes.append(Route("/api/demo/skips-lunch/setup", api_demo_skips_lunch_setup, methods=["POST"]))
+    app.routes.append(Route("/api/demo/missed-medication/setup", api_demo_missed_medication_setup, methods=["POST"]))
     app.routes.append(Route("/api/demo/reset", api_demo_reset, methods=["POST"]))
 
     # Alias /v1/mcp to the same endpoint as /mcp for Alexa+ versioned route compatibility

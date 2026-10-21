@@ -7,7 +7,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Spec](https://img.shields.io/badge/MCP%20Spec-2025--11--25+-green.svg)](https://modelcontextprotocol.io/)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20Claude%203-orange.svg)](https://aws.amazon.com/bedrock/)
-[![Tests Passing](https://img.shields.io/badge/tests-156%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-175%20passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -25,16 +25,16 @@ Every day, millions of aging parents live independently while their adult childr
 - **Alexa+ Track**:
   - Implements the official **FastMCP / MCPServer Streamable HTTP transport** (`/mcp` and `/v1/mcp`) with bi-directional JSON-RPC 2.0 streaming.
   - Registers **9 Alexa+ voice tools** with prompt-engineered voice triggers and return schemas formatted for Alexa Text-To-Speech (TTS) synthesis.
-  - Built an ambient **Voice Simulator UI** ([simulator/index.html](file:///Users/harsh/Desktop/Alexa+/careloop/simulator/index.html)) featuring native browser Web Speech API microphone dictation, SpeechSynthesis audio, a live MCP inspector showing JSON-RPC packets in real time, and a 6-step automated *"Dad skips lunch"* demonstration.
+  - Built an ambient **Voice Simulator UI** ([simulator/index.html](careloop/simulator/index.html)) featuring native browser Web Speech API microphone dictation, SpeechSynthesis audio, a live MCP inspector showing JSON-RPC packets in real time, and one-click hero demos for missed medication and skipped meals.
 - **AWS Builder Track**:
   - **Amazon DynamoDB**: Single-table design (`PK`, `SK`) with AWS-managed server-side encryption at rest (`SSESpecification: { SSEEnabled: true }`) and Point-in-Time Recovery (PITR).
   - **Amazon SNS**: Caregiver alert topic encrypted with AWS KMS (`alias/aws/sns`).
   - **Amazon Bedrock (Claude 3 Haiku Converse API)**: Sandboxed strictly to empathetic daily routine summaries and factual memory Q&A—**the LLM is strictly prohibited from making alert decisions**.
   - **Amazon EventBridge**: Scheduled 1-minute autonomous health tick rule triggering a dedicated Lambda runner.
-  - **Full IaC Packaging**: Production-grade **AWS CDK (Python)** in [deploy/cdk/](file:///Users/harsh/Desktop/Alexa+/deploy/cdk/) and **AWS SAM** in [template.yaml](file:///Users/harsh/Desktop/Alexa+/template.yaml).
+  - **Full IaC Packaging**: Production-grade **AWS CDK (Python)** in [deploy/cdk/](deploy/cdk/) and **AWS SAM** in [template.yaml](template.yaml).
 - **Open Source Mini-Challenge**:
   - 100% open-source under the **MIT License**.
-  - Fully typed with Pydantic v2 domain models and validated by **98 pytest tests** (100% pass rate).
+  - Fully typed with Pydantic v2 domain models and validated by **175 pytest tests** (100% pass rate).
   - Zero proprietary vendor lock-in: runs identically on local SQLite or AWS DynamoDB.
 
 ---
@@ -177,6 +177,25 @@ stateDiagram-v2
 
 ---
 
+## 🎬 Repeatable Demonstration (One Command)
+
+CareLoop includes a unified demonstration orchestrator script ([scripts/run_demo.py](scripts/run_demo.py)) that prepares an isolated demo database (`careloop_demo.db`), seeds realistic multi-day routine history, verifies or launches the FastMCP server, and runs or readies the simulation. It operates **100% locally** with zero external cloud dependencies.
+
+```bash
+# Option A: Interactive Browser Demonstration (Prepares DB, launches server, opens UI)
+python scripts/run_demo.py --interactive
+
+# Option B: Automated 9-Step Verification (Executes 3 consecutive clean runs)
+python scripts/run_demo.py --auto --repeat 3
+
+# Option C: Optional AWS Cloud Preflight (Validates IAM, DynamoDB, SNS, Bedrock)
+python scripts/run_demo.py --aws
+```
+
+📖 **For the complete architecture walkthrough, sequence diagram, and verification report, see [DEMO_GUIDE.md](DEMO_GUIDE.md).**
+
+---
+
 ## Quickstart
 
 ### 1. Installation
@@ -230,28 +249,25 @@ python scripts/client_test.py --url http://127.0.0.1:8000/mcp
 
 ```bash
 pytest -v
-# 98 passed in 4.16s
+# 175 passed in 10.58s
 ```
 
 ---
 
-## Web Simulator & Live Demo
+## Web Simulator & Live Cockpit
 
 CareLoop includes an interactive single-page application at `http://127.0.0.1:8000/simulator` styled after an ambient Alexa+ smart display:
 
+- **Top System Status Bar**: Real-time status badges for Demo Mode (`60s` fast timeouts), Clock (UTC), Database (`careloop_demo.db`), Server (`FastMCP 0.1.0`), and Notifier (`ConsoleNotifier`), with a quick **Reset Demo Session** button and **Troubleshooting** modal.
 - **Ambient Alexa Orb**: Animated glowing orb reflecting idle, listening, thinking, and speaking states.
 - **Voice Microphone (STT)**: Uses the browser Web Speech API to dictate natural routine statements directly to Alexa+.
 - **Speech Synthesis (TTS)**: Reads Alexa voice responses aloud with audio chimes.
 - **Live MCP Tool Inspector**: Displays exact JSON-RPC 2.0 tool requests, input arguments, execution latency, and return schemas (`2025-11-25`).
 - **Injectable Clock Machine**: Jump forward in time (`+15m`, `+1h`, `+1d`, `Jump to 2:00 PM`) to test missed routines without waiting hours.
 - **Virtual Family Phone**: Displays push/SMS notifications received by family caregivers with deterministic reasons and resolution status.
-- **"Dad Skips Lunch" Hero Demo**: One-click 6-step live demonstration that plays the full lifecycle:
-  1. Morning: Medication and breakfast logged normally.
-  2. 12:45 PM: Normal lunch window arrives. Dad takes a long nap.
-  3. 01:45 PM: Grace window expires; risk elevated to Medium; Alexa initiates a gentle voice check-in.
-  4. 01:47 PM: No response; repeated check-in with attention chime.
-  5. 01:49 PM: State machine escalates to `notify_family`; alert dispatched via Amazon SNS with audit reasons.
-  6. 02:00 PM: Dad wakes up and says *"I'm fine"*; state machine resets to normal and family phone resolves.
+- **One-Click Hero Demos (Real Backend Execution)**:
+  - **💊 Missed Meds Demo (Eleanor Davis)**: Runs the complete 6-stage missed medication scenario, advancing through baseline detection, risk scoring (0.60), staged escalation, console alert dispatch, grounded memory Q&A, and incident resolution.
+  - **🍲 Dad Skips Lunch Demo (Arthur Davis)**: Demonstrates midday inactivity and missed lunch window escalation.
 
 ---
 
@@ -722,9 +738,10 @@ CareLoop provides a clearly isolated development environment while enforcing unc
 
 ---
 
-## AWS Deployment Architecture & Guide
+## AWS Deployment & Alexa+ Integration Guides
 
-For the complete AWS CDK and SAM deployment guide, transport compatibility evaluation (ECS Fargate vs. API Gateway), least-privilege IAM policies, status checks, live smoke testing, and clean teardown procedures, see **[DEPLOYMENT.md](file:///Users/harsh/Desktop/Alexa+/DEPLOYMENT.md)**.
+- **[DEPLOYMENT.md](file:///Users/harsh/Desktop/Alexa+/DEPLOYMENT.md)**: Turnkey AWS CDK and SAM deployment guide, transport compatibility evaluation (ECS Fargate vs. API Gateway), least-privilege IAM policies, status checks, live smoke testing, and clean teardown procedures.
+- **[ALEXA_INTEGRATION_CHECKLIST.md](file:///Users/harsh/Desktop/Alexa+/ALEXA_INTEGRATION_CHECKLIST.md)**: Complete audit against official Amazon Developer Alexa+ MCP documentation, RFC 9728/8414 discovery, OAuth 2.1 PKCE account-linking patterns, tool schema conventions, simulation fallback disclaimers, and hackathon Go/No-Go checklist.
 
 ## Deployment Security Checklist
 

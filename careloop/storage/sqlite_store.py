@@ -891,7 +891,9 @@ class SQLiteStorage(StorageBase):
                       AND (
                         alert_id LIKE 'demo_%'
                         OR json_extract(metadata, '$.source') = 'simulator_demo'
-                        OR title LIKE '%Dad Unresponsive%'
+                        OR title LIKE '%Unresponsive%'
+                        OR title LIKE '%Medication%'
+                        OR title LIKE '%demo%'
                       )
                     """,
                     (person_id,),

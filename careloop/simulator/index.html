@@ -1768,13 +1768,52 @@
         <span class="time" id="auth-token-status" style="font-size: 11px; color: #a5f3fc;">Open Mode</span>
       </button>
 
+      <!-- Missed Medication Hero Button (Eleanor) -->
+      <button class="demo-btn-hero" id="hero-med-demo-btn" onclick="startMissedMedicationDemo()" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);" title="Trigger Eleanor Missed Medication 9-Step Demo">
+        <span>💊</span>
+        <span>Missed Meds Demo</span>
+      </button>
+
       <!-- Dad Skips Lunch Hero Button -->
-      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()">
-        <span>▶</span>
+      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()" title="Trigger Dad Skips Lunch Demo">
+        <span>🍲</span>
         <span>Dad Skips Lunch Demo</span>
       </button>
     </div>
   </header>
+
+  <!-- System Status Bar: Clock, Database, Server, Notifier, and Demo Timeouts -->
+  <div class="system-status-bar" id="system-status-bar" style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);" id="demo-mode-indicator">
+        <span style="font-size: 8px;">●</span> DEMO MODE (Fast Timeouts: 60s)
+      </span>
+      <span style="display: flex; align-items: center; gap: 6px;" title="Simulation Clock Mode and Time">
+        <span style="color: #64748b;">Clock:</span>
+        <strong id="sys-clock-status" style="color: #38bdf8; font-family: monospace;">Simulated (UTC)</strong>
+      </span>
+      <span style="display: flex; align-items: center; gap: 6px;" title="Isolated Demo Database Storage">
+        <span style="color: #64748b;">Database:</span>
+        <strong id="sys-db-status" style="color: #cbd5e1; font-family: monospace;">SQLite (careloop_demo.db)</strong>
+      </span>
+      <span style="display: flex; align-items: center; gap: 6px;" title="MCP Protocol & Server Endpoint">
+        <span style="color: #64748b;">Server:</span>
+        <strong id="sys-server-status" style="color: #a78bfa; font-family: monospace;">FastMCP 0.1.0 (/mcp)</strong>
+      </span>
+      <span style="display: flex; align-items: center; gap: 6px;" title="Active Caregiver Notification Channel">
+        <span style="color: #64748b;">Notifier:</span>
+        <strong id="sys-notifier-status" style="color: #f59e0b; font-family: monospace;">ConsoleNotifier (stdout)</strong>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button onclick="resetDemoSession()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Reset isolated demo events and alerts while preserving learned baseline">
+        ↺ Reset Demo Session
+      </button>
+      <button onclick="showTroubleshootingModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;" title="View common startup, browser, and connectivity troubleshooting steps">
+        ❓ Troubleshooting
+      </button>
+    </div>
+  </div>
 
   <!-- Connection Lost Alert Banner -->
   <div class="alert-banner-disconnected" id="connection-alert-banner">
@@ -2421,6 +2460,32 @@
       if (data.clock) {
         document.getElementById('clock-display').innerText = data.clock.time_str;
         document.getElementById('phone-clock').innerText = data.clock.time_str.substring(0, 5);
+        const clockSys = document.getElementById('sys-clock-status');
+        if (clockSys) clockSys.innerText = `${data.clock.is_simulated ? 'Simulated' : 'System'} (${data.clock.time_str})`;
+      }
+
+      // System Status Bar
+      if (data.system) {
+        const dbElem = document.getElementById('sys-db-status');
+        if (dbElem && data.system.database) {
+          const dbPath = data.system.database.path || 'careloop_demo.db';
+          const dbName = dbPath.split('/').pop();
+          dbElem.innerText = `${data.system.database.type.toUpperCase()} (${dbName})`;
+        }
+        const srvElem = document.getElementById('sys-server-status');
+        if (srvElem && data.system.server) {
+          srvElem.innerText = `FastMCP ${data.system.server.version} (/mcp)`;
+        }
+        const notifElem = document.getElementById('sys-notifier-status');
+        if (notifElem && data.system.notifier) {
+          notifElem.innerText = `${data.system.notifier.type}`;
+        }
+        const modeElem = document.getElementById('demo-mode-indicator');
+        if (modeElem && data.system.timeouts) {
+          const gT = data.system.timeouts.gentle_seconds || 60;
+          const rT = data.system.timeouts.repeat_seconds || 60;
+          modeElem.innerHTML = `<span style="font-size: 8px;">●</span> DEMO MODE (Fast Timeouts: ${gT}s / ${rT}s)`;
+        }
       }
 
       // Profile & Unsplash Avatar Photo
@@ -2973,6 +3038,161 @@
       fetchState();
     }
 
+    // ========================================================
+    // "ELEANOR MISSED MEDICATION" AUTOMATED DEMO SCENARIO
+    // (Demonstrates baseline engine, risk scoring, escalation,
+    //  console family alert, and grounded memory Q&A)
+    // ========================================================
+    async function startMissedMedicationDemo() {
+      if (demoActive) {
+        stopDemo();
+        return;
+      }
+
+      demoActive = true;
+      document.getElementById('person-select').value = "eleanor";
+      currentPerson = "eleanor";
+
+      const medBtn = document.getElementById('hero-med-demo-btn');
+      if (medBtn) {
+        medBtn.style.background = '#dc2626';
+        medBtn.innerHTML = `<span>⏹</span><span>Stop Demo</span>`;
+      }
+
+      const progressCard = document.getElementById('demo-progress-card');
+      progressCard.style.display = 'flex';
+
+      clearConversation();
+      appendAlexaMessage(`🚀 Starting "Eleanor Missed Medication" 9-step demonstration scenario with real MCP tools.`);
+
+      try {
+        // Step 1: Learned Routine & Morning Movement (08:00 AM)
+        await runDemoStep(1, 6, "Step 1: Learned Routine & Movement (08:00 AM)", 
+          "Eleanor Davis (age 78) has a learned baseline over multiple days. Morning bedroom movement logged at 07:30 UTC. Expected Lisinopril medication (~08:15 UTC) is not yet recorded. Zero alerts generated during normal window.",
+          async () => {
+            const setupRes = await fetch('/api/demo/missed-medication/setup', {
+              method: 'POST',
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ person: "eleanor" })
+            });
+            if (!setupRes.ok) throw new Error("Failed to setup missed medication scenario");
+
+            // Real MCP tool call: check_routine_health
+            const healthRes = await callMcpTool("check_routine_health", { person: "eleanor" });
+            if (healthRes.is_error) throw new Error(healthRes.error ? healthRes.error.message : "Health check failed");
+
+            appendAlexaMessage(
+              `Learned baseline active: Eleanor's morning Lisinopril medication scheduled ~08:15 UTC (±6m variance, 45m grace window). Clock at 08:00 UTC. Risk is ${healthRes.result.risk_level.toUpperCase()} (${healthRes.result.risk_score}). Zero false alarms.`,
+              healthRes
+            );
+            await fetchState();
+          }, 4500
+        );
+
+        // Step 2: Grace Window Expires (09:30 AM)
+        await runDemoStep(2, 6, "Step 2: Grace Window Expires (09:30 AM)", 
+          "Clock advances to 09:30 UTC (+90m). Lisinopril was expected by 08:15 UTC (grace expired at 09:00 UTC). Baseline engine identifies missed event; deterministic risk scoring produces explainable result.",
+          async () => {
+            await setClockTime("09:30");
+
+            const healthRes = await callMcpTool("check_routine_health", { person: "eleanor" });
+            if (healthRes.is_error) throw new Error(healthRes.error ? healthRes.error.message : "Health check failed");
+
+            appendAlexaMessage(
+              `Clock advanced to 09:30 UTC. Baseline engine flagged missed event! Risk score: ${healthRes.result.risk_score} (${healthRes.result.risk_level.toUpperCase()}). Reasons: ${healthRes.result.reasons.join(' | ')}`,
+              healthRes
+            );
+            await fetchState();
+          }, 4500
+        );
+
+        // Step 3: Escalation Stage 1 -> Gentle Check-In
+        await runDemoStep(3, 6, "Step 3: Escalation Stage 1 → Gentle Check-In", 
+          "Autonomous tick advances persisted escalation state machine to gentle_check_in. Alexa issues an empathetic voice check-in prompt.",
+          async () => {
+            const tickRes = await callMcpTool("tick_escalation", { person: "eleanor" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            appendAlexaMessage(
+              `Persisted state escalated: NORMAL → ${tickRes.result.stage.toUpperCase()}. Empathetic voice check-in prompt issued.`,
+              tickRes
+            );
+            speakText("Hi Eleanor, CareLoop noticed your morning blood pressure medication hasn't been logged yet. Just checking in, are you doing alright?");
+            await fetchState();
+          }, 4500
+        );
+
+        // Step 4: Gentle Timeout (+70s) -> Repeat Check-In
+        await runDemoStep(4, 6, "Step 4: Gentle Timeout (+70s) → Repeat Check-In", 
+          "Configured demo gentle timeout (60s) expires with no response from elder. System advances persisted state to repeat_check_in with audible chime.",
+          async () => {
+            await advanceClockMinutes(2); // +2m > 60s timeout
+
+            const tickRes = await callMcpTool("tick_escalation", { person: "eleanor" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            appendAlexaMessage(
+              `Persisted state escalated: GENTLE_CHECK_IN → ${tickRes.result.stage.toUpperCase()}. Repeat prompt triggered.`,
+              tickRes
+            );
+            speakText("Eleanor, this is Alexa with CareLoop. Please confirm you are okay or let us know if you need assistance.");
+            await fetchState();
+          }, 4500
+        );
+
+        // Step 5: Repeat Timeout (+70s) -> Notify Family & Console Alert
+        await runDemoStep(5, 6, "Step 5: Repeat Timeout (+70s) → Dispatched Family Alert!", 
+          "Repeat timeout expires. System persists Alert record and dispatches family notification via ConsoleNotifier with actual deterministic reasons.",
+          async () => {
+            await advanceClockMinutes(2); // +2m > 60s timeout
+
+            const tickRes = await callMcpTool("tick_escalation", { person: "eleanor" });
+            if (tickRes.is_error) throw new Error(tickRes.error ? tickRes.error.message : "Tick escalation failed");
+
+            appendAlexaMessage(
+              `🚨 REPEAT CHECK-IN TIMED OUT! Persisted state: ${tickRes.result.stage.toUpperCase()}. Alert record saved with deduplication key and dispatched to ConsoleNotifier!`,
+              tickRes
+            );
+            speakText("Emergency alert dispatched to Linda Davis and family contacts.");
+            await fetchState();
+          }, 5000
+        );
+
+        // Step 6: Family Memory Q&A Grounded in Event Logs
+        await runDemoStep(6, 6, "Step 6: Grounded Family Memory Q&A & Resolution", 
+          "Daughter Linda asks Alexa+: 'Did Mom take her blood pressure medication this morning?'. CareLoop answers factually from recorded events. Caregiver confirms safety, resetting escalation to NORMAL.",
+          async () => {
+            const memoryRes = await callMcpTool("ask_memory", {
+              person: "eleanor",
+              question: "Did Mom take her blood pressure medication this morning?"
+            });
+            if (memoryRes.is_error) throw new Error(memoryRes.error ? memoryRes.error.message : "Ask memory failed");
+
+            appendAlexaMessage(
+              `Family Memory Q&A Result:\nQ: "${memoryRes.arguments.question}"\nA: "${memoryRes.result.answer}"`,
+              memoryRes
+            );
+            speakText(memoryRes.result.voice_response || memoryRes.result.answer);
+
+            // Step 6b: Caregiver confirms safety
+            const okRes = await callMcpTool("confirm_ok", {
+              person: "eleanor",
+              note: "Caregiver contacted Eleanor - confirmed safe, taking pill now."
+            });
+            appendAlexaMessage(
+              `Caregiver resolved incident: Escalation reset to NORMAL. All alerts marked resolved.`,
+              okRes
+            );
+            await fetchState();
+            stopDemo(true);
+          }, 5000
+        );
+
+      } catch (err) {
+        console.error("Missed Meds Demo failed:", err);
+      }
+    }
+
     // ==========================================
     // "DAD SKIPS LUNCH" AUTOMATED DEMO SCENARIO
     // (Uses real MCP tools and real state machine)
@@ -3161,8 +3381,15 @@
         document.getElementById('demo-step-desc').innerText = `Failed: ${err.message}. Scenario stopped (no fake success simulated).`;
         document.getElementById('demo-step-countdown').innerText = `Halted`;
         const heroBtn = document.getElementById('hero-demo-btn');
-        heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
-        heroBtn.innerHTML = `<span>▶</span><span>Dad Skips Lunch Demo</span>`;
+        if (heroBtn) {
+          heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
+          heroBtn.innerHTML = `<span>🍲</span><span>Dad Skips Lunch Demo</span>`;
+        }
+        const medBtn = document.getElementById('hero-med-demo-btn');
+        if (medBtn) {
+          medBtn.style.background = 'linear-gradient(135deg, #ec4899, #8b5cf6)';
+          medBtn.innerHTML = `<span>💊</span><span>Missed Meds Demo</span>`;
+        }
         appendAlexaMessage(`❌ Demo scenario halted due to backend error: ${err.message}`, null, true);
         throw err;
       }
@@ -3191,8 +3418,15 @@
     function stopDemo(completed = false) {
       demoActive = false;
       const heroBtn = document.getElementById('hero-demo-btn');
-      heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
-      heroBtn.innerHTML = `<span>▶</span><span>Dad Skips Lunch Demo</span>`;
+      if (heroBtn) {
+        heroBtn.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
+        heroBtn.innerHTML = `<span>🍲</span><span>Dad Skips Lunch Demo</span>`;
+      }
+      const medBtn = document.getElementById('hero-med-demo-btn');
+      if (medBtn) {
+        medBtn.style.background = 'linear-gradient(135deg, #ec4899, #8b5cf6)';
+        medBtn.innerHTML = `<span>💊</span><span>Missed Meds Demo</span>`;
+      }
 
       if (completed) {
         document.getElementById('demo-step-title').innerText = "✓ Scenario Completed Successfully!";
@@ -3205,6 +3439,16 @@
       } else {
         document.getElementById('demo-progress-card').style.display = 'none';
       }
+    }
+
+    function showTroubleshootingModal() {
+      const modal = document.getElementById('troubleshooting-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function hideTroubleshootingModal() {
+      const modal = document.getElementById('troubleshooting-modal');
+      if (modal) modal.style.display = 'none';
     }
 
     function escapeHtml(str) {
@@ -3225,5 +3469,59 @@
     updateAuthButton();
     fetchState();
   </script>
+
+  <!-- Troubleshooting Modal -->
+  <div id="troubleshooting-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; max-width: 650px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); color: #e2e8f0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 18px; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+          <span>🛠️</span> Troubleshooting Guide
+        </h3>
+        <button onclick="hideTroubleshootingModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <h4 style="margin: 0 0 4px; color: #38bdf8;">1. Cannot Connect to MCP Server (HTTP 502 / Connection Refused)</h4>
+          <p style="margin: 0; color: #94a3b8;">
+            Ensure the CareLoop server is running on port 8000 using the isolated demo database:<br>
+            <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">python scripts/run_demo.py</code> or <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">python -m careloop.server --clock simulated</code>
+          </p>
+        </div>
+
+        <div>
+          <h4 style="margin: 0 0 4px; color: #38bdf8;">2. Browser Speech Recognition (Voice Input) Inactive</h4>
+          <p style="margin: 0; color: #94a3b8;">
+            Web Speech Recognition requires HTTPS or <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">localhost / 127.0.0.1</code>. If using Chrome, ensure microphone permission is granted. On Firefox or Safari where SpeechRecognition is unavailable, use the text input box or the quick-action speech bubbles.
+          </p>
+        </div>
+
+        <div>
+          <h4 style="margin: 0 0 4px; color: #38bdf8;">3. HTTP 401 Unauthorized / Token Mismatch</h4>
+          <p style="margin: 0; color: #94a3b8;">
+            In development mode, CareLoop allows open access by default. If an <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">ALEXA_AUTH_TOKEN</code> was set on the server, click the <strong>Alexa+ Auth</strong> button in the top bar and enter the corresponding bearer token.
+          </p>
+        </div>
+
+        <div>
+          <h4 style="margin: 0 0 4px; color: #38bdf8;">4. Resetting Stale or Unexpected Escalation State</h4>
+          <p style="margin: 0; color: #94a3b8;">
+            Click <strong>↺ Reset Demo Session</strong> in the top status bar. This invokes <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">/api/demo/reset</code> to clear simulated events and active alerts while preserving all learned multi-day baseline profiles.
+          </p>
+        </div>
+
+        <div>
+          <h4 style="margin: 0 0 4px; color: #38bdf8;">5. Streamable HTTP Transport (/mcp) Errors</h4>
+          <p style="margin: 0; color: #94a3b8;">
+            Ensure no proxy or VPN is stripping Server-Sent Events headers (<code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">text/event-stream</code>). Direct browser access to <code style="background: #1e293b; padding: 2px 6px; border-radius: 4px; color: #a5f3fc; font-family: monospace;">http://127.0.0.1:8000/simulator</code> uses Starlette HTTP endpoints directly.
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; text-align: right;">
+        <button onclick="hideTroubleshootingModal()" style="background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">Close</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -349,7 +349,7 @@ class BedrockAssistant:
                 f"ask_memory: 0 matching events found for {person_id} (type={parsed_type}). "
                 f"Returning 'no record' without Bedrock Converse call."
             )
-            return self._no_record_response(name, clean_question, parsed_type, start_dt, end_dt, tz.key)
+            return self._no_record_response(name, clean_question, parsed_type, start_dt, end_dt, tz.key, ref_now=local_ref_now)
 
         # Step 6: Format MINIMUM matching event metadata for Bedrock
         matching_lines: List[str] = []
@@ -446,7 +446,7 @@ class BedrockAssistant:
             start_dt = today_start - timedelta(days=1)
             end_dt = today_start
         elif "this morning" in q:
-            start_dt = today_start.replace(hour=5)
+            start_dt = today_start.replace(hour=0)
             end_dt = today_start.replace(hour=12)
         elif "this afternoon" in q:
             start_dt = today_start.replace(hour=12)
@@ -534,13 +534,14 @@ class BedrockAssistant:
         start_dt: datetime,
         end_dt: datetime,
         tz_name: str = "UTC",
+        ref_now: Optional[datetime] = None,
     ) -> str:
         """
         Deterministic response returned when no matching events exist.
         Explicitly clarifies that a missing record indicates absence of logging,
         not proof that the event did not occur.
         """
-        now = datetime.now(timezone.utc)
+        now = ref_now or datetime.now(timezone.utc)
         start_date = start_dt.date()
         now_date = now.date()
 

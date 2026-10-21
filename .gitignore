@@ -29,6 +29,8 @@ htmlcov/
 
 # SQLite & local demo storage
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 careloop_local.db
 
