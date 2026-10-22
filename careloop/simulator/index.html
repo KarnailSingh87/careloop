@@ -6,72 +6,77 @@
   <title>CareLoop Simulator · Alexa+ Elder Care MCP Server</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     /* ==========================================================================
-       AUTHENTIC ALEXA + CARELOOP ELDER DESIGN SYSTEM (CLEAN & MODERN)
+       PROFESSIONAL HUMAN-ENGINEERED DESIGN SYSTEM
+       Inspiration: Amazon Echo Hub, Apple Health Sharing & Linear App
        ========================================================================== */
     :root {
-      /* Amazon Echo & Alexa Palette */
-      --bg: #090e1a;
-      --card-bg: rgba(15, 23, 42, 0.70);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover: rgba(0, 202, 255, 0.22);
+      /* Deep Amazon Echo Dark Palette */
+      --bg-base: #090d16;
+      --bg-surface: #101626;
+      --bg-surface-elevated: #162035;
+      --bg-surface-subtle: rgba(255, 255, 255, 0.03);
       
-      /* Vibrant Alexa Cyan & Sapphire */
+      /* Refined Borders - Subtle & Premium */
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      --border-focus: #00CAFF;
+      
+      /* Curated Alexa Colors (Used Strategically, Not Overused) */
       --alexa-cyan: #00CAFF;
-      --alexa-cyan-bright: #00e5ff;
       --alexa-blue: #0066ff;
-      --alexa-deep-blue: #0f1d38;
-      --alexa-glow: rgba(0, 202, 255, 0.25);
+      --alexa-indigo: #4f46e5;
       
-      --primary: #00CAFF;
-      --primary-dim: #0072ff;
-      --primary-glow: rgba(0, 202, 255, 0.2);
+      /* Elder Safety Semantic Tones */
+      --status-nominal: #10b981;
+      --status-nominal-bg: rgba(16, 185, 129, 0.1);
+      --status-nominal-border: rgba(16, 185, 129, 0.25);
       
-      /* Elder Human Care & Safety Semantics */
-      --elder-heart: #f43f5e;
-      --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.2);
-      --warning: #f59e0b;
-      --warning-glow: rgba(245, 158, 11, 0.2);
-      --danger: #ef4444;
-      --danger-glow: rgba(239, 68, 68, 0.25);
+      --status-warning: #f59e0b;
+      --status-warning-bg: rgba(245, 158, 11, 0.1);
+      --status-warning-border: rgba(245, 158, 11, 0.3);
       
-      /* Refined Typography & Surfaces */
-      --text: #ffffff;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --surface-glass: rgba(17, 26, 46, 0.6);
+      --status-alert: #ef4444;
+      --status-alert-bg: rgba(239, 68, 68, 0.1);
+      --status-alert-border: rgba(239, 68, 68, 0.35);
+
+      /* Typography */
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+      --text-inverse: #090d16;
+      
+      /* Radius Scale */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
       min-height: 100vh;
-      max-width: 1400px;
+      max-width: 1360px;
       margin: 0 auto;
-      background-image: 
-        radial-gradient(ellipse 70% 35% at 20% 0%, rgba(0, 202, 255, 0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 35% at 85% 5%, rgba(0, 102, 255, 0.06) 0%, transparent 60%);
-      padding: 18px 24px 40px 24px;
-      overflow-x: hidden;
+      padding: 20px 24px 60px 24px;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Clean Minimalist Header */
+    /* Top Navigation Bar */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--card-border);
-      position: relative;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-subtle);
       gap: 16px;
       flex-wrap: wrap;
     }
@@ -79,36 +84,26 @@
     .brand-wrap {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
-    /* Single Clean CareLoop Elder Logo Frame */
     .elder-logo-frame {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      padding: 2px;
-      background: linear-gradient(135deg, var(--alexa-cyan), var(--alexa-blue));
-      box-shadow: 0 0 16px var(--alexa-glow);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .elder-logo-frame:hover {
-      transform: scale(1.04);
-      box-shadow: 0 0 22px rgba(0, 202, 255, 0.45);
     }
 
     .elder-logo-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 10px;
       display: block;
     }
 
@@ -125,7 +120,7 @@
     }
 
     .brand-title-line h1 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: #ffffff;
@@ -135,63 +130,61 @@
     .badge-alexa-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
       padding: 2px 7px;
-      background: rgba(0, 202, 255, 0.1);
-      border: 1px solid rgba(0, 202, 255, 0.25);
-      border-radius: 6px;
+      background: rgba(0, 202, 255, 0.08);
+      border: 1px solid rgba(0, 202, 255, 0.2);
+      border-radius: 4px;
       font-size: 11px;
       font-weight: 600;
       color: var(--alexa-cyan);
-      letter-spacing: 0.01em;
     }
 
     .brand-tagline {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-weight: 400;
-      letter-spacing: -0.01em;
     }
 
-    /* Clean Header Toolbar */
+    /* Top Right Toolbar */
     .header-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
     }
 
     .person-select-wrap {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 6px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--card-border);
-      transition: all 0.2s;
-    }
-
-    .person-select-wrap:hover {
-      border-color: rgba(0, 202, 255, 0.3);
-      background: rgba(255, 255, 255, 0.06);
     }
 
     .person-select-wrap label {
-      font-size: 11px;
-      color: var(--text-muted);
+      font-size: 12px;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
     .person-select-wrap select {
       background: transparent;
       border: none;
-      color: var(--text);
+      color: var(--text-primary);
       font-family: inherit;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       outline: none;
+      padding: 4px 6px;
     }
 
     .person-select-wrap select option {
@@ -199,86 +192,43 @@
       color: #fff;
     }
 
-    /* Ambient Simulated Clock Pill */
     .clock-pill {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 6px 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-    }
-
-    .clock-pill .time {
-      font-weight: 600;
+      font-weight: 500;
       color: var(--alexa-cyan);
+      padding: 4px 8px;
+      background: var(--bg-surface-subtle);
+      border-radius: var(--radius-sm);
     }
 
-    /* Hero Scenario Buttons */
-    .demo-btn-hero {
-      background: linear-gradient(135deg, #0056e0, #0090e0);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 2px 8px rgba(0, 102, 255, 0.2);
-      padding: 6px 12px;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .demo-btn-hero:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 14px rgba(0, 144, 224, 0.35);
-      filter: brightness(1.08);
-    }
-
-    .demo-btn-med {
-      background: linear-gradient(135deg, #e11d48, #9333ea);
-      box-shadow: 0 2px 8px rgba(225, 29, 72, 0.2);
-    }
-
-    .demo-btn-med:hover {
-      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
-    }
-
-    /* Connection Status Pill */
     .conn-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 10px;
-      border-radius: 10px;
+      padding: 5px 9px;
+      border-radius: var(--radius-sm);
       font-size: 11px;
       font-weight: 600;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: var(--status-nominal-bg);
       color: #34d399;
+      border: 1px solid var(--status-nominal-border);
     }
-    .conn-pill.disconnected {
-      background: rgba(239, 68, 68, 0.12);
-      border-color: rgba(239, 68, 68, 0.35);
-      color: #f87171;
-    }
+
     .conn-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #10b981;
-      box-shadow: 0 0 6px #10b981;
+    }
+
+    .conn-pill.disconnected {
+      background: var(--status-alert-bg);
+      color: #f87171;
+      border-color: var(--status-alert-border);
     }
     .conn-pill.disconnected .conn-dot {
       background: #ef4444;
-      box-shadow: 0 0 6px #ef4444;
-      animation: alert-flash 1s infinite alternate;
     }
 
     /* Theme Toggle */
@@ -288,17 +238,17 @@
     }
 
     .theme-toggle-pill {
-      width: 48px;
-      height: 26px;
+      width: 44px;
+      height: 24px;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--card-border);
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-subtle);
       position: relative;
       cursor: pointer;
       display: flex;
       align-items: center;
       padding: 2px;
-      transition: all 0.2s ease;
+      transition: background 0.2s ease;
     }
 
     .theme-toggle-track {
@@ -310,42 +260,110 @@
     }
 
     .theme-toggle-thumb {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--alexa-cyan), var(--alexa-blue));
-      box-shadow: 0 0 8px var(--primary-glow);
+      background: var(--text-primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #ffffff;
+      color: var(--text-inverse);
       position: absolute;
-      left: 2px;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      left: 1px;
+      transition: transform 0.2s ease;
     }
 
     .theme-toggle-ghost {
       position: absolute;
-      right: 5px;
-      color: var(--text-muted);
+      right: 4px;
+      color: var(--text-secondary);
       opacity: 0.6;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    /* Clean Reassuring Glanceable Status Banner */
-    .simple-banner {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: 16px;
-      padding: 14px 18px;
+    /* Simulation Control Dock (Professional Developer Scenarios) */
+    .sim-dock {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
       margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .sim-dock-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .sim-dock-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-scenario {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-scenario:hover {
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-scenario.btn-primary {
+      background: #0066ff;
+      border-color: #0066ff;
+      color: #ffffff;
+    }
+    .btn-scenario.btn-primary:hover {
+      background: #0052cc;
+    }
+
+    .btn-scenario.btn-warning {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: #ffffff;
+    }
+    .btn-scenario.btn-warning:hover {
+      background: #b91c1c;
+    }
+
+    /* Reassuring Status Banner (Clean, Apple Health Style) */
+    .simple-banner {
+      background: var(--bg-surface);
+      border: 1px solid var(--status-nominal-border);
+      border-left: 4px solid var(--status-nominal);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      transition: all 0.2s ease;
     }
 
     .banner-left {
@@ -355,17 +373,15 @@
     }
 
     .banner-status-icon-wrap {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      background: var(--status-nominal-bg);
+      color: var(--status-nominal);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
       flex-shrink: 0;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
     }
 
     .banner-title-row {
@@ -379,25 +395,22 @@
     .banner-title {
       font-size: 15px;
       font-weight: 600;
-      color: #ffffff;
-      letter-spacing: -0.01em;
+      color: var(--text-primary);
     }
 
     .banner-pill {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 6px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 1px 7px;
+      border-radius: 4px;
+      background: var(--status-nominal-bg);
       color: #34d399;
     }
 
     .banner-desc {
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       line-height: 1.4;
-      font-weight: 400;
     }
 
     .banner-quick-actions {
@@ -408,35 +421,33 @@
     }
 
     .banner-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      padding: 7px 12px;
-      border-radius: 10px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 5px;
+      transition: all 0.15s ease;
     }
 
     .banner-btn:hover {
-      background: rgba(0, 202, 255, 0.12);
-      border-color: rgba(0, 202, 255, 0.3);
-      color: var(--alexa-cyan);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
     }
 
-    /* 2-Column Responsive Layout: Natural Vertical Flow on Laptop */
+    /* 2-Column Responsive Layout */
     .main-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+      grid-template-columns: minmax(0, 1.45fr) minmax(350px, 1fr);
       grid-template-areas:
         "alexa phone"
         "alexa elder";
-      gap: 20px;
+      gap: 24px;
       align-items: start;
     }
 
@@ -445,21 +456,13 @@
     .col-elder { grid-area: elder; }
 
     .card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
-      padding: 18px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-      transition: border-color 0.2s ease;
-    }
-
-    .card:hover {
-      border-color: var(--card-hover);
+      gap: 16px;
     }
 
     .card-header {
@@ -469,231 +472,22 @@
     }
 
     .card-header h2 {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    /* Left Column: Elder Profile, State Machine, Time Travel */
-    .profile-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
-      border: 1px solid var(--card-border);
-    }
-
-    .avatar-wrap {
-      position: relative;
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-    }
-
-    .avatar-photo {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 1.5px solid var(--alexa-cyan);
-      box-shadow: 0 0 10px var(--alexa-glow);
-      display: block;
-    }
-
-    .avatar-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 15px;
-      color: #fff;
-    }
-
-    .profile-info h3 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .profile-info p {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .risk-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .risk-low {
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-    }
-    .risk-medium {
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      color: #fbbf24;
-    }
-    .risk-high {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #f87171;
-    }
-
-    /* Escalation State Machine Visualization */
-    .state-machine-box {
-      background: rgba(10, 15, 28, 0.4);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 10px;
-    }
-
-    .state-steps {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .state-step {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid transparent;
-      color: var(--text-dim);
-      transition: all 0.2s ease;
-    }
-
-    .state-step.active {
-      color: #fff;
-      border-color: rgba(0, 202, 255, 0.3);
-      background: rgba(0, 202, 255, 0.06);
-      box-shadow: 0 0 10px rgba(0, 202, 255, 0.1);
-    }
-
-    .state-step.active.warning {
-      border-color: rgba(245, 158, 11, 0.35);
-      background: rgba(245, 158, 11, 0.08);
-    }
-
-    .state-step.active.danger {
-      border-color: rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.1);
-      animation: alert-flash 1.5s infinite alternate;
-    }
-
-    @keyframes alert-flash {
-      0% { border-color: rgba(239, 68, 68, 0.3); }
-      100% { border-color: rgba(239, 68, 68, 0.8); }
-    }
-
-    .state-indicator-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-dim);
-    }
-
-    .state-step.active .state-indicator-dot {
-      background: var(--alexa-cyan);
-      box-shadow: 0 0 6px var(--alexa-cyan);
-    }
-    .state-step.active.warning .state-indicator-dot {
-      background: var(--warning);
-      box-shadow: 0 0 6px var(--warning);
-    }
-    .state-step.active.danger .state-indicator-dot {
-      background: var(--danger);
-      box-shadow: 0 0 6px var(--danger);
-    }
-
-    /* Time Travel Buttons */
-    .time-travel-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-    }
-
-    .btn {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      padding: 7px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-    }
-
-    .btn:hover {
-      background: rgba(0, 202, 255, 0.1);
-      border-color: rgba(0, 202, 255, 0.3);
-      color: var(--alexa-cyan);
-    }
-
-    .btn-reset {
-      grid-column: span 2;
-      background: rgba(59, 130, 246, 0.08);
-      border-color: rgba(59, 130, 246, 0.25);
-      color: #93c5fd;
-    }
-
-    .btn-reset:hover {
-      background: rgba(59, 130, 246, 0.15);
-      color: #ffffff;
-    }
-
-    /* Privacy Tag */
-    .privacy-tag {
-      background: rgba(16, 185, 129, 0.05);
-      border: 1px solid rgba(16, 185, 129, 0.18);
-      border-radius: 10px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: #6ee7b7;
-      line-height: 1.4;
-    }
-
-    /* Alexa Echo Voice Assistant Panel */
-    .alexa-ambient-panel {
-      position: relative;
-    }
-
+    /* Alexa Assistant Panel (Echo Hub Screen) */
     .alexa-speech-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .voice-status-wrap {
@@ -702,66 +496,44 @@
       gap: 10px;
     }
 
-    /* Iconic Alexa Echo Light Ring Orb placed with the voice assistant */
+    /* Iconic Echo Light Ring Orb */
     .alexa-orb {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, #a5f3fc 0%, var(--alexa-cyan) 40%, var(--alexa-blue) 85%);
-      box-shadow: 0 0 14px var(--alexa-glow);
+      box-shadow: 0 0 10px rgba(0, 202, 255, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
       flex-shrink: 0;
-      cursor: pointer;
-      animation: alexa-idle-pulse 4s ease-in-out infinite alternate;
       transition: all 0.3s ease;
-    }
-
-    @keyframes alexa-idle-pulse {
-      0% { box-shadow: 0 0 10px rgba(0, 202, 255, 0.3); transform: scale(0.97); }
-      100% { box-shadow: 0 0 20px rgba(0, 202, 255, 0.6); transform: scale(1.03); }
     }
 
     .alexa-orb.listening {
       background: radial-gradient(circle at 35% 35%, #fecaca, #ef4444 40%, #b91c1c 85%);
-      box-shadow: 0 0 24px var(--danger-glow);
-      animation: orb-listen 0.8s ease-in-out infinite alternate;
-    }
-
-    @keyframes orb-listen {
-      0% { transform: scale(0.96); box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); }
-      100% { transform: scale(1.06); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.5);
     }
 
     .alexa-orb.speaking {
-      animation: orb-speak 1.2s ease-in-out infinite alternate;
-    }
-
-    @keyframes orb-speak {
-      0% { filter: hue-rotate(0deg); transform: scale(0.98); }
-      100% { filter: hue-rotate(40deg); box-shadow: 0 0 25px #8b5cf6; transform: scale(1.04); }
+      filter: hue-rotate(40deg);
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.5);
     }
 
     .voice-status-text {
-      display: flex;
-      align-items: center;
-      gap: 6px;
       font-size: 13px;
-      color: var(--alexa-cyan);
+      color: var(--text-primary);
       font-weight: 500;
     }
 
-    /* Conversation Transcript */
     .conversation-log {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 12px;
-      background: rgba(8, 13, 24, 0.55);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       min-height: 380px;
       max-height: 520px;
       overflow-y: auto;
@@ -779,7 +551,7 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-width: 90%;
+      max-width: 88%;
       animation: msg-appear 0.2s ease;
     }
 
@@ -793,13 +565,12 @@
     }
 
     .msg-user .bubble-body {
-      background: linear-gradient(135deg, #0056e0, #0077ff);
-      color: #fff;
+      background: #0066ff;
+      color: #ffffff;
       border-radius: 14px 14px 2px 14px;
       padding: 9px 13px;
       font-size: 13px;
-      line-height: 1.4;
-      box-shadow: 0 2px 10px rgba(0, 102, 255, 0.2);
+      line-height: 1.45;
     }
 
     .msg-alexa {
@@ -807,40 +578,34 @@
     }
 
     .msg-alexa .bubble-body {
-      background: rgba(18, 28, 52, 0.85);
-      border: 1px solid rgba(0, 202, 255, 0.18);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
       border-radius: 14px 14px 14px 2px;
-      padding: 10px 14px;
+      padding: 11px 14px;
       font-size: 13px;
       line-height: 1.5;
-      color: #f1f5f9;
+      color: var(--text-primary);
     }
 
     .msg-author {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
       gap: 5px;
-    }
-
-    .msg-user .msg-author {
-      color: #93c5fd;
-      justify-content: flex-end;
     }
 
     .msg-alexa .msg-author {
       color: var(--alexa-cyan);
     }
 
-    /* MCP Card */
+    /* MCP Inspection Drawer */
     .mcp-card {
-      background: rgba(10, 15, 28, 0.9);
-      border: 1px solid rgba(0, 202, 255, 0.25);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
       border-left: 3px solid var(--alexa-cyan);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       padding: 8px 10px;
       margin-top: 4px;
       font-family: 'JetBrains Mono', monospace;
@@ -853,29 +618,26 @@
       align-items: center;
       margin-bottom: 4px;
       padding-bottom: 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .mcp-tool-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
       font-weight: 600;
       color: var(--alexa-cyan);
     }
 
     .mcp-latency {
       font-size: 10px;
-      color: #a7f3d0;
-      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      background: var(--status-nominal-bg);
       padding: 1px 5px;
-      border-radius: 4px;
+      border-radius: 3px;
     }
 
     .mcp-block {
-      background: rgba(0, 0, 0, 0.35);
-      border-radius: 5px;
-      padding: 5px 7px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 4px;
+      padding: 5px 8px;
       margin-top: 4px;
       overflow-x: auto;
       color: #cbd5e1;
@@ -889,14 +651,14 @@
       border: none;
       color: var(--alexa-cyan);
       cursor: pointer;
-      font-size: 10px;
+      font-size: 11px;
       font-family: inherit;
       text-decoration: underline;
       margin-top: 3px;
       display: inline-block;
     }
 
-    /* Example Utterance Chips */
+    /* Utterance Chips */
     .chips-wrap {
       display: flex;
       flex-wrap: wrap;
@@ -904,41 +666,39 @@
     }
 
     .chip {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      padding: 5px 10px;
-      border-radius: 16px;
-      font-size: 11px;
-      font-weight: 400;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.15s ease;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
     .chip:hover {
-      background: rgba(0, 202, 255, 0.1);
-      border-color: rgba(0, 202, 255, 0.3);
-      color: var(--alexa-cyan);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      color: var(--text-primary);
     }
 
-    /* Voice & Text Input Bar */
+    /* Input Bar */
     .input-bar {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(12, 18, 34, 0.8);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       padding: 6px 8px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s ease;
     }
 
     .input-bar:focus-within {
       border-color: var(--alexa-cyan);
-      box-shadow: 0 0 14px var(--alexa-glow);
     }
 
     .input-box {
@@ -953,58 +713,51 @@
     }
 
     .input-box::placeholder {
-      color: var(--text-dim);
+      color: var(--text-tertiary);
     }
 
     .mic-btn {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      color: var(--text);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 15px;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
     }
 
     .mic-btn:hover {
-      background: rgba(0, 202, 255, 0.15);
       border-color: var(--alexa-cyan);
+      color: var(--alexa-cyan);
     }
 
     .mic-btn.active {
       background: #ef4444;
-      border-color: #f87171;
+      border-color: #ef4444;
       color: #fff;
-      box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
-      animation: mic-pulse 1s infinite alternate;
-    }
-
-    @keyframes mic-pulse {
-      0% { transform: scale(1.0); }
-      100% { transform: scale(1.08); }
     }
 
     .send-btn {
-      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan));
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #0066ff;
+      border: none;
       color: #fff;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       padding: 7px 14px;
       font-weight: 600;
       font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s;
-    }
-    .send-btn:hover {
-      filter: brightness(1.1);
+      transition: background 0.15s ease;
     }
 
-    /* Right Column: Realistic Family Phone Mockup */
+    .send-btn:hover {
+      background: #0052cc;
+    }
+
+    /* Family Phone Mockup */
     .phone-column {
       display: flex;
       flex-direction: column;
@@ -1013,13 +766,11 @@
 
     .phone-frame {
       width: 100%;
-      max-width: 100%;
-      margin: 0 auto;
-      background: rgba(10, 15, 26, 0.85);
-      border: 1px solid var(--card-border);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-      border-radius: 22px;
+      background: #0d121f;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
       padding: 14px 16px 18px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
     .phone-top-notch {
@@ -1029,15 +780,14 @@
       margin-bottom: 12px;
       font-size: 11px;
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--text-secondary);
     }
 
     .dynamic-island {
-      width: 60px;
-      height: 16px;
+      width: 50px;
+      height: 14px;
       background: #000;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1046,21 +796,22 @@
     .phone-app-header {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 10px;
     }
 
     .phone-app-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan));
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #0066ff;
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .phone-app-title h4 {
@@ -1071,37 +822,37 @@
 
     .phone-app-title p {
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--text-secondary);
     }
 
     .phone-notifications-stream {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      min-height: 160px;
-      max-height: 340px;
+      min-height: 150px;
+      max-height: 320px;
       overflow-y: auto;
     }
 
     .phone-alert-card {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      border-radius: 12px;
-      padding: 10px;
+      background: var(--status-alert-bg);
+      border: 1px solid var(--status-alert-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      animation: alert-slide 0.25s ease;
+      animation: alert-slide 0.2s ease;
     }
 
     @keyframes alert-slide {
-      from { opacity: 0; transform: translateY(-6px); }
+      from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     .phone-alert-card.resolved {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.35);
+      background: var(--status-nominal-bg);
+      border-color: var(--status-nominal-border);
     }
 
     .alert-header {
@@ -1111,11 +862,11 @@
     }
 
     .alert-tag {
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      padding: 2px 5px;
-      border-radius: 4px;
+      padding: 1px 5px;
+      border-radius: 3px;
       background: #ef4444;
       color: #fff;
     }
@@ -1126,7 +877,7 @@
 
     .alert-time {
       font-size: 10px;
-      color: #94a3b8;
+      color: var(--text-secondary);
       font-family: 'JetBrains Mono', monospace;
     }
 
@@ -1134,7 +885,7 @@
       font-size: 12px;
       font-weight: 600;
       color: #fecaca;
-      line-height: 1.3;
+      line-height: 1.35;
     }
 
     .phone-alert-card.resolved .alert-headline {
@@ -1158,16 +909,16 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
-      margin-top: 2px;
+      margin-top: 4px;
     }
 
     .btn-phone {
       padding: 5px 8px;
-      border-radius: 6px;
-      font-size: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-subtle);
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
       display: flex;
@@ -1181,24 +932,200 @@
     }
 
     .phone-home-indicator {
-      width: 90px;
+      width: 80px;
       height: 3px;
-      background: #64748b;
+      background: var(--text-tertiary);
       border-radius: 2px;
       margin: 8px auto 0 auto;
     }
 
-    /* Scenario Progress Banner */
+    /* Elder Status Profile Card */
+    .profile-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-surface-subtle);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .avatar-wrap {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+    }
+
+    .avatar-photo {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid var(--alexa-cyan);
+      display: block;
+    }
+
+    .avatar-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: #0066ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .profile-info h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .profile-info p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .risk-low {
+      background: var(--status-nominal-bg);
+      border: 1px solid var(--status-nominal-border);
+      color: #34d399;
+    }
+    .risk-medium {
+      background: var(--status-warning-bg);
+      border: 1px solid var(--status-warning-border);
+      color: #fbbf24;
+    }
+    .risk-high {
+      background: var(--status-alert-bg);
+      border: 1px solid var(--status-alert-border);
+      color: #f87171;
+    }
+
+    /* State Machine Step Tracker */
+    .state-machine-box {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px;
+    }
+
+    .state-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .state-step {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      transition: all 0.15s ease;
+    }
+
+    .state-step.active {
+      color: var(--text-primary);
+      background: var(--bg-surface-elevated);
+      font-weight: 600;
+    }
+
+    .state-step.active.warning {
+      color: #fbbf24;
+      background: var(--status-warning-bg);
+    }
+
+    .state-step.active.danger {
+      color: #f87171;
+      background: var(--status-alert-bg);
+    }
+
+    .state-indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+
+    .state-step.active .state-indicator-dot { background: var(--alexa-cyan); }
+    .state-step.active.warning .state-indicator-dot { background: var(--status-warning); }
+    .state-step.active.danger .state-indicator-dot { background: var(--status-alert); }
+
+    /* Time Travel Buttons */
+    .time-travel-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .btn {
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+    }
+
+    .btn-reset {
+      grid-column: span 2;
+      color: var(--text-secondary);
+    }
+
+    /* Privacy Tag */
+    .privacy-tag {
+      background: var(--status-nominal-bg);
+      border: 1px solid var(--status-nominal-border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #34d399;
+    }
+
+    /* Progress Notification */
     .demo-progress-card {
-      background: linear-gradient(135deg, rgba(0, 102, 255, 0.12), rgba(0, 202, 255, 0.12));
-      border: 1px solid rgba(0, 202, 255, 0.3);
-      border-radius: 12px;
+      background: rgba(0, 102, 255, 0.1);
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      border-radius: var(--radius-md);
       padding: 10px 12px;
       margin-bottom: 10px;
       display: none;
       flex-direction: column;
       gap: 6px;
-      animation: msg-appear 0.25s ease;
     }
 
     .demo-progress-top {
@@ -1207,30 +1134,30 @@
       align-items: center;
       font-size: 12px;
       font-weight: 600;
-      color: var(--alexa-cyan);
+      color: #93c5fd;
     }
 
     .demo-bar-bg {
       width: 100%;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 3px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
       overflow: hidden;
     }
 
     .demo-bar-fill {
       width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, var(--alexa-cyan), var(--alexa-blue));
-      transition: width 0.4s ease;
+      background: #0066ff;
+      transition: width 0.3s ease;
     }
 
-    /* Collapsible Phrase Table */
+    /* Collapsible Phrase Directory Table */
     .phrase-table-card {
       display: none;
-      background: rgba(10, 15, 28, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       padding: 12px;
       margin-top: 6px;
       font-size: 11px;
@@ -1243,29 +1170,28 @@
     .phrase-table th {
       text-align: left;
       padding: 5px 8px;
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
-      border-bottom: 1px solid var(--card-border);
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border-subtle);
     }
     .phrase-table td {
       padding: 5px 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-subtle);
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Clean Subtle Footer */
+    /* Professional Footer */
     .app-footer {
-      margin-top: 36px;
-      padding-top: 18px;
-      border-top: 1px solid var(--card-border);
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       font-size: 11px;
-      color: var(--text-dim);
+      color: var(--text-tertiary);
     }
 
     .footer-top {
@@ -1283,32 +1209,25 @@
       flex-wrap: wrap;
     }
 
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .status-item strong {
-      color: #94a3b8;
+      color: var(--text-secondary);
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
     }
 
     .footer-disclaimer {
-      font-size: 10px;
-      color: #64748b;
-      line-height: 1.4;
+      font-size: 11px;
+      color: var(--text-tertiary);
     }
 
     /* Connection Lost Alert Banner */
     .alert-banner-disconnected {
       display: none;
-      background: rgba(185, 28, 28, 0.95);
-      border: 1px solid #ef4444;
+      background: var(--status-alert-bg);
+      border: 1px solid var(--status-alert-border);
       color: #fff;
-      padding: 12px 18px;
-      border-radius: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
       margin-bottom: 16px;
       align-items: center;
       justify-content: space-between;
@@ -1316,107 +1235,25 @@
       font-size: 13px;
     }
 
-    /* ==========================================================================
-       SERENE LIGHT / OFF-WHITE THEME
-       ========================================================================== */
+    /* Light Theme (Clean Daytime Elegance) */
     html[data-theme="off-white"],
     body[data-theme="off-white"],
     html.light,
     body.light {
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --card-border: #e2e8f0;
-      --card-hover: rgba(0, 140, 210, 0.25);
-      --text: #0f172a;
-      --text-muted: #475569;
-      --text-dim: #64748b;
-      --primary: #0284c7;
-      --primary-dim: #0265d2;
-      --alexa-cyan: #0284c7;
-      --alexa-blue: #0052cc;
-    }
-
-    html[data-theme="off-white"] body,
-    body[data-theme="off-white"] {
-      background-color: var(--bg);
-      background-image: none;
-    }
-
-    html[data-theme="off-white"] .brand-title-line h1 {
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .person-select-wrap,
-    html[data-theme="off-white"] .clock-pill {
-      background: #ffffff;
-      border-color: #e2e8f0;
-    }
-
-    html[data-theme="off-white"] .theme-toggle-pill {
-      background: #e2e8f0;
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --bg-surface-subtle: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #94a3b8;
     }
 
     html[data-theme="off-white"] .theme-toggle-thumb {
-      transform: translateX(22px);
-      background: #ffffff;
-      color: #0284c7;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-    }
-
-    html[data-theme="off-white"] .theme-toggle-ghost {
-      left: 5px;
-      right: auto;
-      color: #0284c7;
-    }
-
-    html[data-theme="off-white"] .simple-banner {
-      background: #f0fdf4;
-      border-color: #bbf7d0;
-    }
-
-    html[data-theme="off-white"] .banner-title {
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .conversation-log {
-      background: #f1f5f9;
-      border-color: #e2e8f0;
-    }
-
-    html[data-theme="off-white"] .msg-alexa .bubble-body {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .input-bar {
-      background: #ffffff;
-      border-color: #cbd5e1;
-    }
-
-    html[data-theme="off-white"] .input-box {
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .phone-frame {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
-    }
-
-    html[data-theme="off-white"] .phone-app-title h4 {
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .mcp-card {
-      background: #f8fafc;
-      border-color: #e2e8f0;
-      color: #0f172a;
-    }
-
-    html[data-theme="off-white"] .mcp-block {
-      background: #e2e8f0;
-      color: #1e293b;
+      transform: translateX(20px);
+      background: #0066ff;
     }
 
     /* Mobile Segmented Navigation Tabs */
@@ -1424,24 +1261,22 @@
       display: none;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 6px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
       padding: 4px;
       margin-bottom: 16px;
       position: sticky;
       top: 10px;
       z-index: 100;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
     }
 
     .mobile-tab-btn {
       background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
+      border: none;
+      color: var(--text-secondary);
       padding: 8px 6px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-family: inherit;
       font-size: 12px;
       font-weight: 600;
@@ -1450,14 +1285,12 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      transition: all 0.2s;
-      min-height: 42px;
+      min-height: 40px;
     }
 
     .mobile-tab-btn.active {
-      background: rgba(0, 202, 255, 0.12);
-      border-color: var(--alexa-cyan);
-      color: var(--alexa-cyan);
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
     }
 
     .mobile-badge {
@@ -1469,80 +1302,30 @@
       border-radius: 9999px;
     }
 
-    /* Responsive Breakpoints */
     @media (max-width: 960px) {
-      body {
-        padding: 12px 14px 40px 14px;
-      }
-      header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-      }
-      .brand-wrap {
-        width: 100%;
-        justify-content: space-between;
-      }
-      .header-controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        width: 100%;
-      }
-      .person-select-wrap {
-        grid-column: span 2;
-        width: 100%;
-      }
-      .clock-pill, .theme-toggle-wrap {
-        justify-content: center;
-      }
-      .demo-btn-hero {
-        grid-column: span 2;
-        width: 100%;
-        justify-content: center;
-        min-height: 40px;
-      }
-      .mobile-nav-tabs {
-        display: grid;
-      }
-      .main-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 16px !important;
-      }
-      .col-elder, .col-alexa, .col-phone {
-        display: none !important;
-      }
-      .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible {
-        display: flex !important;
-        width: 100% !important;
-      }
-      .simple-banner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px 14px;
-      }
-      .banner-quick-actions {
-        width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-      }
-      .banner-btn {
-        width: 100%;
-        min-height: 40px;
-        justify-content: center;
-      }
+      body { padding: 12px 14px 40px 14px; }
+      header { flex-direction: column; align-items: stretch; gap: 12px; }
+      .brand-wrap { width: 100%; justify-content: space-between; }
+      .header-controls { width: 100%; justify-content: space-between; }
+      .toolbar-group { width: 100%; justify-content: space-between; }
+      .sim-dock { flex-direction: column; align-items: stretch; }
+      .sim-dock-actions { width: 100%; }
+      .btn-scenario { flex: 1; justify-content: center; }
+      .mobile-nav-tabs { display: grid; }
+      .main-grid { display: flex !important; flex-direction: column !important; gap: 16px !important; }
+      .col-elder, .col-alexa, .col-phone { display: none !important; }
+      .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible { display: flex !important; width: 100% !important; }
+      .simple-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .banner-quick-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .banner-btn { justify-content: center; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Clean Top Header with CareLoop Elder Logo -->
+  <!-- Top App Navigation Bar -->
   <header>
     <div class="brand-wrap">
-      <!-- CareLoop Elder Human Protection Logo -->
       <div class="elder-logo-frame" title="CareLoop Elder Care Protection Emblem">
         <img src="/simulator/logo.jpg" alt="CareLoop Elder Care Logo" class="elder-logo-img" onerror="this.style.display='none';" />
       </div>
@@ -1550,53 +1333,43 @@
       <div class="brand-title-wrap">
         <div class="brand-title-line">
           <h1>CareLoop</h1>
-          <span class="badge-alexa-pill">Alexa+ Ambient Care</span>
+          <span class="badge-alexa-pill">Alexa+ Care</span>
         </div>
-        <p class="brand-tagline">Elder Protection & Routine Safety</p>
+        <p class="brand-tagline">Autonomous Elder Safety & Routine Protection</p>
       </div>
     </div>
 
     <div class="header-controls">
-      <!-- Monitored Elder Person Selector -->
-      <div class="person-select-wrap">
-        <label for="person-select">Elder:</label>
-        <select id="person-select" onchange="onPersonChange()">
-          <option value="dad">Arthur Davis (Dad)</option>
-          <option value="eleanor">Eleanor Davis (Mom)</option>
-          <option value="martha">Martha Jenkins (Age 84)</option>
-        </select>
+      <div class="toolbar-group">
+        <!-- Monitored Elder Person Selector -->
+        <div class="person-select-wrap">
+          <label for="person-select">Elder:</label>
+          <select id="person-select" onchange="onPersonChange()">
+            <option value="dad">Arthur Davis (Dad)</option>
+            <option value="eleanor">Eleanor Davis (Mom)</option>
+            <option value="martha">Martha Jenkins (Age 84)</option>
+          </select>
+        </div>
+
+        <!-- Simulated Clock Pill -->
+        <div class="clock-pill" title="Simulated Clock Time (UTC)">
+          <span class="time" id="clock-display">08:15:00 UTC</span>
+        </div>
       </div>
-
-      <!-- Simulated Clock Pill -->
-      <div class="clock-pill" title="Simulated Clock Time (UTC)">
-        <span class="time" id="clock-display">--:--:-- UTC</span>
-      </div>
-
-      <!-- Missed Medication Demo Hero Button -->
-      <button class="demo-btn-hero demo-btn-med" id="hero-med-demo-btn" onclick="startMissedMedicationDemo()" title="Trigger Eleanor Missed Medication 9-Step Demo">
-        <span>💊</span>
-        <span>Missed Meds Demo</span>
-      </button>
-
-      <!-- Dad Skips Lunch Demo Hero Button -->
-      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()" title="Trigger Dad Skips Lunch Demo">
-        <span>🍲</span>
-        <span>Dad Skips Lunch Demo</span>
-      </button>
 
       <!-- Connection Status Pill -->
       <div class="conn-pill" id="conn-status-pill" title="Connected to MCP Server (http://127.0.0.1:8000)">
         <span class="conn-dot" id="conn-dot"></span>
-        <span id="conn-text">MCP Online</span>
+        <span id="conn-text">Online</span>
       </div>
 
       <!-- Alexa+ Auth Token Pill -->
-      <button class="clock-pill" id="auth-token-btn" onclick="promptAuthToken()" style="cursor: pointer; background: rgba(255, 255, 255, 0.04);" title="Configure Alexa+ Bearer Auth Token">
-        <span style="font-size: 10px; color: var(--text-muted); margin-right: 4px;">Auth:</span>
-        <span class="time" id="auth-token-status" style="font-size: 11px; color: #a5f3fc;">Open Mode</span>
+      <button class="btn" id="auth-token-btn" onclick="promptAuthToken()" title="Configure Alexa+ Bearer Auth Token">
+        <span style="color: var(--text-secondary); font-size: 11px;">Auth:</span>
+        <span id="auth-token-status" style="color: var(--alexa-cyan); font-size: 11px; font-weight: 600;">Open</span>
       </button>
 
-      <!-- Sliding Theme Toggle Pill -->
+      <!-- Theme Toggle Switch -->
       <div class="theme-toggle-wrap">
         <div
           class="theme-toggle-pill is-dark"
@@ -1605,27 +1378,23 @@
           role="button"
           tabindex="0"
           aria-label="Toggle Serene Light / Dark Theme"
-          title="Toggle Serene Light / Dark Theme"
+          title="Toggle Light / Dark Theme"
         >
           <div class="theme-toggle-track">
             <div class="theme-toggle-thumb" id="theme-toggle-thumb">
               <!-- Moon Icon -->
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
               </svg>
             </div>
             <div class="theme-toggle-ghost" id="theme-toggle-ghost">
               <!-- Sun Icon -->
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="12" cy="12" r="4"></circle>
                 <path d="M12 2v2"></path>
                 <path d="M12 20v2"></path>
-                <path d="m4.93 4.93 1.41 1.41"></path>
-                <path d="m17.66 17.66 1.41 1.41"></path>
                 <path d="M2 12h2"></path>
                 <path d="M20 12h2"></path>
-                <path d="m6.34 17.66-1.41 1.41"></path>
-                <path d="m19.07 4.93-1.41 1.41"></path>
               </svg>
             </div>
           </div>
@@ -1634,24 +1403,69 @@
     </div>
   </header>
 
-  <!-- Connection Lost Alert Banner -->
-  <div class="alert-banner-disconnected" id="connection-alert-banner">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 20px;">⚠️</span>
-      <span id="connection-alert-msg">Cannot reach CareLoop MCP Server at http://127.0.0.1:8000.</span>
+  <!-- Simulation Control Dock (Human Professional Testing Controls) -->
+  <div class="sim-dock">
+    <div class="sim-dock-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      <span>Interactive Scenarios</span>
     </div>
-    <button class="banner-btn" onclick="retryConnection()" style="background: rgba(255,255,255,0.25); border-color: #fff; color: #fff;">🔄 Retry Connection</button>
+    <div class="sim-dock-actions">
+      <!-- Missed Medication Demo Hero Button -->
+      <button class="btn-scenario btn-warning" id="hero-med-demo-btn" onclick="startMissedMedicationDemo()" title="Trigger Eleanor Missed Medication 9-Step Demo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path>
+          <path d="m8.5 8.5 7 7"></path>
+        </svg>
+        <span>Missed Meds Demo</span>
+      </button>
+
+      <!-- Dad Skips Lunch Demo Hero Button -->
+      <button class="btn-scenario btn-primary" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()" title="Trigger Dad Skips Lunch Demo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        <span>Dad Skips Lunch Demo</span>
+      </button>
+
+      <!-- Advance Clock Quick Pills -->
+      <button class="btn" onclick="advanceClock(15)">+15m</button>
+      <button class="btn" onclick="advanceClock(60)">+1h</button>
+      <button class="btn" onclick="resetClock()">↺ Reset 08:15</button>
+    </div>
   </div>
 
-  <!-- Reassuring Glanceable Status Banner for Families -->
+  <!-- Connection Lost Alert Banner -->
+  <div class="alert-banner-disconnected" id="connection-alert-banner">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      <span id="connection-alert-msg">Cannot reach CareLoop server at http://127.0.0.1:8000.</span>
+    </div>
+    <button class="btn" onclick="retryConnection()" style="background: rgba(255,255,255,0.2); border: none; color: #fff;">Retry</button>
+  </div>
+
+  <!-- Reassuring Status Banner (Clean Apple Health Aesthetic) -->
   <div class="simple-banner" id="care-summary-banner">
     <div class="banner-left">
       <div class="banner-status-icon-wrap" id="banner-status-orb">
-        <span class="banner-emoji" id="banner-emoji">🟢</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span class="banner-emoji" id="banner-emoji" style="display: none;">🟢</span>
       </div>
       <div class="banner-text-wrap">
         <div class="banner-title-row">
-          <h2 class="banner-title" id="banner-title">Arthur Davis (Dad) is Doing Well at Home</h2>
+          <h2 class="banner-title" id="banner-title">Arthur Davis is Doing Well at Home</h2>
           <span class="banner-pill" id="banner-sub-pill">All Routines On Track</span>
         </div>
         <p class="banner-desc" id="banner-desc">
@@ -1660,35 +1474,43 @@
       </div>
     </div>
     <div class="banner-quick-actions">
-      <button class="banner-btn" onclick="quickCheckIn()">🗣️ "How is Dad doing?"</button>
-      <button class="banner-btn" onclick="quickLogEvent('lunch')">🍲 "I ate lunch"</button>
+      <button class="banner-btn" onclick="quickCheckIn()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>"How is Dad doing?"</span>
+      </button>
+      <button class="banner-btn" onclick="quickLogEvent('lunch')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+        </svg>
+        <span>"I ate lunch"</span>
+      </button>
     </div>
   </div>
 
   <!-- Mobile Segmented Navigation Tabs (Smartphones & Tablets) -->
   <div class="mobile-nav-tabs" id="mobile-nav-tabs">
     <button class="mobile-tab-btn active" id="tab-btn-alexa" onclick="switchMobileTab('alexa')">
-      <span>🛡️</span>
       <span>Alexa Voice</span>
     </button>
     <button class="mobile-tab-btn" id="tab-btn-elder" onclick="switchMobileTab('elder')">
-      <span>👤</span>
       <span>Elder Status</span>
     </button>
     <button class="mobile-tab-btn" id="tab-btn-phone" onclick="switchMobileTab('phone')">
-      <span>📱</span>
       <span>Family Phone</span>
       <span class="mobile-badge" id="mobile-alert-count" style="display:none;">1</span>
     </button>
   </div>
 
-  <!-- Main Grid: Clean 2-Column Balance with Natural Vertical Flow -->
+  <!-- Main Grid Layout -->
   <div class="main-grid">
 
-    <!-- CENTER COLUMN: Alexa Voice Assistant & Conversation Log -->
-    <div class="card alexa-ambient-panel col-alexa tab-visible">
+    <!-- LEFT COLUMN: Alexa Voice Assistant (Echo Show Ambient Screen) -->
+    <div class="card col-alexa tab-visible">
 
-      <!-- Demo Progress Card (Active during scenario walkthroughs) -->
+      <!-- Scenario Progress Notification -->
       <div class="demo-progress-card" id="demo-progress-card">
         <div class="demo-progress-top">
           <span id="demo-step-title">Scenario Running: Step 1/6</span>
@@ -1697,14 +1519,14 @@
         <div class="demo-bar-bg">
           <div class="demo-bar-fill" id="demo-bar-fill"></div>
         </div>
-        <p id="demo-step-desc" style="font-size: 12px; color: #e2e8f0; line-height: 1.4;"></p>
+        <p id="demo-step-desc" style="font-size: 12px; color: #cbd5e1; line-height: 1.4;"></p>
       </div>
 
       <div class="alexa-speech-header">
         <div class="voice-status-wrap">
-          <!-- Animated Alexa Echo Light Ring Orb placed with the voice assistant -->
+          <!-- Animated Alexa Echo Light Ring Orb placed naturally with the assistant -->
           <div class="alexa-orb" id="alexa-orb" title="Alexa+ Echo Ambient Light Ring">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
               <line x1="12" y1="19" x2="12" y2="22"></line>
@@ -1715,21 +1537,24 @@
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="toggleSpeechSynthesis()" id="tts-toggle-btn">
-            🔊 Voice Audio: ON
+          <button class="btn" onclick="toggleSpeechSynthesis()" id="tts-toggle-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <span>Voice Audio: ON</span>
           </button>
-          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="clearConversation()">
+          <button class="btn" onclick="clearConversation()">
             Clear
           </button>
         </div>
       </div>
 
-      <!-- Conversation Log & Visible MCP Tool Calls -->
+      <!-- Conversation Transcript & Tool Calls -->
       <div class="conversation-log" id="conversation-log">
-        <!-- Initial Welcome Message -->
         <div class="msg-bubble msg-alexa">
           <div class="msg-author">
-            <span>🛡️ Alexa+ Assistant</span>
+            <span>Alexa+ Assistant</span>
           </div>
           <div class="bubble-body">
             Good morning Arthur! I'm actively watching over your daily routine. All your sensors and medications are synced.
@@ -1737,12 +1562,12 @@
         </div>
       </div>
 
-      <!-- Quick Utterance Chips & Phrase Directory -->
-      <div style="display: flex; flex-direction: column; gap: 6px;">
+      <!-- Utterance Chips & Phrase Directory -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Tap to test Alexa phrases (mapped to MCP tools):</span>
-          <button class="btn" style="padding: 2px 7px; font-size: 10px; font-weight: 600; background: rgba(0, 202, 255, 0.08); border-color: rgba(0, 202, 255, 0.25); color: var(--alexa-cyan);" onclick="togglePhraseTable()">
-            📖 Mapped Phrases Directory
+          <span style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">Tap to test Alexa phrases (mapped to MCP tools):</span>
+          <button class="btn" style="padding: 2px 8px; font-size: 11px; color: var(--alexa-cyan);" onclick="togglePhraseTable()">
+            Mapped Phrases Directory
           </button>
         </div>
 
@@ -1766,82 +1591,86 @@
                 <td>"I took my pill" / "medicine"</td>
                 <td><code>log_routine_event</code></td>
                 <td><code>{ "type": "medication" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I took my pill', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('I took my pill', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"I just had my lunch" / "food"</td>
                 <td><code>log_routine_event</code></td>
                 <td><code>{ "type": "meal" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I just had my lunch', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('I just had my lunch', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"Walking in kitchen" / "movement"</td>
                 <td><code>log_routine_event</code></td>
                 <td><code>{ "type": "movement" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Walking in the kitchen', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('Walking in the kitchen', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"Front door opened" / "garden"</td>
                 <td><code>log_routine_event</code></td>
                 <td><code>{ "type": "door" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Front door opened', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('Front door opened', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"I'm fine" / "I'm okay"</td>
                 <td><code>confirm_ok</code></td>
                 <td><code>{ "person": "dad" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('I\'m fine', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('I\'m fine', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"Check routine health"</td>
                 <td><code>check_routine_health</code></td>
                 <td><code>{ "person": "dad" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Check routine health', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('Check routine health', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"How is Dad doing today?"</td>
                 <td><code>daily_summary</code></td>
                 <td><code>{ "date": "today" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"Did Dad take his pills today?"</td>
                 <td><code>ask_memory</code></td>
                 <td><code>{ "question": "..." }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">Execute</button></td>
               </tr>
               <tr>
                 <td>"Remind Dad to drink water"</td>
                 <td><code>schedule_reminder</code></td>
                 <td><code>{ "text": "...", "time": "15:00" }</code></td>
-                <td><button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="handleUserPhrase('Remind Dad to drink water at 3 PM', 'chip')">Execute</button></td>
+                <td><button class="btn" onclick="handleUserPhrase('Remind Dad to drink water at 3 PM', 'chip')">Execute</button></td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div class="chips-wrap">
-          <button class="chip" onclick="handleUserPhrase('I took my pill', 'chip')">"I took my pill" 💊</button>
-          <button class="chip" onclick="handleUserPhrase('I just had my lunch', 'chip')">"I just had lunch" 🍲</button>
-          <button class="chip" onclick="handleUserPhrase('I\'m in the kitchen', 'chip')">"Walking in kitchen" 🚶</button>
-          <button class="chip" onclick="handleUserPhrase('Front door opened', 'chip')">"Front door opened" 🚪</button>
-          <button class="chip" onclick="handleUserPhrase('I\'m fine', 'chip')">"I'm fine" ✅</button>
-          <button class="chip" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">"Daily summary" 📋</button>
-          <button class="chip" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">"Did Dad take pills?" 🔍</button>
-          <button class="chip" onclick="handleUserPhrase('Check routine health', 'chip')">"Check routine health" 🩺</button>
+          <button class="chip" onclick="handleUserPhrase('I took my pill', 'chip')">"I took my pill"</button>
+          <button class="chip" onclick="handleUserPhrase('I just had my lunch', 'chip')">"I just had lunch"</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m in the kitchen', 'chip')">"Walking in kitchen"</button>
+          <button class="chip" onclick="handleUserPhrase('Front door opened', 'chip')">"Front door opened"</button>
+          <button class="chip" onclick="handleUserPhrase('I\'m fine', 'chip')">"I'm fine"</button>
+          <button class="chip" onclick="handleUserPhrase('How is Dad doing today?', 'chip')">"Daily summary"</button>
+          <button class="chip" onclick="handleUserPhrase('Did Dad take his pills today?', 'chip')">"Did Dad take pills?"</button>
+          <button class="chip" onclick="handleUserPhrase('Check routine health', 'chip')">"Check routine health"</button>
         </div>
       </div>
 
       <!-- Voice & Text Input Bar: Web Speech API & Manual Text Input -->
       <div class="input-bar" title="Web Speech API & Manual Text Input">
         <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Click to speak (Web Speech API)">
-          🎤
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
         </button>
         <input 
           type="text" 
           class="input-box" 
           id="speech-input" 
-          placeholder="Speak into microphone or type (e.g. 'I took my pill', 'I ate lunch', 'I\'m fine')..." 
+          placeholder="Speak or type (e.g. 'I took my pill', 'I ate lunch', 'I\'m fine')..." 
           onkeydown="if(event.key==='Enter') submitSpeechInput()"
         />
         <button class="send-btn" onclick="submitSpeechInput()">
@@ -1853,39 +1682,38 @@
     <!-- RIGHT COLUMN TOP: Family Phone (Real-Time Push Alerts) -->
     <div class="phone-column col-phone">
       <div class="phone-frame">
-        <!-- Phone Notch / Status Bar -->
         <div class="phone-top-notch">
           <span class="phone-time" id="phone-clock">14:02</span>
-          <div class="dynamic-island">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--alexa-cyan);"></span>
-          </div>
-          <div class="phone-icons">
+          <div class="dynamic-island"></div>
+          <div class="phone-icons" style="display: flex; gap: 4px; font-size: 10px;">
             <span>5G</span>
-            <span>📶</span>
-            <span>🔋100%</span>
+            <span>100%</span>
           </div>
         </div>
 
-        <!-- Phone App Header -->
         <div class="phone-app-header">
-          <div class="phone-app-icon">🛡️</div>
+          <div class="phone-app-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
           <div class="phone-app-title">
             <h4>CareLoop Family</h4>
             <p>Linda Davis · Primary Caregiver</p>
           </div>
         </div>
 
-        <!-- Alerts Stream on Phone -->
         <div class="phone-notifications-stream" id="phone-alerts-stream">
-          <!-- Standby Placeholder if no alerts -->
-          <div id="no-alerts-placeholder" style="text-align: center; padding: 36px 10px; color: var(--text-dim); font-size: 12px;">
-            <div style="font-size: 26px; margin-bottom: 6px;">📱</div>
-            <strong style="color: #cbd5e1;">No active family alerts</strong>
-            <p style="font-size: 11px; margin-top: 3px;">Routines are nominal. You will only be alerted if voice check-in fails.</p>
+          <div id="no-alerts-placeholder" style="text-align: center; padding: 36px 10px; color: var(--text-tertiary); font-size: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 6px; opacity: 0.6;">
+              <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+            <div style="font-weight: 600; color: var(--text-secondary);">No active family alerts</div>
+            <p style="font-size: 11px; margin-top: 2px;">Routines are nominal. You will only be alerted if voice check-in fails.</p>
           </div>
         </div>
 
-        <!-- Home Bar -->
         <div class="phone-home-indicator"></div>
       </div>
     </div>
@@ -1893,7 +1721,7 @@
     <!-- RIGHT COLUMN BOTTOM: Elder Profile & Time Travel Controls -->
     <div class="card col-elder tab-visible">
       <div class="card-header">
-        <h2>👤 Elder Status</h2>
+        <h2>Elder Status</h2>
         <span class="risk-badge risk-low" id="risk-badge">● Low Risk</span>
       </div>
 
@@ -1909,9 +1737,8 @@
         </div>
       </div>
 
-      <!-- 4-Stage Escalation State Machine -->
-      <div class="card-header" style="margin-top: 2px;">
-        <h2>🔄 Escalation State Machine</h2>
+      <div class="card-header">
+        <h2>Escalation State Machine</h2>
       </div>
 
       <div class="state-machine-box">
@@ -1935,11 +1762,10 @@
         </div>
       </div>
 
-      <!-- Time Travel Controls -->
-      <div class="card-header" style="margin-top: 2px;">
-        <h2>⏳ Time Travel Controls</h2>
+      <div class="card-header">
+        <h2>Time Travel Controls</h2>
       </div>
-      <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+      <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
         Directly advances backend <code>SimulatedClock</code> to test baseline grace windows and autonomous escalation timeouts.
       </p>
 
@@ -1949,12 +1775,11 @@
         <button class="btn" onclick="advanceClock(180)">+3 Hours</button>
         <button class="btn" onclick="advanceClock(1440)">+1 Day</button>
         <button class="btn btn-reset" onclick="resetClock()">↺ Reset Simulation Clock (08:15 AM)</button>
-        <button class="btn btn-reset-demo" onclick="resetDemoSession()" style="grid-column: span 2; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.25); color: #fca5a5; font-weight: 600;">↺ Reset Demo Data (Clean State)</button>
+        <button class="btn btn-reset-demo" onclick="resetDemoSession()" style="grid-column: span 2; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5; font-weight: 500;">↺ Reset Demo Data (Clean State)</button>
       </div>
 
-      <!-- Privacy Guarantee -->
       <div class="privacy-tag">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
         <span>Privacy First: Routine metadata only. Zero raw audio stored.</span>
@@ -1963,7 +1788,7 @@
 
   </div>
 
-  <!-- Clean, Discreet Footer (Keeps system debug status accessible without cluttering view) -->
+  <!-- Discreet Footer (Clean & Non-Intrusive) -->
   <footer class="app-footer" id="system-status-bar">
     <div class="footer-top">
       <div class="system-status-items">
@@ -1988,11 +1813,11 @@
         </span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="resetDemoSession()" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: #fca5a5; padding: 3px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+        <button onclick="resetDemoSession()" class="btn">
           ↺ Reset Session
         </button>
-        <button onclick="showTroubleshootingModal()" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); color: #94a3b8; padding: 3px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">
-          ❓ Help
+        <button onclick="showTroubleshootingModal()" class="btn">
+          Help
         </button>
       </div>
     </div>
