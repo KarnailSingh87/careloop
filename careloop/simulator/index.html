@@ -8,54 +8,72 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* ==========================================================================
+       AUTHENTIC ALEXA + CARELOOP ELDER DESIGN SYSTEM
+       ========================================================================== */
     :root {
-      --bg: #070b13;
-      --card-bg: rgba(14, 21, 37, 0.75);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover: rgba(255, 255, 255, 0.12);
-      --primary: #00c6ff;
+      /* Amazon Echo & Alexa Palette */
+      --bg: #070d18;
+      --card-bg: rgba(14, 22, 40, 0.78);
+      --card-border: rgba(0, 202, 255, 0.14);
+      --card-hover: rgba(0, 202, 255, 0.28);
+      
+      /* Vibrant Alexa Cyan & Sapphire */
+      --alexa-cyan: #00e5ff;
+      --alexa-cyan-dim: #00CAFF;
+      --alexa-blue: #0066ff;
+      --alexa-deep-blue: #0a1936;
+      --alexa-glow: rgba(0, 229, 255, 0.35);
+      --alexa-ring: conic-gradient(from 180deg at 50% 50%, #00caee 0deg, #0066ff 120deg, #00e5ff 240deg, #00caee 360deg);
+      
+      --primary: #00CAFF;
       --primary-dim: #0072ff;
-      --primary-glow: rgba(0, 198, 255, 0.35);
+      --primary-glow: rgba(0, 202, 255, 0.3);
       --accent: #8b5cf6;
+      
+      /* Elder Human Care & Safety Semantics */
+      --elder-heart: #f43f5e;
       --success: #10b981;
       --success-glow: rgba(16, 185, 129, 0.25);
       --warning: #f59e0b;
       --warning-glow: rgba(245, 158, 11, 0.25);
       --danger: #ef4444;
       --danger-glow: rgba(239, 68, 68, 0.35);
-      --text: #f8fafc;
+      
+      /* Typography & Surfaces */
+      --text: #ffffff;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
-      --alexa-cyan: #00e5ff;
-      --alexa-blue: #0066ff;
+      --surface-glass: rgba(18, 28, 52, 0.65);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
       background-image: 
-        radial-gradient(circle at 10% 20%, rgba(0, 198, 255, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(14, 21, 37, 0.5) 0%, transparent 100%);
+        radial-gradient(ellipse 70% 40% at 20% -5%, rgba(0, 202, 255, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 10%, rgba(0, 102, 255, 0.10) 0%, transparent 60%),
+        radial-gradient(circle at 50% 90%, rgba(15, 23, 42, 0.7) 0%, transparent 100%);
       padding: 18px 24px 60px 24px;
       overflow-x: hidden;
     }
 
-    /* Ambient Alexa Header */
+    /* Ambient Header with CareLoop Elder Logo */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       padding-bottom: 16px;
       border-bottom: 1px solid var(--card-border);
       position: relative;
+      gap: 16px;
     }
 
     .brand-wrap {
@@ -64,93 +82,163 @@
       gap: 14px;
     }
 
+    /* CareLoop Elder Human Logo Lockup */
+    .careloop-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .elder-logo-frame {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--alexa-cyan), var(--alexa-blue));
+      box-shadow: 0 0 20px var(--alexa-glow), inset 0 0 8px rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .elder-logo-frame:hover {
+      transform: scale(1.05);
+    }
+
+    .elder-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+    }
+
+    /* Iconic Alexa Echo Light Ring */
     .alexa-orb {
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #a5f3fc, var(--alexa-cyan) 40%, var(--alexa-blue) 85%);
-      box-shadow: 0 0 25px var(--primary-glow), inset 0 0 10px rgba(255, 255, 255, 0.6);
+      background: radial-gradient(circle at 35% 35%, #a5f3fc 0%, var(--alexa-cyan) 40%, var(--alexa-blue) 85%);
+      box-shadow: 0 0 24px var(--alexa-glow), inset 0 0 8px rgba(255, 255, 255, 0.7);
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      animation: orb-pulse 4s ease-in-out infinite alternate;
+      flex-shrink: 0;
+      cursor: pointer;
+      animation: alexa-idle-pulse 4s ease-in-out infinite alternate;
+      transition: all 0.3s ease;
     }
 
-    @keyframes orb-pulse {
-      0% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); transform: scale(0.98); }
-      100% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.8), 0 0 50px rgba(0, 102, 255, 0.3); transform: scale(1.02); }
+    .alexa-orb::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: var(--alexa-ring);
+      z-index: -1;
+      opacity: 0.75;
+      animation: ring-rotate 6s linear infinite;
+    }
+
+    @keyframes ring-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes alexa-idle-pulse {
+      0% { box-shadow: 0 0 16px rgba(0, 229, 255, 0.4); transform: scale(0.98); }
+      100% { box-shadow: 0 0 28px rgba(0, 229, 255, 0.8), 0 0 45px rgba(0, 102, 255, 0.35); transform: scale(1.02); }
     }
 
     .alexa-orb.listening {
-      background: radial-gradient(circle at 30% 30%, #fecaca, #ef4444 40%, #b91c1c 85%);
+      background: radial-gradient(circle at 35% 35%, #fecaca, #ef4444 40%, #b91c1c 85%);
       box-shadow: 0 0 35px var(--danger-glow);
-      animation: orb-listen 1s ease-in-out infinite alternate;
+      animation: orb-listen 0.8s ease-in-out infinite alternate;
     }
 
     @keyframes orb-listen {
-      0% { transform: scale(0.96); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
-      100% { transform: scale(1.06); box-shadow: 0 0 35px rgba(239, 68, 68, 0.9); }
+      0% { transform: scale(0.96); box-shadow: 0 0 18px rgba(239, 68, 68, 0.5); }
+      100% { transform: scale(1.06); box-shadow: 0 0 36px rgba(239, 68, 68, 0.9); }
     }
 
     .alexa-orb.speaking {
-      animation: orb-speak 1.5s ease-in-out infinite alternate;
+      animation: orb-speak 1.2s ease-in-out infinite alternate;
     }
 
     @keyframes orb-speak {
-      0% { filter: hue-rotate(0deg); }
-      100% { filter: hue-rotate(45deg); box-shadow: 0 0 35px #8b5cf6; }
+      0% { filter: hue-rotate(0deg); transform: scale(0.98); }
+      100% { filter: hue-rotate(40deg); box-shadow: 0 0 38px #8b5cf6; transform: scale(1.04); }
     }
 
     .brand-title h1 {
       font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+      background: linear-gradient(135deg, #ffffff 40%, var(--alexa-cyan) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      line-height: 1.2;
     }
 
     .brand-title p {
       font-size: 12px;
       color: var(--text-muted);
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .badge-streamable {
+    .badge-alexa-plus {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
-      background: rgba(0, 229, 255, 0.1);
-      border: 1px solid rgba(0, 229, 255, 0.25);
+      gap: 4px;
+      padding: 2px 7px;
+      background: rgba(0, 229, 255, 0.12);
+      border: 1px solid rgba(0, 229, 255, 0.3);
       border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: #38bdf8;
-      margin-left: 8px;
+      font-weight: 700;
+      color: var(--alexa-cyan);
+      margin-left: 6px;
+      letter-spacing: 0.2px;
     }
 
     .header-controls {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .person-select-wrap {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(18, 28, 52, 0.7);
       padding: 6px 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid var(--card-border);
+      transition: border-color 0.2s;
+    }
+
+    .person-select-wrap:hover {
+      border-color: rgba(0, 202, 255, 0.4);
     }
 
     .person-select-wrap label {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .person-select-wrap select {
@@ -169,95 +257,321 @@
       color: #fff;
     }
 
-    /* Injectable Clock Top Banner */
+    /* Ambient Simulated Clock Pill */
     .clock-pill {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+      background: rgba(18, 28, 52, 0.7);
+      border: 1px solid rgba(0, 202, 255, 0.25);
+      box-shadow: 0 0 12px rgba(0, 202, 255, 0.1);
       border-radius: 12px;
-      padding: 6px 14px;
+      padding: 6px 12px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-family: 'JetBrains Mono', monospace;
     }
 
     .clock-pill .label {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .clock-pill .time {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
-      color: #38bdf8;
-      letter-spacing: 1px;
+      color: var(--alexa-cyan);
+      letter-spacing: 0.5px;
     }
 
+    /* Hero Scenario Buttons */
     .demo-btn-hero {
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      background: linear-gradient(135deg, #0066ff, #00CAFF);
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
-      padding: 8px 16px;
-      border-radius: 10px;
+      box-shadow: 0 0 18px rgba(0, 202, 255, 0.35);
+      padding: 8px 14px;
+      border-radius: 12px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
     }
 
     .demo-btn-hero:hover {
       transform: translateY(-1px);
-      box-shadow: 0 0 28px rgba(124, 58, 237, 0.6);
-      background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+      box-shadow: 0 0 24px rgba(0, 202, 255, 0.6);
+      filter: brightness(1.1);
     }
 
-    /* Main Layout: Balanced 2-Column on Laptops & Desktops with Natural Vertical Scroll */
+    .demo-btn-med {
+      background: linear-gradient(135deg, #f43f5e, #8b5cf6);
+      box-shadow: 0 0 18px rgba(244, 63, 94, 0.35);
+    }
+
+    .demo-btn-med:hover {
+      box-shadow: 0 0 24px rgba(244, 63, 94, 0.6);
+    }
+
+    /* Connection Status Pill */
+    .conn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    }
+    .conn-pill.disconnected {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+    }
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .conn-pill.disconnected .conn-dot {
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      animation: alert-flash 1s infinite alternate;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle-wrap {
+      display: flex;
+      align-items: center;
+    }
+
+    .theme-toggle-pill {
+      width: 54px;
+      height: 28px;
+      border-radius: 9999px;
+      background: rgba(18, 28, 52, 0.8);
+      border: 1px solid var(--card-border);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .theme-toggle-track {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .theme-toggle-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--alexa-cyan), var(--alexa-blue));
+      box-shadow: 0 0 10px var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      position: absolute;
+      left: 2px;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .theme-toggle-ghost {
+      position: absolute;
+      right: 6px;
+      color: var(--text-muted);
+      opacity: 0.6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Minimal Compact System Status Bar */
+    .system-status-bar {
+      background: rgba(14, 22, 40, 0.65);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 6px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      gap: 10px;
+    }
+
+    .system-status-items {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-item strong {
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    /* Glanceable Status Banner for Elders & Family */
+    .simple-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(14, 22, 40, 0.85) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 4px 24px rgba(16, 185, 129, 0.1);
+      border-radius: 18px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .banner-status-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+      animation: status-breathe 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes status-breathe {
+      0% { transform: scale(0.96); box-shadow: 0 0 12px rgba(16, 185, 129, 0.25); }
+      100% { transform: scale(1.04); box-shadow: 0 0 24px rgba(16, 185, 129, 0.5); }
+    }
+
+    .banner-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .banner-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .banner-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .banner-desc {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .banner-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .banner-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .banner-btn:hover {
+      background: rgba(0, 202, 255, 0.15);
+      border-color: var(--alexa-cyan);
+      color: var(--alexa-cyan);
+      transform: translateY(-1px);
+    }
+
+    /* 2-Column Responsive Layout: Natural Vertical Flow on Laptop */
     .main-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
       grid-template-areas:
         "alexa phone"
         "alexa elder";
-      gap: 24px;
+      gap: 22px;
       align-items: start;
-      margin-top: 8px;
     }
 
-    .col-alexa {
-      grid-area: alexa;
-    }
-    .col-phone {
-      grid-area: phone;
-    }
-    .col-elder {
-      grid-area: elder;
-    }
-
-    @media (max-width: 1120px) and (min-width: 961px) {
-      .main-grid {
-        grid-template-columns: minmax(0, 1.25fr) minmax(330px, 1fr);
-        gap: 20px;
-      }
-    }
+    .col-alexa { grid-area: alexa; }
+    .col-phone { grid-area: phone; }
+    .col-elder { grid-area: elder; }
 
     .card {
       background: var(--card-bg);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 18px;
+      border-radius: 20px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-      position: relative;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--card-hover);
     }
 
     .card-header {
@@ -282,17 +596,34 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 12px;
+      padding: 14px;
       background: rgba(255, 255, 255, 0.03);
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--card-border);
     }
 
+    .avatar-wrap {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+
+    .avatar-photo {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      object-fit: cover;
+      border: 2px solid var(--alexa-cyan);
+      box-shadow: 0 0 12px var(--alexa-glow);
+      display: block;
+    }
+
     .avatar-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -311,11 +642,38 @@
       color: var(--text-muted);
     }
 
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .risk-low {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+    }
+    .risk-medium {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .risk-high {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #f87171;
+    }
+
     /* Escalation State Machine Visualization */
     .state-machine-box {
       background: rgba(10, 15, 28, 0.6);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 12px;
     }
 
@@ -323,15 +681,14 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      position: relative;
     }
 
     .state-step {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 9px 12px;
+      border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
       background: rgba(255, 255, 255, 0.02);
@@ -382,13 +739,13 @@
     }
     .state-step.active.danger .state-indicator-dot {
       background: var(--danger);
-      box-shadow: 0 0 10px var(--danger);
+      box-shadow: 0 0 8px var(--danger);
     }
 
-    /* Time Machine Controls */
+    /* Time Travel Buttons */
     .time-travel-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
 
@@ -396,118 +753,114 @@
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 9px 12px;
-      border-radius: 9px;
-      font-family: inherit;
+      padding: 8px 12px;
+      border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: all 0.2s;
     }
 
     .btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .btn-jump-2pm {
-      grid-column: span 2;
-      background: rgba(245, 158, 11, 0.15);
-      border-color: rgba(245, 158, 11, 0.35);
-      color: #fbbf24;
-      font-weight: 700;
-    }
-    .btn-jump-2pm:hover {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: rgba(245, 158, 11, 0.5);
+      background: rgba(0, 202, 255, 0.12);
+      border-color: rgba(0, 202, 255, 0.35);
+      color: var(--alexa-cyan);
+      transform: translateY(-1px);
     }
 
     .btn-reset {
       grid-column: span 2;
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
     }
 
-    /* Risk Score Gauge */
-    .risk-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .risk-low {
-      background: var(--success-glow);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .risk-medium {
-      background: var(--warning-glow);
-      color: var(--warning);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-    .risk-high {
-      background: var(--danger-glow);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.4);
+    .btn-reset:hover {
+      background: rgba(59, 130, 246, 0.2);
+      color: #ffffff;
     }
 
-    /* Left Primary Column: Alexa Voice Interface & Conversation Log */
-    .alexa-ambient-panel {
+    /* Privacy Tag */
+    .privacy-tag {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 10px 14px;
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-height: auto;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: #6ee7b7;
+      line-height: 1.4;
+    }
+
+    /* Alexa Echo Voice Assistant Panel */
+    .alexa-ambient-panel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .echo-ambient-lightbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--alexa-cyan), var(--alexa-blue), transparent);
+      box-shadow: 0 0 15px var(--alexa-cyan);
+      opacity: 0.85;
     }
 
     .alexa-speech-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
-      background: rgba(0, 229, 255, 0.04);
-      border: 1px solid rgba(0, 229, 255, 0.15);
-      border-radius: 12px;
+      align-items: center;
+      gap: 10px;
     }
 
     .voice-status-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #38bdf8;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--alexa-cyan);
+      font-weight: 600;
     }
 
+    .voice-status-text span:first-child {
+      animation: status-breathe 2s infinite alternate;
+    }
+
+    /* Conversation Transcript */
     .conversation-log {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      flex-grow: 1;
-      min-height: 340px;
+      gap: 12px;
+      padding: 14px;
+      background: rgba(8, 13, 24, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      min-height: 380px;
       max-height: 540px;
       overflow-y: auto;
-      padding-right: 6px;
     }
 
     .conversation-log::-webkit-scrollbar {
       width: 6px;
     }
     .conversation-log::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 202, 255, 0.2);
       border-radius: 3px;
     }
 
     .msg-bubble {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       max-width: 90%;
       animation: msg-appear 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -522,13 +875,13 @@
     }
 
     .msg-user .bubble-body {
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      background: linear-gradient(135deg, #0052cc, #0066ff);
       color: #fff;
       border-radius: 16px 16px 2px 16px;
       padding: 10px 14px;
       font-size: 13px;
       line-height: 1.4;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 4px 15px rgba(0, 102, 255, 0.25);
     }
 
     .msg-alexa {
@@ -536,8 +889,8 @@
     }
 
     .msg-alexa .bubble-body {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: rgba(18, 28, 52, 0.88);
+      border: 1px solid rgba(0, 202, 255, 0.25);
       border-radius: 16px 16px 16px 2px;
       padding: 12px 16px;
       font-size: 13px;
@@ -551,7 +904,6 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 2px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -566,10 +918,10 @@
       color: var(--alexa-cyan);
     }
 
-    /* Visibly Inspectable MCP Tool Card */
+    /* MCP Card */
     .mcp-card {
-      background: rgba(8, 12, 22, 0.95);
-      border: 1px solid rgba(0, 198, 255, 0.3);
+      background: rgba(10, 15, 28, 0.95);
+      border: 1px solid rgba(0, 202, 255, 0.3);
       border-left: 3px solid var(--alexa-cyan);
       border-radius: 10px;
       padding: 10px 12px;
@@ -593,7 +945,7 @@
       align-items: center;
       gap: 5px;
       font-weight: 700;
-      color: #38bdf8;
+      color: var(--alexa-cyan);
     }
 
     .mcp-latency {
@@ -606,7 +958,7 @@
     }
 
     .mcp-block {
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
       border-radius: 6px;
       padding: 6px 8px;
       margin-top: 4px;
@@ -620,7 +972,7 @@
     .mcp-expand-btn {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--alexa-cyan);
       cursor: pointer;
       font-size: 10px;
       font-family: inherit;
@@ -640,34 +992,39 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--card-border);
       color: var(--text-muted);
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 20px;
       font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .chip:hover {
-      background: rgba(0, 229, 255, 0.1);
-      border-color: rgba(0, 229, 255, 0.3);
-      color: #38bdf8;
+      background: rgba(0, 229, 255, 0.12);
+      border-color: rgba(0, 229, 255, 0.4);
+      color: var(--alexa-cyan);
+      transform: translateY(-1px);
     }
 
-    /* Voice Input Bar */
+    /* Voice & Text Input Bar */
     .input-bar {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(10, 15, 28, 0.9);
+      background: rgba(12, 18, 34, 0.9);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 8px 10px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .input-bar:focus-within {
-      border-color: rgba(0, 229, 255, 0.4);
-      box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+      border-color: var(--alexa-cyan);
+      box-shadow: 0 0 20px var(--alexa-glow);
     }
 
     .input-box {
@@ -701,7 +1058,8 @@
     }
 
     .mic-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(0, 229, 255, 0.15);
+      border-color: var(--alexa-cyan);
       transform: scale(1.05);
     }
 
@@ -719,18 +1077,19 @@
     }
 
     .send-btn {
-      background: var(--primary-dim);
-      border: 1px solid var(--primary);
+      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan-dim));
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: #fff;
-      border-radius: 10px;
-      padding: 8px 14px;
-      font-weight: 600;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-weight: 700;
       font-size: 13px;
       cursor: pointer;
       transition: all 0.2s;
     }
     .send-btn:hover {
-      background: #0056b3;
+      filter: brightness(1.15);
+      transform: translateY(-1px);
     }
 
     /* Right Column: Realistic Family Phone Mockup */
@@ -745,70 +1104,51 @@
       max-width: 100%;
       margin: 0 auto;
       background: rgba(10, 15, 26, 0.95);
-      border: 1px solid var(--card-border);
-      border-radius: 24px;
+      border: 1.5px solid rgba(0, 202, 255, 0.25);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 202, 255, 0.1);
+      border-radius: 26px;
       padding: 16px 18px 20px 18px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: auto;
     }
 
-    /* Phone Speaker / Dynamic Island */
     .phone-top-notch {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 8px;
-    }
-
-    .phone-time {
-      font-size: 12px;
+      margin-bottom: 14px;
+      font-size: 11px;
       font-weight: 700;
-      color: #fff;
-      font-family: -apple-system, sans-serif;
+      color: #94a3b8;
     }
 
     .dynamic-island {
-      width: 75px;
+      width: 70px;
       height: 18px;
-      background: #111;
-      border-radius: 14px;
+      background: #000;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-    }
-
-    .phone-icons {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      color: #fff;
     }
 
     .phone-app-header {
-      background: rgba(30, 41, 59, 0.6);
-      border-radius: 14px;
-      padding: 10px;
       display: flex;
       align-items: center;
       gap: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 12px;
     }
 
     .phone-app-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--alexa-blue), var(--alexa-cyan));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 18px;
     }
 
     .phone-app-title h4 {
@@ -816,53 +1156,43 @@
       font-weight: 700;
       color: #fff;
     }
+
     .phone-app-title p {
       font-size: 11px;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
 
     .phone-notifications-stream {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      flex-grow: 1;
-      min-height: 160px;
+      min-height: 180px;
       max-height: 380px;
       overflow-y: auto;
     }
 
-    .phone-notifications-stream::-webkit-scrollbar {
-      width: 4px;
-    }
-    .phone-notifications-stream::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 2px;
-    }
-
     .phone-alert-card {
       background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      border: 1px solid rgba(239, 68, 68, 0.4);
       border-radius: 14px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
-      animation: alert-slide-down 0.3s ease;
+      animation: alert-slide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes alert-slide-down {
-      from { transform: translateY(-8px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    @keyframes alert-slide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .phone-alert-card.resolved {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.35);
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.4);
     }
 
-    .phone-alert-top {
+    .alert-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -876,7 +1206,6 @@
       border-radius: 4px;
       background: #ef4444;
       color: #fff;
-      letter-spacing: 0.5px;
     }
 
     .phone-alert-card.resolved .alert-tag {
@@ -944,27 +1273,15 @@
       height: 4px;
       background: #64748b;
       border-radius: 2px;
-      margin: 4px auto 0 auto;
+      margin: 8px auto 0 auto;
     }
 
-    /* Privacy Banner */
-    .privacy-tag {
-      background: rgba(16, 185, 129, 0.06);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      border-radius: 10px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: #6ee7b7;
-    }
-
-    /* Demo Script Overlay Banner */
+    /* Scenario Progress Banner */
     .demo-progress-card {
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.15));
-      border: 1px solid rgba(124, 58, 237, 0.4);
-      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0, 102, 255, 0.18), rgba(0, 229, 255, 0.18));
+      border: 1px solid var(--alexa-cyan);
+      box-shadow: 0 0 20px var(--alexa-glow);
+      border-radius: 14px;
       padding: 12px 14px;
       margin-bottom: 12px;
       display: none;
@@ -979,7 +1296,7 @@
       align-items: center;
       font-size: 12px;
       font-weight: 700;
-      color: #c084fc;
+      color: var(--alexa-cyan);
     }
 
     .demo-bar-bg {
@@ -993,735 +1310,17 @@
     .demo-bar-fill {
       width: 0%;
       height: 100%;
-      background: linear-gradient(90deg, #38bdf8, #8b5cf6);
+      background: linear-gradient(90deg, var(--alexa-cyan), var(--alexa-blue));
       transition: width 0.4s ease;
     }
 
-    /* ==========================================================================
-       OFF-WHITE WARM THEME SUPPORT
-       ========================================================================== */
-    html[data-theme="off-white"],
-    body[data-theme="off-white"],
-    html.light,
-    body.light {
-      --bg: #f8f7f4;
-      --card-bg: rgba(255, 255, 255, 0.94);
-      --card-border: rgba(228, 225, 218, 0.9);
-      --card-hover: rgba(214, 211, 203, 0.6);
-      --text: #1c1917;
-      --text-muted: #57534e;
-      --text-dim: #78716c;
-      --primary: #0284c7;
-      --primary-dim: #0369a1;
-      --primary-glow: rgba(2, 132, 199, 0.2);
-      --accent: #7c3aed;
-      --success: #059669;
-      --success-glow: rgba(5, 150, 105, 0.15);
-      --warning: #d97706;
-      --warning-glow: rgba(217, 119, 6, 0.15);
-      --danger: #dc2626;
-      --danger-glow: rgba(220, 38, 38, 0.2);
-      --alexa-cyan: #0284c7;
-      --alexa-blue: #2563eb;
-    }
-
-    html[data-theme="off-white"] body,
-    body[data-theme="off-white"] {
-      background-color: var(--bg);
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(2, 132, 199, 0.05) 0%, transparent 45%),
-        radial-gradient(circle at 90% 80%, rgba(217, 119, 6, 0.05) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(240, 238, 233, 0.6) 0%, transparent 100%);
-    }
-
-    html[data-theme="off-white"] .brand-title h1 {
-      background: linear-gradient(135deg, #0f172a 30%, #0369a1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    html[data-theme="off-white"] .badge-streamable {
-      background: rgba(2, 132, 199, 0.08);
-      border-color: rgba(2, 132, 199, 0.25);
-      color: #0369a1;
-    }
-
-    html[data-theme="off-white"] .person-select-wrap {
-      background: #ffffff;
-      border-color: #e4e1da;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    html[data-theme="off-white"] .person-select-wrap select {
-      color: #1c1917;
-    }
-    html[data-theme="off-white"] .person-select-wrap select option {
-      background: #ffffff;
-      color: #1c1917;
-    }
-
-    html[data-theme="off-white"] .clock-pill {
-      background: #ffffff;
-      border-color: #cbd5e1;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
-    html[data-theme="off-white"] .clock-pill .time {
-      color: #0284c7;
-    }
-
-    html[data-theme="off-white"] .card {
-      box-shadow: 0 4px 20px -2px rgba(28, 25, 23, 0.05), 0 2px 6px -1px rgba(28, 25, 23, 0.03);
-    }
-
-    html[data-theme="off-white"] .profile-card,
-    html[data-theme="off-white"] .state-machine-box {
-      background: #fbfbf9;
-      border-color: #e4e1da;
-    }
-
-    html[data-theme="off-white"] .state-step {
-      background: #f3f1ec;
-      color: #57534e;
-    }
-    html[data-theme="off-white"] .state-step.active {
-      background: #e0f2fe;
-      color: #0369a1;
-      border-color: #7dd3fc;
-    }
-
-    html[data-theme="off-white"] .btn {
-      background: #ffffff;
-      border-color: #e4e1da;
-      color: #1c1917;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }
-    html[data-theme="off-white"] .btn:hover {
-      background: #f5f4ef;
-      border-color: #d6d3cb;
-    }
-
-    html[data-theme="off-white"] .alexa-speech-header {
-      background: #f0fdf4;
-      border-color: #bbf7d0;
-    }
-    html[data-theme="off-white"] .voice-status-text {
-      color: #15803d;
-    }
-
-    html[data-theme="off-white"] .msg-alexa .bubble-body {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #1e293b;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    html[data-theme="off-white"] .mcp-card {
-      background: #fbfbf9;
-      border: 1px solid #e4e1da;
-      border-left: 3px solid #0284c7;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    html[data-theme="off-white"] .mcp-block {
-      background: #f5f4ef;
-      color: #334155;
-      border: 1px solid #e4e1da;
-    }
-
-    html[data-theme="off-white"] .input-bar {
-      background: #ffffff;
-      border-color: #e4e1da;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    html[data-theme="off-white"] .input-box {
-      color: #1c1917;
-    }
-    html[data-theme="off-white"] .mic-btn {
-      background: #f5f4ef;
-      border-color: #e4e1da;
-      color: #1c1917;
-    }
-    html[data-theme="off-white"] .chip {
-      background: #f5f4ef;
-      border-color: #e4e1da;
-      color: #57534e;
-    }
-    html[data-theme="off-white"] .chip:hover {
-      background: #e0f2fe;
-      border-color: #bae6fd;
-      color: #0369a1;
-    }
-
-    /* Phone frame in off-white */
-    html[data-theme="off-white"] .phone-frame {
-      background: #18181b;
-      border-color: #cbd5e1;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(2, 132, 199, 0.08);
-    }
-
-    /* ==========================================================================
-       THEME TOGGLE PILL (matches components/ui/theme-toggle.tsx)
-       ========================================================================== */
-    .theme-toggle-wrap {
-      display: flex;
-      align-items: center;
-    }
-
-    .theme-toggle-pill {
-      position: relative;
-      display: flex;
-      width: 64px;
-      height: 32px;
-      padding: 3px;
-      border-radius: 9999px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      user-select: none;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .theme-toggle-pill.is-dark {
-      background-color: #09090b;
-      border: 1px solid #27272a;
-    }
-
-    .theme-toggle-pill.is-light {
-      background-color: #ffffff;
-      border: 1px solid #e4e1da;
-    }
-
-    .theme-toggle-track {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      position: relative;
-    }
-
-    .theme-toggle-thumb {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 24px;
-      height: 24px;
-      border-radius: 9999px;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-
-    .theme-toggle-pill.is-dark .theme-toggle-thumb {
-      transform: translateX(0);
-      background-color: #27272a;
-      color: #ffffff;
-    }
-
-    .theme-toggle-pill.is-light .theme-toggle-thumb {
-      transform: translateX(32px);
-      background-color: #f5f4ef;
-      border: 1px solid #e4e1da;
-      color: #d97706;
-    }
-
-    .theme-toggle-ghost {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 24px;
-      height: 24px;
-      border-radius: 9999px;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .theme-toggle-pill.is-dark .theme-toggle-ghost {
-      background-color: transparent;
-      color: #71717a;
-    }
-
-    .theme-toggle-pill.is-light .theme-toggle-ghost {
-      transform: translateX(-32px);
-      background-color: transparent;
-      color: #a8a29e;
-    }
-
-    /* ==========================================================================
-       SIMPLE UNDERSTANDING BANNER (Instant Glanceable Status)
-       ========================================================================== */
-    .simple-banner {
-      background: var(--card-bg);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      transition: all 0.3s ease;
-    }
-
-    html[data-theme="off-white"] .simple-banner {
-      background: #ffffff;
-      border-color: #e4e1da;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    }
-
-    .banner-status-icon-wrap {
-      width: 50px;
-      height: 50px;
-      min-width: 50px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
-      transition: all 0.3s ease;
-    }
-
-    .banner-status-icon-wrap.warning {
-      background: rgba(245, 158, 11, 0.15);
-      border-color: rgba(245, 158, 11, 0.4);
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
-    }
-
-    .banner-status-icon-wrap.danger {
-      background: rgba(239, 68, 68, 0.18);
-      border-color: rgba(239, 68, 68, 0.5);
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
-      animation: pulse-danger 1.5s infinite alternate;
-    }
-
-    .banner-text-wrap {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .banner-title-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .banner-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -0.2px;
-    }
-
-    .banner-pill {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 20px;
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .banner-pill.warning {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--warning);
-      border-color: rgba(245, 158, 11, 0.4);
-    }
-
-    .banner-pill.danger {
-      background: rgba(239, 68, 68, 0.18);
-      color: var(--danger);
-      border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    .banner-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    .banner-quick-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .banner-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-      min-height: 40px;
-    }
-
-    .banner-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-
-    html[data-theme="off-white"] .banner-btn {
-      background: #f5f4ef;
-      border-color: #e4e1da;
-      color: #1c1917;
-    }
-
-    html[data-theme="off-white"] .banner-btn:hover {
-      background: #e0f2fe;
-      border-color: #7dd3fc;
-      color: #0369a1;
-    }
-
-    /* Unsplash Avatar Styling */
-    .avatar-wrap {
-      position: relative;
-      width: 48px;
-      height: 48px;
-      flex-shrink: 0;
-    }
-    .avatar-photo {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 2px solid var(--primary);
-      box-shadow: 0 0 10px var(--primary-glow);
-      display: block;
-    }
-
-    /* ==========================================================================
-       MOBILE RESPONSIVE & TAB SWITCHER
-       ========================================================================== */
-    .mobile-nav-tabs {
-      display: none;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 6px;
-      margin-bottom: 16px;
-      position: sticky;
-      top: 10px;
-      z-index: 100;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .mobile-tab-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      padding: 10px 8px;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
-      min-height: 44px; /* Touch target accessibility */
-    }
-
-    .mobile-tab-btn.active {
-      background: rgba(0, 198, 255, 0.12);
-      border-color: rgba(0, 198, 255, 0.4);
-      color: var(--primary);
-      box-shadow: 0 0 10px rgba(0, 198, 255, 0.15);
-    }
-
-    html[data-theme="off-white"] .mobile-tab-btn.active {
-      background: #e0f2fe;
-      border-color: #7dd3fc;
-      color: #0369a1;
-    }
-
-    .mobile-badge {
-      background: #ef4444;
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 800;
-      padding: 1px 6px;
-      border-radius: 9999px;
-    }
-
-    @media (max-width: 960px) {
-      body {
-        padding: 12px 14px 48px 14px;
-      }
-      header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-      }
-      .brand-wrap {
-        width: 100%;
-        justify-content: space-between;
-      }
-      .brand-title h1 {
-        font-size: 19px;
-      }
-      .brand-title p {
-        font-size: 11px;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .header-controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        width: 100%;
-      }
-      .person-select-wrap {
-        grid-column: span 2;
-        width: 100%;
-        min-height: 44px;
-      }
-      .clock-pill {
-        justify-content: center;
-        min-height: 40px;
-      }
-      .theme-toggle-wrap {
-        justify-content: center;
-        min-height: 40px;
-      }
-      .demo-btn-hero {
-        grid-column: span 2;
-        width: 100%;
-        justify-content: center;
-        min-height: 44px;
-        font-size: 13px;
-      }
-      .mobile-nav-tabs {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-        position: sticky;
-        top: 8px;
-        z-index: 100;
-        margin-bottom: 14px;
-        padding: 4px;
-        border-radius: 14px;
-      }
-      .mobile-tab-btn {
-        padding: 10px 4px;
-        font-size: 12px;
-        min-height: 44px;
-      }
-      .main-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 16px !important;
-      }
-      .col-elder, .col-alexa, .col-phone {
-        display: none !important;
-      }
-      .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible {
-        display: flex !important;
-        width: 100% !important;
-      }
-      .phone-frame {
-        max-width: 100%;
-        border-radius: 20px;
-        padding: 14px;
-      }
-      .simple-banner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 14px 16px;
-      }
-      .banner-title {
-        font-size: 15px;
-      }
-      .banner-quick-actions {
-        width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-      .banner-btn {
-        width: 100%;
-        min-height: 44px;
-        text-align: center;
-        font-size: 12px;
-      }
-      .input-bar {
-        padding: 8px 10px;
-      }
-      .input-box {
-        font-size: 16px; /* Prevents auto-zoom in mobile Safari */
-      }
-      .mic-btn {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-      }
-      .send-btn {
-        min-height: 44px;
-        padding: 8px 16px;
-      }
-      .chips-wrap {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        padding-bottom: 6px;
-        -webkit-overflow-scrolling: touch;
-        gap: 8px;
-      }
-      .chip {
-        white-space: nowrap;
-        padding: 8px 14px;
-        font-size: 12px;
-        min-height: 36px;
-      }
-      .btn {
-        min-height: 42px;
-      }
-    }
-
-    /* Connection Status Indicator */
-    .conn-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
-    }
-    .conn-pill.disconnected {
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.4);
-      color: #f87171;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
-    }
-    .conn-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
-    }
-    .conn-pill.disconnected .conn-dot {
-      background: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
-      animation: alert-flash 1s infinite alternate;
-    }
-
-    /* Connection Lost Alert Banner */
-    .alert-banner-disconnected {
-      display: none;
-      background: rgba(185, 28, 28, 0.95);
-      border: 1px solid #ef4444;
-      color: #fff;
-      padding: 12px 18px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 13px;
-      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
-    }
-
-    /* Message Bubble Source Badges */
-    .input-source-badge {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 2px 7px;
-      border-radius: 5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .badge-speech {
-      background: rgba(239, 68, 68, 0.2);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-    .badge-text {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-      border: 1px solid rgba(59, 130, 246, 0.4);
-    }
-    .badge-chip {
-      background: rgba(139, 92, 246, 0.2);
-      color: #c4b5fd;
-      border: 1px solid rgba(139, 92, 246, 0.4);
-    }
-
-    /* MCP Card Error & Status */
-    .mcp-card-error {
-      border-color: rgba(239, 68, 68, 0.5) !important;
-      border-left: 3px solid #ef4444 !important;
-      background: rgba(25, 10, 15, 0.95) !important;
-    }
-    .mcp-status-success {
-      color: #34d399;
-      font-weight: 700;
-      font-size: 10px;
-    }
-    .mcp-status-error {
-      color: #f87171;
-      font-weight: 700;
-      font-size: 10px;
-    }
-    .mcp-block-error {
-      color: #fca5a5 !important;
-      border-left: 2px solid #ef4444;
-    }
-    .mcp-retry-btn {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #fca5a5;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 8px;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.2s;
-    }
-    .mcp-retry-btn:hover {
-      background: rgba(239, 68, 68, 0.4);
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-
-    /* Phrase Directory Table */
+    /* Collapsible Phrase Table */
     .phrase-table-card {
       display: none;
-      background: rgba(10, 15, 28, 0.85);
+      background: rgba(10, 15, 28, 0.95);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px;
       margin-top: 8px;
       font-size: 11px;
     }
@@ -1749,78 +1348,318 @@
       background: rgba(255, 255, 255, 0.03);
     }
 
-    /* Laptop & Desktop Spacious Flow (Natural Home Scrolling & Clean 2-Column Balance) */
-    @media (min-width: 961px) {
-      .main-grid {
+    /* Connection Lost Alert Banner */
+    .alert-banner-disconnected {
+      display: none;
+      background: rgba(185, 28, 28, 0.95);
+      border: 1px solid #ef4444;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    }
+
+    /* ==========================================================================
+       OFF-WHITE WARM THEME (SERENE DAYLIGHT ELDER MODE)
+       ========================================================================== */
+    html[data-theme="off-white"],
+    body[data-theme="off-white"],
+    html.light,
+    body.light {
+      --bg: #f5f7fb;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-border: #e2e8f0;
+      --card-hover: rgba(0, 140, 210, 0.35);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --primary: #0084c7;
+      --primary-dim: #0265d2;
+      --primary-glow: rgba(0, 132, 199, 0.2);
+      --alexa-cyan: #0088cc;
+      --alexa-blue: #0052cc;
+      --surface-glass: rgba(240, 244, 250, 0.85);
+    }
+
+    html[data-theme="off-white"] body,
+    body[data-theme="off-white"] {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(ellipse 70% 40% at 20% -5%, rgba(0, 132, 199, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 10%, rgba(244, 63, 94, 0.05) 0%, transparent 60%),
+        radial-gradient(circle at 50% 90%, rgba(226, 232, 240, 0.6) 0%, transparent 100%);
+    }
+
+    html[data-theme="off-white"] .brand-title h1 {
+      background: linear-gradient(135deg, #0f172a 40%, #0084c7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    html[data-theme="off-white"] .person-select-wrap,
+    html[data-theme="off-white"] .clock-pill,
+    html[data-theme="off-white"] .system-status-bar {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    html[data-theme="off-white"] .theme-toggle-pill {
+      background: #e2e8f0;
+    }
+
+    html[data-theme="off-white"] .theme-toggle-thumb {
+      transform: translateX(26px);
+      background: #ffffff;
+      color: #0284c7;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    html[data-theme="off-white"] .theme-toggle-ghost {
+      left: 6px;
+      right: auto;
+      color: #0284c7;
+      opacity: 0.8;
+    }
+
+    html[data-theme="off-white"] .conversation-log {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+
+    html[data-theme="off-white"] .msg-alexa .bubble-body {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    html[data-theme="off-white"] .input-bar {
+      background: #ffffff;
+      border-color: #cbd5e1;
+    }
+
+    html[data-theme="off-white"] .input-box {
+      color: #0f172a;
+    }
+
+    html[data-theme="off-white"] .phone-frame {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    html[data-theme="off-white"] .phone-app-title h4 {
+      color: #0f172a;
+    }
+
+    html[data-theme="off-white"] .mcp-card {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    html[data-theme="off-white"] .mcp-block {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    /* Mobile Segmented Navigation Tabs */
+    .mobile-nav-tabs {
+      display: none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 6px;
+      margin-bottom: 16px;
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .mobile-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 8px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      min-height: 44px;
+    }
+
+    .mobile-tab-btn.active {
+      background: rgba(0, 202, 255, 0.15);
+      border-color: var(--alexa-cyan);
+      color: var(--alexa-cyan);
+      box-shadow: 0 0 12px var(--alexa-glow);
+    }
+
+    .mobile-badge {
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 9999px;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 960px) {
+      body {
+        padding: 12px 14px 48px 14px;
+      }
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .brand-wrap {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .header-controls {
         display: grid;
-        grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
-        grid-template-areas:
-          "alexa phone"
-          "alexa elder";
-        gap: 24px;
-        align-items: start;
-        margin-top: 10px;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
       }
-      .col-alexa {
-        grid-area: alexa;
+      .person-select-wrap {
+        grid-column: span 2;
+        width: 100%;
       }
-      .col-phone {
-        grid-area: phone;
+      .clock-pill, .theme-toggle-wrap {
+        justify-content: center;
       }
-      .col-elder {
-        grid-area: elder;
+      .demo-btn-hero {
+        grid-column: span 2;
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
       }
-      .card {
-        max-height: none !important;
-        overflow-y: visible;
+      .mobile-nav-tabs {
+        display: grid;
       }
-      .alexa-ambient-panel {
-        height: auto !important;
+      .main-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
       }
-      .conversation-log {
-        min-height: 380px;
-        max-height: 560px;
-        overflow-y: auto;
+      .col-elder, .col-alexa, .col-phone {
+        display: none !important;
       }
-      .phone-notifications-stream {
-        min-height: 180px;
-        max-height: 380px;
-        overflow-y: auto;
+      .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible {
+        display: flex !important;
+        width: 100% !important;
+      }
+      .simple-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+      }
+      .banner-quick-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .banner-btn {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
       }
     }
   </style>
-
 </head>
 <body>
 
-  <!-- Top Ambient Header -->
+  <!-- Top Ambient Header with CareLoop Elder Human Logo & Alexa Echo Ring -->
   <header>
     <div class="brand-wrap">
-      <div class="alexa-orb" id="alexa-orb">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-          <line x1="12" y1="19" x2="12" y2="22"></line>
-        </svg>
-      </div>
-      <div class="brand-title">
-        <div style="display: flex; align-items: center;">
-          <h1>CareLoop</h1>
-          <span class="badge-streamable">MCP Streamable HTTP · 2025-11-25</span>
-          <span style="font-size: 10px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px; padding: 2px 6px; margin-left: 8px; font-weight: 600; letter-spacing: 0.03em;">SIMULATION FALLBACK</span>
+      <div class="careloop-logo-badge">
+        <!-- CareLoop Elder Human Protection Logo -->
+        <div class="elder-logo-frame" title="CareLoop Elder Care Protection Emblem">
+          <img src="/simulator/logo.jpg" alt="CareLoop Elder Care Logo" class="elder-logo-img" onerror="this.style.display='none';" />
         </div>
-        <p>Ambient Elder Care Voice Simulator · Direct FastMCP Streamable HTTP Calls (Local Simulation Fallback — Not an Amazon-certified Alexa+ device)</p>
+        <!-- Alexa Echo Light Ring Orb -->
+        <div class="alexa-orb" id="alexa-orb" title="Alexa+ Ambient Echo Light Ring">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+        </div>
+      </div>
+
+      <div class="brand-title">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <h1>CareLoop</h1>
+          <span class="badge-alexa-plus">Alexa+ Ambient Care</span>
+          <span style="font-size: 10px; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.25); color: #38bdf8; border-radius: 4px; padding: 2px 6px; font-weight: 600; letter-spacing: 0.02em;" title="Local Simulation Fallback — Not an Amazon-certified Alexa+ device">SIMULATION FALLBACK</span>
+        </div>
+        <p>Elder Protection & Routine Safety · Local Simulation Fallback (Not an Amazon-certified Alexa+ device)</p>
       </div>
     </div>
 
     <div class="header-controls">
+      <!-- Monitored Elder Person Selector -->
+      <div class="person-select-wrap">
+        <label for="person-select">Monitored Elder:</label>
+        <select id="person-select" onchange="onPersonChange()">
+          <option value="dad">Arthur Davis (Dad)</option>
+          <option value="eleanor">Eleanor Davis (Mom)</option>
+          <option value="martha">Martha Jenkins (Age 84)</option>
+        </select>
+      </div>
+
+      <!-- Simulated Clock Pill -->
+      <div class="clock-pill" title="Simulated Clock Time (UTC)">
+        <span class="label">Clock</span>
+        <span class="time" id="clock-display">--:--:-- UTC</span>
+      </div>
+
+      <!-- Missed Medication Demo Hero Button -->
+      <button class="demo-btn-hero demo-btn-med" id="hero-med-demo-btn" onclick="startMissedMedicationDemo()" title="Trigger Eleanor Missed Medication 9-Step Demo">
+        <span>💊</span>
+        <span>Missed Meds Demo</span>
+      </button>
+
+      <!-- Dad Skips Lunch Demo Hero Button -->
+      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()" title="Trigger Dad Skips Lunch Demo">
+        <span>🍲</span>
+        <span>Dad Skips Lunch Demo</span>
+      </button>
+
       <!-- Connection Status Pill -->
       <div class="conn-pill" id="conn-status-pill" title="Connected to MCP Server (http://127.0.0.1:8000)">
         <span class="conn-dot" id="conn-dot"></span>
         <span id="conn-text">MCP Online</span>
       </div>
 
-      <!-- Sliding Theme Toggle Pill (Off-White Warm / Dark Mode) -->
+      <!-- Alexa+ Auth Token Pill -->
+      <button class="clock-pill" id="auth-token-btn" onclick="promptAuthToken()" style="cursor: pointer; background: rgba(18, 28, 52, 0.7);" title="Configure Alexa+ Bearer Auth Token">
+        <span class="label">Auth</span>
+        <span class="time" id="auth-token-status" style="font-size: 11px; color: #a5f3fc;">Open Mode</span>
+      </button>
+
+      <!-- Sliding Theme Toggle Pill (Serene Light / Alexa Midnight Dark) -->
       <div class="theme-toggle-wrap">
         <div
           class="theme-toggle-pill is-dark"
@@ -1828,19 +1667,19 @@
           onclick="toggleTheme()"
           role="button"
           tabindex="0"
-          aria-label="Switch to off-white theme"
-          title="Toggle Off-White Warm / Dark Theme"
+          aria-label="Toggle Serene Light / Dark Theme"
+          title="Toggle Serene Light / Dark Theme"
         >
           <div class="theme-toggle-track">
             <div class="theme-toggle-thumb" id="theme-toggle-thumb">
               <!-- Lucide Moon Icon -->
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
               </svg>
             </div>
             <div class="theme-toggle-ghost" id="theme-toggle-ghost">
               <!-- Lucide Sun Icon -->
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="4"></circle>
                 <path d="M12 2v2"></path>
                 <path d="M12 20v2"></path>
@@ -1855,72 +1694,38 @@
           </div>
         </div>
       </div>
-
-      <!-- Person Selector -->
-      <div class="person-select-wrap">
-        <label for="person-select">Monitored Elder:</label>
-        <select id="person-select" onchange="onPersonChange()">
-          <option value="dad">Arthur Davis (Dad)</option>
-          <option value="eleanor">Eleanor Davis (Mom)</option>
-          <option value="martha">Martha Jenkins (Age 84)</option>
-        </select>
-      </div>
-
-      <!-- Injectable Clock Pill -->
-      <div class="clock-pill">
-        <span class="label">Simulated Clock</span>
-        <span class="time" id="clock-display">--:--:-- UTC</span>
-      </div>
-
-      <!-- Alexa+ Auth Token Pill -->
-      <button class="clock-pill" id="auth-token-btn" onclick="promptAuthToken()" style="cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: rgba(30, 41, 59, 0.7);" title="Configure Alexa+ Bearer Auth Token">
-        <span class="label">Alexa+ Auth</span>
-        <span class="time" id="auth-token-status" style="font-size: 11px; color: #a5f3fc;">Open Mode</span>
-      </button>
-
-      <!-- Missed Medication Hero Button (Eleanor) -->
-      <button class="demo-btn-hero" id="hero-med-demo-btn" onclick="startMissedMedicationDemo()" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);" title="Trigger Eleanor Missed Medication 9-Step Demo">
-        <span>💊</span>
-        <span>Missed Meds Demo</span>
-      </button>
-
-      <!-- Dad Skips Lunch Hero Button -->
-      <button class="demo-btn-hero" id="hero-demo-btn" onclick="startDadSkipsLunchDemo()" title="Trigger Dad Skips Lunch Demo">
-        <span>🍲</span>
-        <span>Dad Skips Lunch Demo</span>
-      </button>
     </div>
   </header>
 
-  <!-- System Status Bar: Clock, Database, Server, Notifier, and Demo Timeouts -->
-  <div class="system-status-bar" id="system-status-bar" style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; gap: 12px;">
-    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-      <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);" id="demo-mode-indicator">
-        <span style="font-size: 8px;">●</span> DEMO MODE (Fast Timeouts: 60s)
+  <!-- Clean Compact System Status Bar -->
+  <div class="system-status-bar" id="system-status-bar">
+    <div class="system-status-items">
+      <span style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);" id="demo-mode-indicator">
+        <span>●</span> DEMO MODE (Fast Timeouts: 60s)
       </span>
-      <span style="display: flex; align-items: center; gap: 6px;" title="Simulation Clock Mode and Time">
-        <span style="color: #64748b;">Clock:</span>
-        <strong id="sys-clock-status" style="color: #38bdf8; font-family: monospace;">Simulated (UTC)</strong>
+      <span class="status-item" title="Simulation Clock Mode">
+        <span>Clock:</span>
+        <strong id="sys-clock-status">Simulated (UTC)</strong>
       </span>
-      <span style="display: flex; align-items: center; gap: 6px;" title="Isolated Demo Database Storage">
-        <span style="color: #64748b;">Database:</span>
-        <strong id="sys-db-status" style="color: #cbd5e1; font-family: monospace;">SQLite (careloop_demo.db)</strong>
+      <span class="status-item" title="Isolated Storage Database">
+        <span>Database:</span>
+        <strong id="sys-db-status">SQLite (careloop_local.db)</strong>
       </span>
-      <span style="display: flex; align-items: center; gap: 6px;" title="MCP Protocol & Server Endpoint">
-        <span style="color: #64748b;">Server:</span>
-        <strong id="sys-server-status" style="color: #a78bfa; font-family: monospace;">FastMCP 0.1.0 (/mcp)</strong>
+      <span class="status-item" title="MCP Streamable HTTP Server Endpoint">
+        <span>Server:</span>
+        <strong id="sys-server-status">FastMCP (/mcp)</strong>
       </span>
-      <span style="display: flex; align-items: center; gap: 6px;" title="Active Caregiver Notification Channel">
-        <span style="color: #64748b;">Notifier:</span>
-        <strong id="sys-notifier-status" style="color: #f59e0b; font-family: monospace;">ConsoleNotifier (stdout)</strong>
+      <span class="status-item" title="Active Caregiver Notification Channel">
+        <span>Notifier:</span>
+        <strong id="sys-notifier-status">ConsoleNotifier</strong>
       </span>
     </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <button onclick="resetDemoSession()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Reset isolated demo events and alerts while preserving learned baseline">
-        ↺ Reset Demo Session
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button onclick="resetDemoSession()" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Reset isolated demo events and alerts while preserving learned baseline">
+        ↺ Reset Session
       </button>
-      <button onclick="showTroubleshootingModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;" title="View common startup, browser, and connectivity troubleshooting steps">
-        ❓ Troubleshooting
+      <button onclick="showTroubleshootingModal()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 3px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+        ❓ Help
       </button>
     </div>
   </div>
@@ -1929,24 +1734,26 @@
   <div class="alert-banner-disconnected" id="connection-alert-banner">
     <div style="display: flex; align-items: center; gap: 10px;">
       <span style="font-size: 20px;">⚠️</span>
-      <span id="connection-alert-msg">Cannot reach CareLoop MCP Server at http://127.0.0.1:8000. Start server using: python -m careloop.server --clock simulated</span>
+      <span id="connection-alert-msg">Cannot reach CareLoop MCP Server at http://127.0.0.1:8000.</span>
     </div>
     <button class="banner-btn" onclick="retryConnection()" style="background: rgba(255,255,255,0.25); border-color: #fff; color: #fff;">🔄 Retry Connection</button>
   </div>
 
-  <!-- Simple Understanding Status Banner for Family & Caregivers -->
+  <!-- Reassuring Glanceable Status Banner for Families -->
   <div class="simple-banner" id="care-summary-banner">
-    <div class="banner-status-icon-wrap" id="banner-status-orb">
-      <span class="banner-emoji" id="banner-emoji">🟢</span>
-    </div>
-    <div class="banner-text-wrap">
-      <div class="banner-title-row">
-        <h2 class="banner-title" id="banner-title">Arthur is Doing Well at Home</h2>
-        <span class="banner-pill" id="banner-sub-pill">All Routines On Track</span>
+    <div class="banner-left">
+      <div class="banner-status-icon-wrap" id="banner-status-orb">
+        <span class="banner-emoji" id="banner-emoji">🟢</span>
       </div>
-      <p class="banner-desc" id="banner-desc">
-        Morning blood pressure medication was logged at 8:05 AM. Next scheduled check-in: Lunch at 12:30 PM.
-      </p>
+      <div class="banner-text-wrap">
+        <div class="banner-title-row">
+          <h2 class="banner-title" id="banner-title">Arthur is Safe & Doing Well at Home</h2>
+          <span class="banner-pill" id="banner-sub-pill">All Routines On Track</span>
+        </div>
+        <p class="banner-desc" id="banner-desc">
+          Morning blood pressure medication was logged at 8:05 AM. Next scheduled check-in: Lunch at 12:30 PM.
+        </p>
+      </div>
     </div>
     <div class="banner-quick-actions">
       <button class="banner-btn" onclick="quickCheckIn()">🗣️ "How is Dad doing?"</button>
@@ -1954,7 +1761,7 @@
     </div>
   </div>
 
-  <!-- Mobile Segmented Navigation Tabs (for smartphones & tablets) -->
+  <!-- Mobile Segmented Navigation Tabs (Smartphones & Tablets) -->
   <div class="mobile-nav-tabs" id="mobile-nav-tabs">
     <button class="mobile-tab-btn active" id="tab-btn-alexa" onclick="switchMobileTab('alexa')">
       <span>🛡️</span>
@@ -1971,10 +1778,10 @@
     </button>
   </div>
 
-  <!-- Main 3-Column Layout -->
+  <!-- Main Grid: Natural Vertical Scroll on Laptop, Clean 2-Column Balance -->
   <div class="main-grid">
 
-    <!-- LEFT COLUMN: Elder Profile & Time Travel Machine -->
+    <!-- LEFT COLUMN: Elder Profile & Time Travel Controls -->
     <div class="card col-elder tab-visible">
       <div class="card-header">
         <h2>👤 Elder Status</h2>
@@ -1989,42 +1796,42 @@
         <div class="profile-info">
           <h3 id="profile-name">Arthur Davis (Dad)</h3>
           <p id="profile-meta">Age 81 · Living Independently</p>
-          <p style="font-size: 11px; color: var(--primary); margin-top: 2px;">Caregiver: Linda Davis (Daughter)</p>
+          <p style="font-size: 11px; color: var(--alexa-cyan); margin-top: 2px;">Caregiver: Linda Davis (Daughter)</p>
         </div>
       </div>
 
-      <!-- State Machine Steps -->
-      <div class="card-header" style="margin-top: 4px;">
+      <!-- 4-Stage Escalation State Machine -->
+      <div class="card-header" style="margin-top: 2px;">
         <h2>🔄 Escalation State Machine</h2>
       </div>
 
       <div class="state-machine-box">
         <div class="state-steps">
           <div class="state-step active" id="stage-normal">
-            <span>1. Normal (Nominal)</span>
+            <span>1. Normal (Nominal Routine)</span>
             <div class="state-indicator-dot"></div>
           </div>
           <div class="state-step" id="stage-gentle">
-            <span>2. Gentle Check-In (Voice)</span>
+            <span>2. Gentle Check-In (Alexa Voice)</span>
             <div class="state-indicator-dot"></div>
           </div>
           <div class="state-step" id="stage-repeat">
-            <span>3. Repeat Check-In (+60s)</span>
+            <span>3. Repeat Check-In (+60s Voice Prompt)</span>
             <div class="state-indicator-dot"></div>
           </div>
           <div class="state-step" id="stage-notify">
-            <span>4. Notify Family (SMS/SNS)</span>
+            <span>4. Notify Family (SMS / Push Alert)</span>
             <div class="state-indicator-dot"></div>
           </div>
         </div>
       </div>
 
-      <!-- Injectable Clock Machine -->
-      <div class="card-header" style="margin-top: 6px;">
+      <!-- Time Travel Controls -->
+      <div class="card-header" style="margin-top: 4px;">
         <h2>⏳ Time Travel Controls</h2>
       </div>
       <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-        Directly advances the backend <code>SimulatedClock</code> to test baseline grace windows and escalation timeouts.
+        Directly advances backend <code>SimulatedClock</code> to test baseline grace windows and autonomous escalation timeouts.
       </p>
 
       <div class="time-travel-grid">
@@ -2033,7 +1840,7 @@
         <button class="btn" onclick="advanceClock(180)">+3 Hours</button>
         <button class="btn" onclick="advanceClock(1440)">+1 Day</button>
         <button class="btn btn-reset" onclick="resetClock()">↺ Reset Simulation Clock (08:15 AM)</button>
-        <button class="btn btn-reset-demo" onclick="resetDemoSession()" style="grid-column: span 2; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; font-weight: 700;">↺ Reset Demo Data (Isolate Clean State)</button>
+        <button class="btn btn-reset-demo" onclick="resetDemoSession()" style="grid-column: span 2; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; font-weight: 700;">↺ Reset Demo Data (Clean State)</button>
       </div>
 
       <!-- Privacy Guarantee -->
@@ -2047,8 +1854,9 @@
 
     <!-- CENTER COLUMN: Alexa Voice Assistant & Conversation Log -->
     <div class="card alexa-ambient-panel col-alexa tab-visible">
+      <div class="echo-ambient-lightbar"></div>
 
-      <!-- Demo Progress Banner (Active during Dad skips lunch scenario) -->
+      <!-- Demo Progress Card (Active during scenario walkthroughs) -->
       <div class="demo-progress-card" id="demo-progress-card">
         <div class="demo-progress-top">
           <span id="demo-step-title">Scenario Running: Step 1/6</span>
@@ -2065,16 +1873,16 @@
           <span>●</span> <span id="voice-status-label">Alexa is ready. Say or type a phrase...</span>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="toggleSpeechSynthesis()" id="tts-toggle-btn">
+          <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="toggleSpeechSynthesis()" id="tts-toggle-btn">
             🔊 Voice Audio: ON
           </button>
-          <button class="btn" style="padding: 4px 8px; font-size: 11px;" onclick="clearConversation()">
+          <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="clearConversation()">
             Clear
           </button>
         </div>
       </div>
 
-      <!-- Conversation Transcript & Visible MCP Tool Calls -->
+      <!-- Conversation Log & Visible MCP Tool Calls -->
       <div class="conversation-log" id="conversation-log">
         <!-- Initial Welcome Message -->
         <div class="msg-bubble msg-alexa">
@@ -2091,14 +1899,14 @@
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Tap to test Alexa phrases (mapped to MCP tools):</span>
-          <button class="btn" style="padding: 2px 8px; font-size: 10px; font-weight: 700; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;" onclick="togglePhraseTable()">
+          <button class="btn" style="padding: 2px 8px; font-size: 10px; font-weight: 700; background: rgba(0, 229, 255, 0.1); border-color: rgba(0, 229, 255, 0.3); color: var(--alexa-cyan);" onclick="togglePhraseTable()">
             📖 Mapped Phrases Directory
           </button>
         </div>
 
         <!-- Collapsible Phrase Directory Table -->
         <div class="phrase-table-card" id="phrase-table-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--alexa-cyan); margin-bottom: 6px;">
             <span>Deterministic User Phrase → Real MCP Tool Mapping (Spec 2025-11-25)</span>
             <button class="btn" style="padding: 2px 6px; font-size: 10px;" onclick="togglePhraseTable()">✕ Close</button>
           </div>
@@ -2182,8 +1990,8 @@
         </div>
       </div>
 
-      <!-- Voice & Text Input Bar -->
-      <div class="input-bar">
+      <!-- Voice & Text Input Bar: Web Speech API & Manual Text Input -->
+      <div class="input-bar" title="Web Speech API & Manual Text Input">
         <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Click to speak (Web Speech API)">
           🎤
         </button>
@@ -2200,14 +2008,14 @@
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: Family Phone (Real-time Caregiver Alerts) -->
+    <!-- RIGHT COLUMN: Family Phone (Real-Time Push Alerts) -->
     <div class="phone-column col-phone">
       <div class="phone-frame">
         <!-- Phone Notch / Status Bar -->
         <div class="phone-top-notch">
           <span class="phone-time" id="phone-clock">14:02</span>
           <div class="dynamic-island">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: #00c6ff;"></span>
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--alexa-cyan);"></span>
           </div>
           <div class="phone-icons">
             <span>5G</span>

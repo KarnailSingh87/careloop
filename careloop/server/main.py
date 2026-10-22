@@ -25,7 +25,7 @@ except ImportError:
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse
+from starlette.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse, Response
 from starlette.routing import Route
 import uvicorn
 from dateutil import parser as date_parser
@@ -343,6 +343,12 @@ def create_app(
                 return HTMLResponse(f.read())
         return HTMLResponse("<h1>CareLoop Simulator UI</h1><p>Running on /mcp</p>")
 
+    async def simulator_logo_endpoint(request):
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "simulator", "logo.jpg")
+        if os.path.exists(logo_path):
+            return FileResponse(logo_path, media_type="image/jpeg")
+        return Response(status_code=404)
+
     async def root_endpoint(request):
         return RedirectResponse(url="/simulator")
 
@@ -647,6 +653,7 @@ def create_app(
     app.routes.append(Route("/", root_endpoint, methods=["GET"]))
     app.routes.append(Route("/health", health_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator", simulator_endpoint, methods=["GET"]))
+    app.routes.append(Route("/simulator/logo.jpg", simulator_logo_endpoint, methods=["GET"]))
     app.routes.append(
         Route("/.well-known/oauth-protected-resource", oauth_protected_resource_metadata, methods=["GET"])
     )
