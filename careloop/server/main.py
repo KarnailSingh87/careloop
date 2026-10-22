@@ -352,6 +352,28 @@ def create_app(
     async def root_endpoint(request):
         return RedirectResponse(url="/simulator")
 
+    async def app_ui_endpoint(request):
+        dist_index = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dist", "index.html")
+        if os.path.exists(dist_index):
+            with open(dist_index, "r", encoding="utf-8") as f:
+                return HTMLResponse(f.read())
+        return RedirectResponse(url="/simulator")
+
+    async def app_assets_endpoint(request):
+        fname = os.path.basename(request.path_params.get("filename", ""))
+        asset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dist", "assets", fname)
+        if os.path.exists(asset_path):
+            media_type = "text/css" if fname.endswith(".css") else "application/javascript" if fname.endswith(".js") else None
+            return FileResponse(asset_path, media_type=media_type)
+        return Response(status_code=404)
+
+    async def portrait_endpoint(request):
+        fname = os.path.basename(request.path_params.get("filename", ""))
+        portrait_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "portraits", fname)
+        if os.path.exists(portrait_path):
+            return FileResponse(portrait_path, media_type="image/jpeg")
+        return Response(status_code=404)
+
     # API endpoints for Simulator UI
     async def api_state_endpoint(request):
         person_id = request.query_params.get("person", "dad").strip().lower()
@@ -654,6 +676,9 @@ def create_app(
     app.routes.append(Route("/health", health_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator", simulator_endpoint, methods=["GET"]))
     app.routes.append(Route("/simulator/logo.jpg", simulator_logo_endpoint, methods=["GET"]))
+    app.routes.append(Route("/app", app_ui_endpoint, methods=["GET"]))
+    app.routes.append(Route("/assets/{filename}", app_assets_endpoint, methods=["GET"]))
+    app.routes.append(Route("/portraits/{filename}", portrait_endpoint, methods=["GET"]))
     app.routes.append(
         Route("/.well-known/oauth-protected-resource", oauth_protected_resource_metadata, methods=["GET"])
     )
