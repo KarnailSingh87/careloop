@@ -18,14 +18,10 @@ region = os.getenv("CDK_DEFAULT_REGION", os.getenv("AWS_REGION", "us-east-1"))
 
 env = cdk.Environment(account=account, region=region)
 
-bedrock_model_id = (
-    app.node.try_get_context("bedrockModelId")
-    or os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+bedrock_model_id = app.node.try_get_context("bedrockModelId") or os.getenv(
+    "BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0"
 )
-auth_token_secret_arn = (
-    app.node.try_get_context("authTokenSecretArn")
-    or os.getenv("ALEXA_AUTH_TOKEN_SECRET_ARN")
-)
+auth_token_secret_arn = app.node.try_get_context("authTokenSecretArn") or os.getenv("ALEXA_AUTH_TOKEN_SECRET_ARN")
 
 CareLoopStack(
     app,
@@ -37,4 +33,3 @@ CareLoopStack(
 )
 
 app.synth()
-

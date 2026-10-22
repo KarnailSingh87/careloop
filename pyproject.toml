@@ -90,7 +90,7 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.11"
-files = ["careloop"]
+files = ["careloop", "server"]
 ignore_missing_imports = true
 check_untyped_defs = true
 warn_redundant_casts = true

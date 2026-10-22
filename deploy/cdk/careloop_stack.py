@@ -48,11 +48,7 @@ class CareLoopStack(Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        model_id = (
-            self.node.try_get_context("bedrockModelId")
-            or os.getenv("BEDROCK_MODEL_ID")
-            or bedrock_model_id
-        )
+        model_id = self.node.try_get_context("bedrockModelId") or os.getenv("BEDROCK_MODEL_ID") or bedrock_model_id
         token_secret_arn = (
             auth_token_secret_arn
             or self.node.try_get_context("authTokenSecretArn")
@@ -216,9 +212,7 @@ class CareLoopStack(Stack):
         target_group.set_attribute("deregistration_delay.timeout_seconds", "15")
 
         # Set ALB idle timeout to 300s to support long-lived Streamable HTTP streaming connections
-        fargate_service.load_balancer.set_attribute(
-            "idle_timeout.timeout_seconds", "300"
-        )
+        fargate_service.load_balancer.set_attribute("idle_timeout.timeout_seconds", "300")
 
         # ---------------------------------------------------------------------
         # 6. Dead Letter Queue & EventBridge Scheduled Rule: Call tick every minute
@@ -232,9 +226,7 @@ class CareLoopStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
         )
 
-        lambda_dir = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "../tick_lambda")
-        )
+        lambda_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../tick_lambda"))
 
         tick_lambda_env = {
             "MCP_SERVER_URL": f"http://{fargate_service.load_balancer.load_balancer_dns_name}",

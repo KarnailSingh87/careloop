@@ -37,11 +37,13 @@
       background-color: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
       background-image: 
         radial-gradient(circle at 10% 20%, rgba(0, 198, 255, 0.08) 0%, transparent 45%),
         radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
         radial-gradient(circle at 50% 50%, rgba(14, 21, 37, 0.5) 0%, transparent 100%);
-      padding: 16px 24px 32px 24px;
+      padding: 18px 24px 60px 24px;
       overflow-x: hidden;
     }
 
@@ -216,17 +218,32 @@
       background: linear-gradient(135deg, #1d4ed8, #6d28d9);
     }
 
-    /* Main 3-Column Layout */
+    /* Main Layout: Balanced 2-Column on Laptops & Desktops with Natural Vertical Scroll */
     .main-grid {
       display: grid;
-      grid-template-columns: 320px 1fr 340px;
-      gap: 20px;
+      grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+      grid-template-areas:
+        "alexa phone"
+        "alexa elder";
+      gap: 24px;
       align-items: start;
+      margin-top: 8px;
     }
 
-    @media (max-width: 1200px) {
+    .col-alexa {
+      grid-area: alexa;
+    }
+    .col-phone {
+      grid-area: phone;
+    }
+    .col-elder {
+      grid-area: elder;
+    }
+
+    @media (max-width: 1120px) and (min-width: 961px) {
       .main-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1.25fr) minmax(330px, 1fr);
+        gap: 20px;
       }
     }
 
@@ -441,19 +458,19 @@
       border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    /* Center Column: Alexa Voice Interface & Conversation Log */
+    /* Left Primary Column: Alexa Voice Interface & Conversation Log */
     .alexa-ambient-panel {
       display: flex;
       flex-direction: column;
       gap: 16px;
-      min-height: 640px;
+      min-height: auto;
     }
 
     .alexa-speech-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
+      padding: 12px 16px;
       background: rgba(0, 229, 255, 0.04);
       border: 1px solid rgba(0, 229, 255, 0.15);
       border-radius: 12px;
@@ -473,9 +490,10 @@
       flex-direction: column;
       gap: 14px;
       flex-grow: 1;
-      max-height: 420px;
+      min-height: 340px;
+      max-height: 540px;
       overflow-y: auto;
-      padding-right: 4px;
+      padding-right: 6px;
     }
 
     .conversation-log::-webkit-scrollbar {
@@ -724,18 +742,18 @@
 
     .phone-frame {
       width: 100%;
-      max-width: 330px;
+      max-width: 100%;
       margin: 0 auto;
-      background: #000000;
-      border: 3px solid #334155;
-      border-radius: 36px;
-      padding: 12px 14px 18px 14px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 198, 255, 0.08);
+      background: rgba(10, 15, 26, 0.95);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 16px 18px 20px 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
       position: relative;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      min-height: 580px;
+      min-height: auto;
     }
 
     /* Phone Speaker / Dynamic Island */
@@ -808,6 +826,7 @@
       flex-direction: column;
       gap: 10px;
       flex-grow: 1;
+      min-height: 160px;
       max-height: 380px;
       overflow-y: auto;
     }
@@ -1441,60 +1460,139 @@
 
     @media (max-width: 960px) {
       body {
-        padding: 12px 12px 24px 12px;
+        padding: 12px 14px 48px 14px;
       }
       header {
         flex-direction: column;
         align-items: stretch;
-        gap: 14px;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
       }
       .brand-wrap {
+        width: 100%;
         justify-content: space-between;
+      }
+      .brand-title h1 {
+        font-size: 19px;
+      }
+      .brand-title p {
+        font-size: 11px;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
       .header-controls {
-        flex-wrap: wrap;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
+        width: 100%;
       }
       .person-select-wrap {
-        flex: 1 1 100%;
+        grid-column: span 2;
+        width: 100%;
+        min-height: 44px;
       }
       .clock-pill {
-        flex: 1;
         justify-content: center;
+        min-height: 40px;
+      }
+      .theme-toggle-wrap {
+        justify-content: center;
+        min-height: 40px;
       }
       .demo-btn-hero {
+        grid-column: span 2;
         width: 100%;
         justify-content: center;
-        padding: 12px;
+        min-height: 44px;
+        font-size: 13px;
       }
       .mobile-nav-tabs {
         display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        position: sticky;
+        top: 8px;
+        z-index: 100;
+        margin-bottom: 14px;
+        padding: 4px;
+        border-radius: 14px;
+      }
+      .mobile-tab-btn {
+        padding: 10px 4px;
+        font-size: 12px;
+        min-height: 44px;
       }
       .main-grid {
-        grid-template-columns: 1fr !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
       }
       .col-elder, .col-alexa, .col-phone {
         display: none !important;
       }
       .col-elder.tab-visible, .col-alexa.tab-visible, .col-phone.tab-visible {
         display: flex !important;
+        width: 100% !important;
       }
       .phone-frame {
         max-width: 100%;
+        border-radius: 20px;
+        padding: 14px;
       }
       .simple-banner {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
+        padding: 14px 16px;
+      }
+      .banner-title {
+        font-size: 15px;
       }
       .banner-quick-actions {
         width: 100%;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
       .banner-btn {
-        flex: 1;
+        width: 100%;
+        min-height: 44px;
         text-align: center;
+        font-size: 12px;
+      }
+      .input-bar {
+        padding: 8px 10px;
+      }
+      .input-box {
+        font-size: 16px; /* Prevents auto-zoom in mobile Safari */
+      }
+      .mic-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+      }
+      .send-btn {
+        min-height: 44px;
+        padding: 8px 16px;
+      }
+      .chips-wrap {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+      }
+      .chip {
+        white-space: nowrap;
+        padding: 8px 14px;
+        font-size: 12px;
+        min-height: 36px;
+      }
+      .btn {
+        min-height: 42px;
       }
     }
 
@@ -1651,35 +1749,47 @@
       background: rgba(255, 255, 255, 0.03);
     }
 
-    /* Laptop Responsive Viewport Optimization */
+    /* Laptop & Desktop Spacious Flow (Natural Home Scrolling & Clean 2-Column Balance) */
     @media (min-width: 961px) {
       .main-grid {
         display: grid;
-        grid-template-columns: 320px 1fr 340px;
-        gap: 16px;
-        align-items: stretch;
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+        grid-template-areas:
+          "alexa phone"
+          "alexa elder";
+        gap: 24px;
+        align-items: start;
+        margin-top: 10px;
+      }
+      .col-alexa {
+        grid-area: alexa;
+      }
+      .col-phone {
+        grid-area: phone;
+      }
+      .col-elder {
+        grid-area: elder;
       }
       .card {
-        max-height: calc(100vh - 170px);
-        overflow-y: auto;
+        max-height: none !important;
+        overflow-y: visible;
       }
       .alexa-ambient-panel {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 170px);
+        height: auto !important;
       }
       .conversation-log {
-        flex: 1 1 0;
-        min-height: 220px;
-        max-height: none;
+        min-height: 380px;
+        max-height: 560px;
         overflow-y: auto;
       }
       .phone-notifications-stream {
-        max-height: calc(100vh - 310px);
+        min-height: 180px;
+        max-height: 380px;
         overflow-y: auto;
       }
     }
   </style>
+
 </head>
 <body>
 

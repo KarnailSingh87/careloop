@@ -42,6 +42,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if secret_arn:
             try:
                 import boto3
+
                 sm = boto3.client("secretsmanager")
                 res = sm.get_secret_value(SecretId=secret_arn)
                 auth_token = res.get("SecretString", "").strip()

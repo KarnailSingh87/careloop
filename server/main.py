@@ -27,5 +27,13 @@ from careloop.server.main import (
     AlexaAuthMiddleware,
 )
 
+__all__ = [
+    "FastMCP",
+    "create_server",
+    "create_app",
+    "careloop_main",
+    "AlexaAuthMiddleware",
+]
+
 if __name__ == "__main__":
     careloop_main()

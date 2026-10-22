@@ -5,13 +5,18 @@ Demonstration script showcasing CareLoop's Bedrock generative assistant:
 3. No-Record Query (answering 'no record' without calling Bedrock).
 """
 
+import os
+import sys
+import tempfile
 from datetime import datetime, timezone
+
+# Ensure repository root is on sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from careloop.clock import SimulatedClock
 from careloop.llm.bedrock import BedrockAssistant
 from careloop.models import Event, EventType, PersonProfile
 from careloop.storage.sqlite_store import SQLiteStorage
-import tempfile
-import os
 
 
 def main():
