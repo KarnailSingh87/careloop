@@ -11,10 +11,15 @@ import urllib.error
 import pytest
 import yaml
 
-import aws_cdk as cdk
-from aws_cdk.assertions import Template, Match
+try:
+    import aws_cdk as cdk
+    from aws_cdk.assertions import Match, Template
 
-from deploy.cdk.careloop_stack import CareLoopStack
+    from deploy.cdk.careloop_stack import CareLoopStack
+
+    HAS_CDK = True
+except ImportError:
+    HAS_CDK = False
 from deploy.tick_lambda.tick_handler import handler
 
 
@@ -121,6 +126,8 @@ def test_tick_handler_http_error(monkeypatch):
 @pytest.fixture(scope="module")
 def synthesized_cdk_template():
     """Synthesizes the CDK stack for testing."""
+    if not HAS_CDK:
+        pytest.skip("aws_cdk is not installed")
     app = cdk.App()
     stack = CareLoopStack(
         app,
