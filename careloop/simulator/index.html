@@ -1327,7 +1327,7 @@
   <header>
     <div class="brand-wrap">
       <div class="elder-logo-frame" title="CareLoop Elder Care Protection Emblem">
-        <img src="/simulator/logo.jpg" alt="CareLoop Elder Care Logo" class="elder-logo-img" onerror="this.style.display='none';" />
+        <img src="/simulator/logo.jpg" alt="CareLoop Elder Care Logo" class="elder-logo-img" onerror="this.onerror=null; this.src='./logo.jpg';" />
       </div>
 
       <div class="brand-title-wrap">
@@ -1727,7 +1727,7 @@
 
       <div class="profile-card">
         <div class="avatar-wrap">
-          <img id="profile-img" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80" alt="Arthur Davis" class="avatar-photo" onerror="this.style.display='none'; document.getElementById('profile-avatar').style.display='flex';" />
+          <img id="profile-img" src="/portraits/arthur.jpg" alt="Arthur Davis" class="avatar-photo" onerror="this.onerror=null; this.src='../public/portraits/arthur.jpg';" />
           <div class="avatar-icon" id="profile-avatar" style="display: none;">AD</div>
         </div>
         <div class="profile-info">
@@ -2182,7 +2182,7 @@
         }
       }
 
-      // Profile & Unsplash Avatar Photo
+      // Profile & Real Portraits
       if (data.person) {
         document.getElementById('profile-name').innerText = data.person.display_name;
         const profileImg = document.getElementById('profile-img');
@@ -2190,15 +2190,24 @@
 
         if (data.person.id === 'martha') {
           profileAvatar.innerText = 'MJ';
-          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80";
+          if (profileImg) {
+            profileImg.src = "/portraits/martha.jpg";
+            profileImg.onerror = () => { profileImg.src = "../public/portraits/martha.jpg"; };
+          }
           document.getElementById('profile-meta').innerText = 'Age 84 · Living in Condo · Caregiver: Sarah Jenkins';
         } else if (data.person.id === 'dad') {
           profileAvatar.innerText = 'AD';
-          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80";
+          if (profileImg) {
+            profileImg.src = "/portraits/arthur.jpg";
+            profileImg.onerror = () => { profileImg.src = "../public/portraits/arthur.jpg"; };
+          }
           document.getElementById('profile-meta').innerText = 'Age 81 · Living Independently · Caregiver: Linda Davis';
         } else {
           profileAvatar.innerText = 'ED';
-          if (profileImg) profileImg.src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80";
+          if (profileImg) {
+            profileImg.src = "/portraits/eleanor.jpg";
+            profileImg.onerror = () => { profileImg.src = "../public/portraits/eleanor.jpg"; };
+          }
           document.getElementById('profile-meta').innerText = 'Age 78 · Living Independently · Caregiver: Linda Davis';
         }
       }

@@ -363,13 +363,17 @@ def create_app(
         fname = os.path.basename(request.path_params.get("filename", ""))
         asset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dist", "assets", fname)
         if os.path.exists(asset_path):
-            media_type = "text/css" if fname.endswith(".css") else "application/javascript" if fname.endswith(".js") else None
+            media_type = (
+                "text/css" if fname.endswith(".css") else "application/javascript" if fname.endswith(".js") else None
+            )
             return FileResponse(asset_path, media_type=media_type)
         return Response(status_code=404)
 
     async def portrait_endpoint(request):
         fname = os.path.basename(request.path_params.get("filename", ""))
-        portrait_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "portraits", fname)
+        portrait_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "portraits", fname
+        )
         if os.path.exists(portrait_path):
             return FileResponse(portrait_path, media_type="image/jpeg")
         return Response(status_code=404)

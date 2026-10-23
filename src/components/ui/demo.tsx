@@ -31,7 +31,7 @@ function CareLoopDemoCard() {
 
       <div className="mt-4 flex items-center gap-4">
         <img
-          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&h=160&q=80"
+          src="/portraits/arthur.jpg"
           alt="Arthur Davis (Dad)"
           className="w-14 h-14 rounded-full object-cover border-2 border-sky-400 shadow-sm"
         />
